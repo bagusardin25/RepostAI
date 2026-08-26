@@ -31,8 +31,10 @@ function ShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [health, setHealth] = useState<Health | null>(null);
   const [showHealthModal, setShowHealthModal] = useState(false);
+  const isLanding = pathname.startsWith("/landing");
 
   useEffect(() => {
+    if (isLanding) return;
     getHealth()
       .then((data) =>
         setHealth({
@@ -42,7 +44,11 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         }),
       )
       .catch(() => setHealth({ cutter: false, mind: false, desk: false }));
-  }, []);
+  }, [isLanding]);
+
+  if (isLanding) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--fg)]">
@@ -67,6 +73,9 @@ function ShellContent({ children }: { children: React.ReactNode }) {
 
             {/* Navigation */}
             <nav aria-label="Primary" className="flex items-center gap-1">
+              <NavLink href="/landing" active={false}>
+                Overview
+              </NavLink>
               <NavLink href="/" active={pathname === "/"}>
                 Desk
               </NavLink>
