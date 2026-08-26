@@ -1,4 +1,5 @@
 import { listVoiceEdits } from "../db/client.js";
+import { scoreVoiceMemory } from "./voice-score.js";
 
 export async function loadVoiceMemory() {
   const edits = await listVoiceEdits(40);
@@ -21,9 +22,11 @@ export async function loadVoiceMemory() {
         `On ${edit.platform}, caption was rewritten to: ${edit.editedCaption ?? ""}`,
       );
       bucket.push(`Prefer copy like: ${edit.editedCaption ?? ""}`);
+      if (edit.editedHook) preferredHooks.push(edit.editedHook);
     } else {
       notes.push(`Approved ${edit.platform} clip.`);
       if (edit.note) bucket.push(`Approved because: ${edit.note}`);
+      if (edit.originalHook) preferredHooks.push(edit.originalHook);
     }
   }
 
@@ -37,6 +40,7 @@ export async function loadVoiceMemory() {
         unique(values).slice(0, 6),
       ]),
     ),
+    score: scoreVoiceMemory(edits),
   };
 }
 

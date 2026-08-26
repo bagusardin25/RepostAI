@@ -1,8 +1,9 @@
-import { getClip, insertVoiceEdit, updateClipReview } from "../db/client.js";
-import { publicClip } from "./serialize.js";
-import { json } from "../lib/http.js";
-import { REVIEW_ACTIONS } from "../lib/constants.js";
 import { randomUUID } from "node:crypto";
+import { getClip, getJob, insertVoiceEdit, listClipsForJob, updateClipReview } from "../db/client.js";
+import { defer, json } from "../lib/http.js";
+import { REVIEW_ACTIONS } from "../lib/constants.js";
+import { rememberCreatorDecision, rememberReviewSession } from "../pipeline/minds.js";
+import { publicClip } from "./serialize.js";
 
 export async function POST(request, params) {
   const clip = await getClip(params.id);
@@ -21,12 +22,13 @@ export async function POST(request, params) {
   const editedCaption = action === "edit" ? body.caption?.trim() || clip.caption : clip.editedCaption;
   const editedHook = action === "edit" ? body.hook?.trim() || clip.hook : clip.editedHook;
   const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited";
+  const note = body.note?.trim() || null;
 
   await updateClipReview(params.id, {
     status,
     editedCaption: editedCaption ?? null,
     editedHook: editedHook ?? null,
-    reviewNote: body.note?.trim() || null,
+    reviewNote: note,
   });
 
   await insertVoiceEdit({
@@ -37,7 +39,29 @@ export async function POST(request, params) {
     action,
     originalCaption: clip.caption,
     editedCaption: action === "edit" ? editedCaption : null,
-    note: body.note?.trim() || null,
+    originalHook: clip.hook,
+    editedHook: action === "edit" ? editedHook : null,
+    note,
+  });
+
+  defer(async () => {
+    await rememberCreatorDecision({
+      platform: clip.platform,
+      action,
+      originalCaption: clip.caption,
+      originalHook: clip.hook,
+      editedCaption: action === "edit" ? editedCaption : null,
+      editedHook: action === "edit" ? editedHook : null,
+      note,
+    });
+
+    const clips = await listClipsForJob(clip.jobId);
+    if (clips.some((item) => item.status === "needs_review")) return;
+    const job = await getJob(clip.jobId);
+    await rememberReviewSession({
+      title: job?.sourceTitle ?? "source video",
+      clips,
+    });
   });
 
   const updated = await getClip(params.id);

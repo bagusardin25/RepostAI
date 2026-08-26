@@ -55,8 +55,28 @@ async function connect() {
     );
     CREATE INDEX IF NOT EXISTS clips_job_id_idx ON clips(job_id);
     CREATE INDEX IF NOT EXISTS voice_edits_created_at_idx ON voice_edits(created_at);
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
+  await ensureColumn(client, "jobs", "followup", "TEXT");
+  await ensureColumn(client, "jobs", "artifacts", "TEXT");
+  await ensureColumn(client, "voice_edits", "original_hook", "TEXT");
+  await ensureColumn(client, "voice_edits", "edited_hook", "TEXT");
   return client;
+}
+
+async function ensureColumn(client, table, column, ddl) {
+  const info = await client.execute(`PRAGMA table_info(${table})`);
+  const exists = info.rows.some((row) => row.name === column || row[1] === column);
+  if (exists) return;
+  try {
+    await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/duplicate column/i.test(message)) throw error;
+  }
 }
 
 export function getDb() {
@@ -77,6 +97,16 @@ function parseHashtags(raw) {
   }
 }
 
+function parseJson(raw, fallback) {
+  if (raw == null || raw === "") return fallback;
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 function mapJob(row) {
   return {
     id: row.id,
@@ -89,6 +119,8 @@ function mapJob(row) {
     status: row.status,
     error: row.error,
     analyzer: row.analyzer ?? null,
+    followup: parseJson(row.followup, null),
+    artifacts: parseJson(row.artifacts, null),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -152,7 +184,11 @@ export async function listJobs() {
   return result.rows
     .map(mapJob)
     .sort((a, b) => b.createdAt - a.createdAt)
-    .map(({ transcript, ...rest }) => ({ ...rest, hasTranscript: Boolean(transcript && transcript.length > 0) }));
+    .map(({ transcript, artifacts, ...rest }) => ({
+      ...rest,
+      hasTranscript: Boolean(transcript && transcript.length > 0),
+      hasArtifacts: Boolean(artifacts),
+    }));
 }
 
 export async function updateJob(id, patch) {
@@ -164,13 +200,19 @@ export async function updateJob(id, patch) {
     status: "status",
     error: "error",
     analyzer: "analyzer",
+    followup: "followup",
+    artifacts: "artifacts",
   };
   const sets = [];
   const args = [];
   for (const [key, column] of Object.entries(columns)) {
     if (patch[key] !== undefined) {
       sets.push(`${column} = ?`);
-      args.push(patch[key]);
+      const value =
+        (key === "followup" || key === "artifacts") && patch[key] != null && typeof patch[key] !== "string"
+          ? JSON.stringify(patch[key])
+          : patch[key];
+      args.push(value);
     }
   }
   sets.push("updated_at = ?");
@@ -246,8 +288,9 @@ export async function insertVoiceEdit(record) {
   const db = await getDb();
   await db.execute({
     sql: `INSERT INTO voice_edits (
-      id, clip_id, job_id, platform, action, original_caption, edited_caption, note, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, clip_id, job_id, platform, action, original_caption, edited_caption, note, created_at,
+      original_hook, edited_hook
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       record.id,
       record.clipId,
@@ -258,6 +301,8 @@ export async function insertVoiceEdit(record) {
       record.editedCaption ?? null,
       record.note ?? null,
       now(),
+      record.originalHook ?? null,
+      record.editedHook ?? null,
     ],
   });
 }
@@ -274,9 +319,29 @@ export async function listVoiceEdits(limit = 40) {
       action: row.action,
       originalCaption: row.original_caption,
       editedCaption: row.edited_caption,
+      originalHook: row.original_hook ?? null,
+      editedHook: row.edited_hook ?? null,
       note: row.note,
       createdAt: row.created_at,
     }))
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, limit);
+}
+
+export async function getSetting(key) {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT value FROM settings WHERE key = ? LIMIT 1",
+    args: [key],
+  });
+  return result.rows[0]?.value ?? null;
+}
+
+export async function setSetting(key, value) {
+  const db = await getDb();
+  await db.execute({
+    sql: `INSERT INTO settings (key, value) VALUES (?, ?)
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    args: [key, value ?? ""],
+  });
 }
