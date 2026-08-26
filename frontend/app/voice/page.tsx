@@ -96,7 +96,7 @@ export default function VoicePage() {
             What the Mind Remembers
           </h1>
           <p className="text-xs sm:text-sm text-[var(--fg-muted)] leading-relaxed">
-            Every approval, rewrite, and rejection is recorded into persistent voice memory to steer future jobs.
+            Standing rules from your reviews are injected into the next Mind proposal. Open a later job to see hooks change against the previous package.
           </p>
         </div>
 
@@ -195,14 +195,18 @@ export default function VoicePage() {
             Avoid Patterns (Negative Constraints)
           </h2>
           <div className="grid gap-2 sm:grid-cols-2">
-            {data.memory.rejectedReasons.map((reason) => (
-              <div
-                key={reason}
-                className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-700 dark:text-rose-300 leading-relaxed"
-              >
-                {reason}
-              </div>
-            ))}
+            {data.memory.rejectedReasons.map((reason) => {
+              const impact = data.reasonImpacts?.find((item) => item.reason === reason);
+              return (
+                <div
+                  key={reason}
+                  className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-700 dark:text-rose-300 leading-relaxed space-y-2"
+                >
+                  <p>{reason}</p>
+                  <LaterJobs jobs={impact?.laterJobs} />
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -341,15 +345,18 @@ export default function VoicePage() {
                     <p className="text-[var(--fg-muted)] italic">&ldquo;{edit.originalCaption}&rdquo;</p>
                   )}
 
+                  <div className="flex flex-wrap items-center gap-3">
                   {edit.jobId && (
                     <Link
                       href={`/jobs/${edit.jobId}`}
                       className="inline-flex items-center gap-1 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] underline underline-offset-4"
                     >
-                      <span>Job {edit.jobId.slice(0, 8)}</span>
+                      <span>Source job {edit.jobId.slice(0, 8)}</span>
                       <IconExternalLink className="h-3 w-3" />
                     </Link>
                   )}
+                  <LaterJobs jobs={edit.laterJobs} />
+                  </div>
                 </div>
               ))
             )}
@@ -357,5 +364,28 @@ export default function VoicePage() {
         </section>
       )}
     </div>
+  );
+}
+
+function LaterJobs({
+  jobs,
+}: {
+  jobs?: Array<{ id: string; sourceTitle: string }>;
+}) {
+  if (!jobs || jobs.length === 0) {
+    return <p className="text-[11px] text-[var(--fg-muted)]">No later job yet — run a new one to see this rule apply.</p>;
+  }
+  return (
+    <p className="text-[11px] text-[var(--fg-muted)]">
+      Steered{" "}
+      {jobs.map((job, index) => (
+        <span key={job.id}>
+          {index > 0 ? ", " : ""}
+          <Link href={`/jobs/${job.id}`} className="underline underline-offset-4 hover:text-[var(--fg)]">
+            {job.sourceTitle.slice(0, 40)}
+          </Link>
+        </span>
+      ))}
+    </p>
   );
 }

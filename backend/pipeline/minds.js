@@ -1,5 +1,6 @@
 import { createMindsClient, parseHumanIdFromBuilderApiKey } from "@animocabrands/minds-client-lib";
 import { PLATFORM_SPECS } from "../lib/constants.js";
+import { tenetsSeedMessage } from "../lib/tenets.js";
 import { extractJsonObject } from "../lib/json.js";
 import { mindPlainText } from "../lib/mind-text.js";
 import { parseMindArtifacts } from "./artifacts.js";
@@ -172,6 +173,10 @@ export async function sendMindMessage(text) {
   const { mindsClient } = await ensureAlias();
   await mindsClient.sendMessage({ alias: ALIAS, messageText: trimmed });
   return { ok: true, alias: ALIAS };
+}
+
+export async function seedMindTenets() {
+  return sendMindMessage(tenetsSeedMessage());
 }
 
 export async function getMindHistory(limit = 40) {

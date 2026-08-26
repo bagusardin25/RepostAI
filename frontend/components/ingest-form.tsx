@@ -189,7 +189,7 @@ export function IngestForm() {
             </button>
           </div>
           <p className="text-xs text-[var(--fg-muted)]">
-            Minds agent will analyze audio transcript, identify viral moments, and generate packages.
+            Needs a public video with captions. The Mind grounds timestamps in that transcript — it will not invent speech.
           </p>
         </form>
       )}
@@ -222,6 +222,7 @@ export function IngestForm() {
               <IconUpload className="h-5 w-5 mx-auto text-[var(--fg-muted)] mb-2" />
               <p className="text-sm font-medium text-[var(--fg)]">Drop video file here or click to browse</p>
               <p className="timecode text-[11px] text-[var(--fg-muted)] mt-1">MP4, WebM, MOV · Max 500MB</p>
+              <p className="text-[11px] text-[var(--fg-muted)] mt-2">Upload alone has no speech-to-text. Pair with a YouTube URL that has captions, or use a fixture.</p>
             </div>
           ) : (
             <div className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between gap-4">

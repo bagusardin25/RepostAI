@@ -37,7 +37,7 @@ export default function HomePage() {
         <div className="space-y-1">
           <p className="font-semibold text-[var(--fg)] timecode">01 / Ingest</p>
           <p className="leading-relaxed">
-            Paste a YouTube link or drop an MP4. Audio transcript is extracted automatically.
+            Paste a public YouTube link with captions, or run a demo sample.
           </p>
         </div>
         <div className="space-y-1">

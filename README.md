@@ -1,10 +1,11 @@
 # RepostAI
 
-**One video in, three platform-ready clips out — with hooks, captions, and a Mind that learns your voice.**
+**One source. Three 9:16 cuts. Four text packages. The Mind remembers every review. Nothing publishes.**
 
-RepostAI is an AI-powered content repurposing agent that takes a single source video (YouTube or upload) and produces three short-form clips optimized for TikTok, Instagram Reels, and X — each with platform-specific hooks, captions, and hashtags. Nothing gets published. You review every clip first. When you approve, edit, or reject a clip, the Mind agent remembers your preferences and improves its next proposals.
+RepostAI is a content-repurposing agent for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**. A single YouTube video becomes TikTok / Reels / X clips plus a script, carousel, thread, and LinkedIn draft. A persistent [Minds](https://hellominds.ai) agent proposes the packages. You approve, edit, or reject. Those decisions are **sent back into the same Mind conversation** so the next job is steered by your voice.
 
-> **Submission for [Creative Minds Jam #1](https://creativemindsjam.com/)**, Track: Content Repurposing Across Platforms.
+The Mind is not optional on the happy path. Fallback recipes exist only if the Mind times out — the desk labels that **Fallback**, never as Mind.
+
 > Built with [Minds by Animoca Brands](https://hellominds.ai).
 
 ---
@@ -91,9 +92,19 @@ The Mind agent is **integral** to RepostAI's core value. It is not a wrapper aro
 
 | Capability | Implementation |
 |---|---|
-| **Memory** | Every approve/edit/reject is stored in `voice_edits`. On the next job, these edits are loaded and injected into the Mind's prompt as "learned creator preferences" — per-platform style notes, rejected patterns, and preferred copy. |
-| **Continuity** | The Mind uses a conversation alias (`main`) that persists across sessions. It picks up context from previous interactions without re-training. |
-| **Autonomous Follow-up** | When a job is created, the Mind autonomously analyzes the transcript and proposes clip packages without further human prompting. The creator only intervenes at the review stage. |
+| **Memory** | Each review is stored in SQLite **and** `sendMessage`'d to conversation alias `main`. The next job injects that voice snapshot before the Mind proposes. |
+| **Continuity** | One Mind (`MINDS_MIND_ID`), one alias (`main`). History, follow-ups, and reviews share that transcript. |
+| **Autonomous follow-up** | After clips are ready the Mind writes a reminder + next move. Optional channel watch enqueues new public uploads without a paste. |
+
+### Prove persistence (Job 1 → Job 2)
+
+1. Open `/`, run a **demo sample** or a **public YouTube URL with captions**.
+2. On the job, **reject** one clip with a note (example: `I hate cold intros`) and/or rewrite a caption shorter.
+3. Confirm `/mind` shows the review message and `/voice` lists the rule.
+4. Run a **second** job.
+5. Open the new job — **Voice applied** and **Mind brief**. Then **Compare jobs** (`/jobs/compare?a=<first>&b=<second>`) for hook / caption / window diffs.
+
+Tenets live in every propose prompt. Mirror them in the Mind's **Soul** at [hellominds.ai/profile](https://hellominds.ai/profile). Optionally **Seed into conversation** on `/mind`. Link Telegram on the same profile if you want native chat with the same memory.
 
 ### Voice Memory Loop
 
@@ -137,7 +148,7 @@ The Mind agent operates under strict tenets:
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - pnpm (or npm)
 
 ### Installation
@@ -163,7 +174,7 @@ MINDS_CONVERSATION_ALIAS=main
 
 Get your API key from the [Minds Builder Console](https://build.hellominds.ai/console).
 
-> **Without a Minds API key**, the app still works — it uses fallback clip recipes generated from transcript analysis. The fixture demo mode works fully offline.
+> **Without a Minds API key** the cutter still runs on fixtures, but jobs are labeled Fallback. For the real product loop you need a Builder key and Mind id.
 
 ### Run
 
@@ -171,7 +182,13 @@ Get your API key from the [Minds Builder Console](https://build.hellominds.ai/co
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+- Desk: [http://localhost:3000](http://localhost:3000)
+- Overview: [http://localhost:3000/landing](http://localhost:3000/landing)
+- Mind: [http://localhost:3000/mind](http://localhost:3000/mind)
+- Voice: [http://localhost:3000/voice](http://localhost:3000/voice)
+- Compare: [http://localhost:3000/jobs/compare](http://localhost:3000/jobs/compare)
+
+YouTube jobs need **captions**. Uploads have no speech-to-text unless you also pass a captioned YouTube URL.
 
 ### Demo Mode
 
@@ -196,20 +213,19 @@ The main dashboard. Paste a YouTube URL, upload a video file, or run the demo fi
 
 ### Job Workspace (`/jobs/[id]`)
 
-Three clip packages (TikTok, Instagram, X) with:
-- 9:16 video player for each clip
-- Editable hook and caption fields
-- Character limit enforcement per platform
-- Approve / Edit / Reject actions per clip
-- Batch "Approve All" button
-- Source video player and transcript viewer
+Mind brief (why each window), voice applied from prior reviews, follow-up, 9:16 players, hooks/captions, approve/edit/reject, session recap, text packages, ship kit (copy/download only).
+
+### Compare (`/jobs/compare`)
+
+Earlier job left, later job right. Teaching reviews from the left job plus hook/caption/window diffs.
 
 ### Voice Memory (`/voice`)
 
-View what the Mind has learned from your reviews:
-- Per-platform style guidelines (derived from edits)
-- Rejected patterns (what to avoid)
-- Full edit ledger with timestamps
+Standing rules, score, and **later jobs steered by each decision**.
+
+### Mind desk (`/mind`)
+
+Live conversation alias `main`, tenets, Telegram status, circle, Bazaar skills.
 
 ---
 
@@ -222,7 +238,12 @@ All endpoints are served by the backend on `:4000`. The frontend proxies `/api/*
 | `GET` | `/api/health` | System status (db, ffmpeg, minds) |
 | `GET` | `/api/jobs` | List all jobs with clip counts |
 | `POST` | `/api/jobs` | Create job (JSON or multipart with video) |
-| `GET` | `/api/jobs/:id` | Job detail + transcript + clips |
+| `GET` | `/api/jobs/:id` | Job detail, clips, voice applied, lineage |
+| `GET` | `/api/jobs/compare?a=&b=` | Side-by-side two jobs |
+| `GET` | `/api/mind` | Mind profile, circle, skills |
+| `GET` | `/api/mind/history` | Conversation transcript |
+| `POST` | `/api/mind/tenets` | Seed standing tenets into the conversation |
+| `GET` | `/api/watch` | YouTube channel watch config |
 | `POST` | `/api/jobs/:id` | Retry a failed job |
 | `GET` | `/api/clips/:id` | Single clip detail |
 | `POST` | `/api/clips/:id/review` | Review clip: `{ action, caption?, hook?, note? }` |
@@ -284,7 +305,7 @@ RepostAI/
 │   ├── db/                # SQLite schema + CRUD operations
 │   └── lib/               # Constants, paths, ports, helpers
 ├── frontend/              # Next.js UI (:3000)
-│   ├── app/               # Pages: /, /jobs/[id], /voice
+│   ├── app/               # /, /landing, /jobs/[id], /jobs/compare, /voice, /mind
 │   ├── components/        # UI components (11 files)
 │   ├── lib/               # API client, constants, formatters
 │   └── styles/            # CSS

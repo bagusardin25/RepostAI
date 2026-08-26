@@ -1,6 +1,8 @@
-import { getJob, listClipsForJob } from "../db/client.js";
+import { getJob, listClipsForJob, listJobs } from "../db/client.js";
 import { artifactsHaveContent, fallbackArtifacts } from "../pipeline/artifacts.js";
+import { comparePlatformClips, snapshotVoice, voiceHasHistory } from "../pipeline/lineage.js";
 import { processJob } from "../pipeline/process.js";
+import { loadVoiceMemory } from "../pipeline/voice.js";
 import { publicClip, publicJobDetail } from "./serialize.js";
 import { defer, json } from "../lib/http.js";
 
@@ -21,11 +23,35 @@ export async function GET(_request, params) {
           nextMove: "Approve, edit, or reject each clip so I remember your voice on the next job.",
         }
       : null);
+
+  const voiceApplied =
+    job.voiceApplied ?? snapshotVoice(await loadVoiceMemory({ beforeSec: job.createdAt }));
+
+  const previous = (await listJobs()).find(
+    (item) => item.id !== job.id && item.status === "ready" && item.createdAt < job.createdAt,
+  );
+  let lineage = {
+    firstJob: !previous,
+    previousJobId: previous?.id ?? null,
+    previousTitle: previous?.sourceTitle ?? null,
+    platforms: [],
+  };
+  if (previous) {
+    const previousClips = await listClipsForJob(previous.id);
+    lineage = {
+      ...lineage,
+      platforms: comparePlatformClips(previousClips, clips),
+    };
+  }
+
   return json({
     job: publicJobDetail(job),
     clips: clips.map(publicClip),
     artifacts,
     followup,
+    voiceApplied,
+    voiceSteered: voiceHasHistory(voiceApplied),
+    lineage,
   });
 }
 

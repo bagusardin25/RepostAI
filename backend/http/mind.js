@@ -5,6 +5,7 @@ import {
   getMindDesk,
   getMindHistory,
   mindsConfigured,
+  seedMindTenets,
   sendMindMessage,
 } from "../pipeline/minds.js";
 
@@ -25,6 +26,15 @@ export async function GET(request) {
 export async function POST(request) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/$/, "") || "/";
+
+  if (path.endsWith("/tenets")) {
+    try {
+      const result = await seedMindTenets();
+      return json(result, 202);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Could not seed tenets" }, 400);
+    }
+  }
 
   if (path.endsWith("/skills")) {
     let body = {};

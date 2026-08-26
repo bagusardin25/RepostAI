@@ -17,9 +17,13 @@ import {
 export function ClipCard({
   clip,
   onChange,
+  previousHook,
+  previousNote,
 }: {
   clip: ClipPackage;
   onChange: (clip: ClipPackage) => void;
+  previousHook?: string | null;
+  previousNote?: string | null;
 }) {
   const toast = useToast();
   const hookId = useId();
@@ -91,11 +95,11 @@ export function ClipCard({
       onChange(next);
 
       if (action === "approve") {
-        toast.success(`Approved ${clip.platform}`);
+        toast.success(`Approved ${clip.platform}. Mind will keep this.`);
       } else if (action === "reject") {
-        toast.showToast(`Rejected clip`, "error");
+        toast.showToast(`Rejected — Mind will avoid this pattern next job`, "error");
       } else {
-        toast.success("Saved edits to memory");
+        toast.success("Edit sent to the Mind");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Review action failed";
@@ -159,8 +163,16 @@ export function ClipCard({
       <div className="flex flex-1 flex-col gap-3.5 p-4 bg-[var(--bg-surface)]">
         {/* Mind Selection Rationale */}
         {clip.reason && (
-          <p className="text-xs text-[var(--fg-muted)] italic bg-[var(--bg-card)] p-2.5 rounded border border-[var(--border)]">
-            &ldquo;{clip.reason}&rdquo;
+          <div className="text-xs bg-[var(--bg-card)] p-2.5 rounded border border-[var(--border)] space-y-1">
+            <p className="timecode text-[10px] text-[var(--fg-muted)]">Mind chose this window</p>
+            <p className="text-[var(--fg)] leading-relaxed">{clip.reason}</p>
+          </div>
+        )}
+
+        {previousHook && previousHook !== clip.displayHook && (
+          <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">
+            Last job: {previousHook}
+            {previousNote ? ` — ${previousNote}` : ""}
           </p>
         )}
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import {
+  formatTimecode,
   getJob,
   retryJob,
   reviewClip,
@@ -10,10 +11,13 @@ import {
   type ContentArtifacts,
   type FollowUp,
   type JobDetail,
+  type JobLineage,
+  type VoiceApplied,
 } from "@frontend/lib/api";
 import { formatDuration, sourceTypeLabel } from "@frontend/lib/format";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
+import { VoiceInfluence } from "@frontend/components/voice-influence";
 import { Pipeline } from "@frontend/components/pipeline";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
@@ -32,6 +36,9 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [clips, setClips] = useState<ClipPackage[]>([]);
   const [artifacts, setArtifacts] = useState<ContentArtifacts | null>(null);
   const [followup, setFollowup] = useState<FollowUp | null>(null);
+  const [voiceApplied, setVoiceApplied] = useState<VoiceApplied | null>(null);
+  const [voiceSteered, setVoiceSteered] = useState(false);
+  const [lineage, setLineage] = useState<JobLineage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -51,6 +58,9 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         setClips(data.clips);
         setArtifacts(data.artifacts ?? data.job.artifacts ?? null);
         setFollowup(data.followup ?? data.job.followup ?? null);
+        setVoiceApplied(data.voiceApplied ?? data.job.voiceApplied ?? null);
+        setVoiceSteered(Boolean(data.voiceSteered));
+        setLineage(data.lineage ?? null);
         setError(null);
         const waitingFollowup = data.job.status === "ready" && !(data.followup ?? data.job.followup);
         if (ACTIVE.has(data.job.status) || waitingFollowup) {
@@ -172,6 +182,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               <span>·</span>
               <span>{formatDuration(job.durationSec)}</span>
               {job.analyzer === "minds" && <span>· Mind Agent</span>}
+              {job.analyzer === "fallback" && <span>· Local fallback (Mind did not propose)</span>}
             </div>
 
             <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-[var(--fg-bright)]">
@@ -229,6 +240,33 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         </aside>
       )}
 
+      {clips.length > 0 && (
+        <section className="panel p-5 space-y-3">
+          <p className="timecode text-[11px] text-[var(--fg-muted)]">Mind brief</p>
+          <h2 className="text-sm font-semibold text-[var(--fg)]">Why these three windows</h2>
+          <ul className="grid gap-2 sm:grid-cols-3">
+            {clips.map((clip) => (
+              <li key={clip.id} className="rounded-lg border border-[var(--border)] p-3 space-y-1">
+                <p className="text-xs font-medium text-[var(--fg)]">{clip.platform}</p>
+                <p className="timecode text-[10px] text-[var(--fg-muted)]">
+                  {formatTimecode(clip.startSec)}–{formatTimecode(clip.endSec)}
+                </p>
+                <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{clip.reason || "No reason recorded."}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {(job.status === "ready" || job.status === "clipping" || voiceSteered) && (
+        <VoiceInfluence
+          steered={voiceSteered}
+          voiceApplied={voiceApplied}
+          lineage={lineage}
+          currentJobId={job.id}
+        />
+      )}
+
       {/* Error Message */}
       {job.status === "failed" && job.error && (
         <div role="alert" className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-300">
@@ -272,15 +310,20 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3 items-start">
-            {clips.map((clip) => (
-              <ClipCard
-                key={clip.id}
-                clip={clip}
-                onChange={(next) =>
-                  setClips((current) => current.map((item) => (item.id === next.id ? next : item)))
-                }
-              />
-            ))}
+            {clips.map((clip) => {
+              const prior = lineage?.platforms.find((row) => row.platform === clip.platform);
+              return (
+                <ClipCard
+                  key={clip.id}
+                  clip={clip}
+                  previousHook={prior && !prior.first ? prior.previousHook : null}
+                  previousNote={prior && !prior.first ? prior.previousNote : null}
+                  onChange={(next) =>
+                    setClips((current) => current.map((item) => (item.id === next.id ? next : item)))
+                  }
+                />
+              );
+            })}
           </div>
         </section>
       ) : ACTIVE.has(job.status) ? (
@@ -289,6 +332,24 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           <p>This workspace updates automatically.</p>
         </div>
       ) : null}
+
+      {clips.length > 0 && waitingCount === 0 && (
+        <aside className="panel p-5 space-y-2">
+          <p className="timecode text-[11px] text-[var(--fg-muted)]">Session recap</p>
+          <h2 className="text-sm font-semibold text-[var(--fg)]">These decisions were sent to the Mind</h2>
+          <ul className="grid gap-2 sm:grid-cols-3 text-xs text-[var(--fg-muted)]">
+            {clips.map((clip) => (
+              <li key={clip.id} className="rounded-lg border border-[var(--border)] p-3">
+                <span className="text-[var(--fg)] font-medium">{clip.platform}</span>
+                <span className="block mt-1">{clip.status}{clip.reviewNote ? ` — ${clip.reviewNote}` : ""}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-[var(--fg-muted)]">
+            The next job will load this as standing voice. Nothing was published.
+          </p>
+        </aside>
+      )}
 
       {artifacts && <ArtifactsPanel artifacts={artifacts} />}
 

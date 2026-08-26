@@ -62,6 +62,7 @@ async function connect() {
   `);
   await ensureColumn(client, "jobs", "followup", "TEXT");
   await ensureColumn(client, "jobs", "artifacts", "TEXT");
+  await ensureColumn(client, "jobs", "voice_applied", "TEXT");
   await ensureColumn(client, "voice_edits", "original_hook", "TEXT");
   await ensureColumn(client, "voice_edits", "edited_hook", "TEXT");
   return client;
@@ -121,6 +122,7 @@ function mapJob(row) {
     analyzer: row.analyzer ?? null,
     followup: parseJson(row.followup, null),
     artifacts: parseJson(row.artifacts, null),
+    voiceApplied: parseJson(row.voice_applied, null),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -202,6 +204,7 @@ export async function updateJob(id, patch) {
     analyzer: "analyzer",
     followup: "followup",
     artifacts: "artifacts",
+    voiceApplied: "voice_applied",
   };
   const sets = [];
   const args = [];
@@ -209,7 +212,9 @@ export async function updateJob(id, patch) {
     if (patch[key] !== undefined) {
       sets.push(`${column} = ?`);
       const value =
-        (key === "followup" || key === "artifacts") && patch[key] != null && typeof patch[key] !== "string"
+        (key === "followup" || key === "artifacts" || key === "voiceApplied") &&
+        patch[key] != null &&
+        typeof patch[key] !== "string"
           ? JSON.stringify(patch[key])
           : patch[key];
       args.push(value);
@@ -307,7 +312,7 @@ export async function insertVoiceEdit(record) {
   });
 }
 
-export async function listVoiceEdits(limit = 40) {
+export async function listVoiceEdits(limit = 40, beforeSec = null) {
   const db = await getDb();
   const result = await db.execute("SELECT * FROM voice_edits");
   return result.rows
@@ -324,6 +329,7 @@ export async function listVoiceEdits(limit = 40) {
       note: row.note,
       createdAt: row.created_at,
     }))
+    .filter((row) => beforeSec == null || row.createdAt < beforeSec)
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, limit);
 }

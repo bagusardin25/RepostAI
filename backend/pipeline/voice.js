@@ -1,8 +1,8 @@
 import { listVoiceEdits } from "../db/client.js";
 import { scoreVoiceMemory } from "./voice-score.js";
 
-export async function loadVoiceMemory() {
-  const edits = await listVoiceEdits(40);
+export async function loadVoiceMemory(options = {}) {
+  const edits = await listVoiceEdits(options.limit ?? 40, options.beforeSec ?? null);
   const notes = [];
   const rejectedReasons = [];
   const preferredHooks = [];

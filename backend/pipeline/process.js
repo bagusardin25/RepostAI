@@ -14,6 +14,7 @@ import { mindsConfigured, proposeClipsWithMinds, requestAutonomousFollowUp } fro
 import { clipsDir, ensureDataDirs, sourcesDir, uploadsDir } from "../lib/paths.js";
 import { fallbackArtifacts } from "./artifacts.js";
 import { fallbackClipRecipes } from "./recipes.js";
+import { snapshotVoice } from "./lineage.js";
 import { loadVoiceMemory } from "./voice.js";
 import { downloadYoutubeVideo, fetchYoutubeMeta } from "./youtube.js";
 
@@ -59,7 +60,8 @@ export async function processJob(jobId) {
     const source = await resolveSource(jobId);
 
     await updateJob(jobId, { status: "analyzing" });
-    const voice = await loadVoiceMemory();
+    const voice = await loadVoiceMemory({ beforeSec: job.createdAt + 1 });
+    const voiceApplied = snapshotVoice(voice);
     let recipes = [];
     let analyzer = "fallback";
     let artifacts = fallbackArtifacts(source.transcript);
@@ -85,7 +87,7 @@ export async function processJob(jobId) {
       analyzer = "fallback";
     }
 
-    await updateJob(jobId, { analyzer, artifacts, status: "clipping" });
+    await updateJob(jobId, { analyzer, artifacts, voiceApplied, status: "clipping" });
     await materializeClips(jobId, source.sourceVideoPath, recipes);
     await updateJob(jobId, { status: "ready" });
     await writeFollowUp(jobId, source.title, recipes);

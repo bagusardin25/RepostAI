@@ -85,10 +85,35 @@ export type WatchState = {
   jobId?: string;
 };
 
+export type VoiceApplied = {
+  notes: string[];
+  rejectedReasons: string[];
+  preferredHooks?: string[];
+  platformNotes: Partial<Record<string, string[]>>;
+  score: number | null;
+  sampleSize: number;
+};
+
+export type JobLineage = {
+  firstJob: boolean;
+  previousJobId: string | null;
+  previousTitle: string | null;
+  platforms: Array<{
+    platform: string;
+    first: boolean;
+    previousHook: string | null;
+    previousStatus: string | null;
+    previousNote: string | null;
+    currentHook: string;
+    changed: boolean;
+  }>;
+};
+
 export type JobDetail = JobSummary & {
   transcript: string;
   followup?: FollowUp | null;
   artifacts?: ContentArtifacts | null;
+  voiceApplied?: VoiceApplied | null;
 };
 
 export type ClipPackage = {
@@ -131,6 +156,11 @@ export type VoicePayload = {
     editedHook?: string | null;
     note: string | null;
     createdAt: number;
+    laterJobs?: Array<{ id: string; sourceTitle: string; createdAt?: number }>;
+  }>;
+  reasonImpacts?: Array<{
+    reason: string;
+    laterJobs: Array<{ id: string; sourceTitle: string }>;
   }>;
 };
 
@@ -177,7 +207,45 @@ export function getJob(id: string) {
     clips: ClipPackage[];
     artifacts?: ContentArtifacts | null;
     followup?: FollowUp | null;
+    voiceApplied?: VoiceApplied | null;
+    voiceSteered?: boolean;
+    lineage?: JobLineage;
   }>(fetch(`/api/jobs/${id}`));
+}
+
+export type CompareSideClip = {
+  id: string | null;
+  hook: string;
+  caption: string;
+  reason: string;
+  status: string | null;
+  reviewNote: string | null;
+  startSec: number | null;
+  endSec: number | null;
+  durationSec: number | null;
+  videoUrl: string | null;
+};
+
+export type JobComparePayload = {
+  earlier: { job: JobDetail; clips: ClipPackage[] };
+  later: { job: JobDetail; clips: ClipPackage[] };
+  packages: Array<{
+    platform: string;
+    left: CompareSideClip | null;
+    right: CompareSideClip | null;
+    hookChanged: boolean;
+    captionChanged: boolean;
+    windowChanged: boolean;
+    taughtBy: string | null;
+  }>;
+  teaching: VoicePayload["edits"];
+  voiceApplied: VoiceApplied;
+  voiceSteered: boolean;
+  changedCount: number;
+};
+
+export function getJobCompare(a: string, b: string) {
+  return parse<JobComparePayload>(fetch(`/api/jobs/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`));
 }
 
 export function retryJob(id: string) {
@@ -207,6 +275,10 @@ export function getMindDesk() {
 
 export function getMindHistory(limit = 40) {
   return parse<{ alias: string; messages: MindMessage[] }>(fetch(`/api/mind/history?limit=${limit}`));
+}
+
+export function seedMindTenets() {
+  return parse<{ ok: boolean; alias: string }>(fetch("/api/mind/tenets", { method: "POST" }));
 }
 
 export function sendMindMessage(text: string) {

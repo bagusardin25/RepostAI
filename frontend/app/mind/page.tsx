@@ -5,6 +5,7 @@ import {
   equipMindSkill,
   getMindDesk,
   getMindHistory,
+  seedMindTenets,
   sendMindMessage,
   type MindDesk,
   type MindMessage,
@@ -20,6 +21,7 @@ export default function MindPage() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [equipping, setEquipping] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   async function loadHistory() {
     const { messages: next } = await getMindHistory(50);
@@ -72,6 +74,30 @@ export default function MindPage() {
     }
   }
 
+  async function seedTenets() {
+    setSeeding(true);
+    try {
+      await seedMindTenets();
+      toast.success("Tenets sent into the Mind conversation");
+      await loadHistory();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not seed tenets");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  async function copyTenets() {
+    const text = [
+      "NEVER publish. Only propose packages for human review.",
+      "NEVER change the creator's core claim. Adapt format and tone only.",
+      "Prefer hook-first clips. Skip long intros unless the creator likes them.",
+      "Ground every timestamp in the transcript. Do not invent moments.",
+    ].join("\n");
+    await navigator.clipboard.writeText(text);
+    toast.success("Tenets copied — paste into Soul on hellominds.ai");
+  }
+
   async function equip(skillId: string) {
     setEquipping(skillId);
     try {
@@ -112,6 +138,37 @@ export default function MindPage() {
           Same persistent conversation the pipeline uses. Telegram is the native channel if it is connected on the Mind.
         </p>
       </header>
+
+      <section className="panel p-5 space-y-3">
+        <p className="timecode text-[11px] text-[var(--fg-muted)]">Tenets on every propose</p>
+        <h2 className="text-sm font-semibold text-[var(--fg)]">What this Mind is not allowed to do</h2>
+        <ul className="grid gap-2 sm:grid-cols-2 text-xs text-[var(--fg-muted)]">
+          <li className="rounded-lg border border-[var(--border)] p-3">Never publish. Packages stay on the desk until you review.</li>
+          <li className="rounded-lg border border-[var(--border)] p-3">Never change the creator&apos;s core claim — adapt format and tone only.</li>
+          <li className="rounded-lg border border-[var(--border)] p-3">Hook-first. Skip long intros unless you have said you like them.</li>
+          <li className="rounded-lg border border-[var(--border)] p-3">Timestamps must exist in the transcript. No invented moments.</li>
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn btn-ghost btn-xs" onClick={() => void copyTenets()}>
+            Copy for Soul
+          </button>
+          <button type="button" className="btn btn-primary btn-xs" disabled={seeding || !desk.ok} onClick={() => void seedTenets()}>
+            {seeding ? "Sending…" : "Seed into conversation"}
+          </button>
+        </div>
+        <ol className="text-[11px] text-[var(--fg-muted)] space-y-1 list-decimal pl-4">
+          <li>
+            Open{" "}
+            <a href="https://hellominds.ai/profile" target="_blank" rel="noreferrer" className="underline underline-offset-4">
+              hellominds.ai/profile
+            </a>
+            , select Mind RepostAI, paste tenets into Soul.
+          </li>
+          <li>
+            Same page: Link Account for Telegram so web and Telegram share one memory. Refresh this desk after.
+          </li>
+        </ol>
+      </section>
 
       <section className="grid gap-3 sm:grid-cols-3">
         <article className="panel p-4 space-y-1">

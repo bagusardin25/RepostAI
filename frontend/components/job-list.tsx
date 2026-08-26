@@ -170,13 +170,22 @@ export function JobList() {
           >
             <IconRefresh className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
           </button>
+          {jobs.length >= 2 && (
+            <Link href="/jobs/compare" className="btn btn-ghost h-8 px-2.5 text-[11px]">
+              Compare
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Jobs List */}
       {filteredJobs.length === 0 ? (
         <div className="panel p-8 text-center text-xs text-[var(--fg-muted)] space-y-2">
-          <p>{jobs.length === 0 ? "No jobs in desk queue." : "No jobs match this filter."}</p>
+          <p>
+            {jobs.length === 0
+              ? "No jobs yet. Paste a captioned YouTube link or run a demo sample — then review so the Mind has a voice to remember."
+              : "No jobs match this filter."}
+          </p>
         </div>
       ) : (
         <div className="panel divide-y divide-[var(--border)] rounded-xl overflow-hidden">
@@ -210,9 +219,11 @@ export function JobList() {
                       {pending} awaiting review
                     </span>
                   )}
-                  {job.analyzer === "minds" && (
-                    <span className="timecode text-[10px] text-[var(--fg-muted)]">Mind</span>
-                  )}
+                  {job.analyzer === "minds" ? (
+                    <span className="timecode text-[10px] text-[var(--fg)]">Mind</span>
+                  ) : job.analyzer === "fallback" ? (
+                    <span className="timecode text-[10px] text-[var(--fg-subtle)]">Fallback</span>
+                  ) : null}
                   <StatusPill value={job.status} />
                   <IconArrowRight className="h-3.5 w-3.5 text-[var(--fg-subtle)] group-hover:text-[var(--fg)] transition-colors" />
                 </div>
