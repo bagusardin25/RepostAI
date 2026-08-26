@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/free-dev-ports.mjs",
     "dev": "concurrently -k -n backend,frontend -c yellow,cyan \"pnpm dev:backend\" \"pnpm dev:frontend\"",
     "dev:backend": "node --watch backend/server.js",
     "dev:frontend": "next dev frontend --turbopack -p 3000",
