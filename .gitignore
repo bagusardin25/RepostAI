@@ -54,9 +54,8 @@ desktop.ini
 .vscode/
 .idea/
 
-# Ignore all markdown files except README and the operator checklist
+# Ignore all markdown files except README.md
 *.md
 **/*.md
 !README.md
 !**/README.md
-!MANUAL-CHECKLIST.md
