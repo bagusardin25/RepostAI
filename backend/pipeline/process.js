@@ -10,8 +10,9 @@ import {
 } from "../db/client.js";
 import { cutClip, ffmpegAvailable, probeDurationSec, writeFixtureVideo } from "./ffmpeg.js";
 import { FIXTURE_DURATION_SEC, FIXTURE_TITLE, FIXTURE_TRANSCRIPT } from "./fixture.js";
-import { mindsConfigured, proposeClipsWithMinds } from "./minds.js";
+import { mindsConfigured, proposeClipsWithMinds, requestAutonomousFollowUp } from "./minds.js";
 import { clipsDir, ensureDataDirs, sourcesDir, uploadsDir } from "../lib/paths.js";
+import { fallbackArtifacts } from "./artifacts.js";
 import { fallbackClipRecipes } from "./recipes.js";
 import { loadVoiceMemory } from "./voice.js";
 import { downloadYoutubeVideo, fetchYoutubeMeta } from "./youtube.js";
@@ -61,6 +62,7 @@ export async function processJob(jobId) {
     const voice = await loadVoiceMemory();
     let recipes = [];
     let analyzer = "fallback";
+    let artifacts = fallbackArtifacts(source.transcript);
 
     if (mindsConfigured()) {
       try {
@@ -72,6 +74,7 @@ export async function processJob(jobId) {
         });
         recipes = result.recipes;
         analyzer = "minds";
+        if (result.artifacts) artifacts = result.artifacts;
       } catch (error) {
         console.warn("Minds clip proposal failed, using fallback", error);
       }
@@ -82,9 +85,10 @@ export async function processJob(jobId) {
       analyzer = "fallback";
     }
 
-    await updateJob(jobId, { analyzer, status: "clipping" });
+    await updateJob(jobId, { analyzer, artifacts, status: "clipping" });
     await materializeClips(jobId, source.sourceVideoPath, recipes);
     await updateJob(jobId, { status: "ready" });
+    await writeFollowUp(jobId, source.title, recipes);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Pipeline failed";
     await updateJob(jobId, { status: "failed", error: message });
@@ -185,4 +189,16 @@ async function materializeClips(jobId, sourceVideoPath, recipes) {
   }
 
   await insertClips(records);
+}
+
+async function writeFollowUp(jobId, title, recipes) {
+  try {
+    const followup = await requestAutonomousFollowUp({
+      title,
+      platforms: recipes.map((recipe) => recipe.platform),
+    });
+    await updateJob(jobId, { followup });
+  } catch (error) {
+    console.warn("Follow-up skipped", error);
+  }
 }

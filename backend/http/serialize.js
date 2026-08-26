@@ -6,6 +6,7 @@ export function publicJob(job) {
     ...rest,
     hasTranscript: Boolean(transcript && transcript.length > 0),
     hasSourceVideo: Boolean(sourceVideoPath),
+    hasArtifacts: Boolean(job.artifacts),
     sourceVideoUrl: sourceVideoPath
       ? `/api/media/sources/${path.basename(sourceVideoPath)}`
       : null,
