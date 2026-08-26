@@ -8,7 +8,10 @@ import { GET as getHealth } from "./http/health.js";
 import { GET as getJob, POST as retryJob } from "./http/job.js";
 import { GET as listJobs, POST as createJob } from "./http/jobs.js";
 import { GET as getMedia } from "./http/media.js";
+import { GET as getMind, POST as postMind } from "./http/mind.js";
 import { GET as getVoice } from "./http/voice.js";
+import { GET as getWatch, POST as postWatch } from "./http/watch.js";
+import { startWatchLoop } from "./pipeline/watch.js";
 import { corsHeaders, json } from "./lib/http.js";
 import {
   assertDistinctPorts,
@@ -43,6 +46,7 @@ server.on("error", (error) => {
 server.listen(BACKEND_PORT, "127.0.0.1", () => {
   console.log(`backend  ${backendOrigin()}`);
   console.log(`frontend  ${frontendOrigin()}  (expected)`);
+  startWatchLoop();
 });
 
 async function handle(req, res) {
@@ -66,6 +70,13 @@ async function route(request, url) {
   if (pathname === "/api/jobs" && method === "GET") return listJobs();
   if (pathname === "/api/jobs" && method === "POST") return createJob(request);
   if (pathname === "/api/voice" && method === "GET") return getVoice();
+  if (pathname === "/api/mind/history" && method === "GET") return getMind(request);
+  if (pathname === "/api/mind/messages" && method === "POST") return postMind(request);
+  if (pathname === "/api/mind/skills" && method === "POST") return postMind(request);
+  if (pathname === "/api/mind" && method === "GET") return getMind(request);
+  if (pathname === "/api/watch/poll" && method === "POST") return postWatch(request);
+  if (pathname === "/api/watch" && method === "GET") return getWatch();
+  if (pathname === "/api/watch" && method === "POST") return postWatch(request);
 
   const job = pathname.match(/^\/api\/jobs\/([^/]+)$/);
   if (job && method === "GET") return getJob(request, { id: job[1] });
