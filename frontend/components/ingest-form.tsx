@@ -103,7 +103,7 @@ export function IngestForm() {
   }
 
   return (
-    <div className="panel p-6 sm:p-7 space-y-5">
+    <div className="glass p-6 sm:p-7 space-y-5 rounded-[var(--radius-xl)]">
       {/* Clear Segmented Control */}
       <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
         <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-xs">

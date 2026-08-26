@@ -100,7 +100,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--border)] text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--border-strong)] transition-colors"
+      className="glass-chip flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
       title={`Current: ${theme} (${resolvedTheme}). Click to switch theme.`}
       aria-label="Toggle Light / Dark / System theme"
     >

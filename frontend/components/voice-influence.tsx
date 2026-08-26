@@ -19,7 +19,7 @@ export function VoiceInfluence({
   const notes = (voiceApplied?.notes ?? []).slice(0, 4);
 
   return (
-    <section className="panel p-5 sm:p-6 space-y-4">
+    <section className="glass p-5 sm:p-6 space-y-4 rounded-[var(--radius-xl)]">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice applied to this job</p>

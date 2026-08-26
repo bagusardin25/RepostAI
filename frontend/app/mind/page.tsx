@@ -139,7 +139,7 @@ export default function MindPage() {
         </p>
       </header>
 
-      <section className="panel p-5 space-y-3">
+      <section className="glass p-5 space-y-3 rounded-[var(--radius-xl)]">
         <p className="timecode text-[11px] text-[var(--fg-muted)]">Tenets on every propose</p>
         <h2 className="text-sm font-semibold text-[var(--fg)]">What this Mind is not allowed to do</h2>
         <ul className="grid gap-2 sm:grid-cols-2 text-xs text-[var(--fg-muted)]">

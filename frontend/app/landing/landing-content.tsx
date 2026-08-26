@@ -62,8 +62,8 @@ function PipelineDemo() {
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-lg border ${
                   active
-                    ? "border-[var(--border-strong)] bg-[var(--bg-card)]"
-                    : "border-[var(--border)]"
+                    ? "glass-chip border-[var(--glass-border)]"
+                    : "border-[var(--border)] bg-transparent"
                 }`}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
@@ -91,7 +91,7 @@ function PackageStrip() {
   ];
 
   return (
-    <figure className="panel overflow-hidden">
+    <figure className="glass overflow-hidden rounded-[var(--radius-xl)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-2.5">
         <figcaption className="timecode text-[11px] text-[var(--fg-muted)]">Example packages from one source</figcaption>
         <span className="timecode text-[11px] text-[var(--fg-muted)]">9:16</span>
@@ -114,7 +114,11 @@ function PackageStrip() {
 
 export function LandingContent() {
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
+    <div className="relative min-h-screen bg-[var(--bg)] text-[var(--fg)]">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-28 right-[-8%] h-[28rem] w-[28rem] rounded-full bg-orange-500/20 blur-3xl dark:bg-orange-500/15" />
+        <div className="absolute top-[36%] left-[-12%] h-72 w-72 rounded-full bg-amber-400/10 blur-3xl dark:bg-amber-500/10" />
+      </div>
       <a
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded-md focus:border focus:border-neutral-300 text-xs font-semibold"
         href="#content"
@@ -122,7 +126,7 @@ export function LandingContent() {
         Skip to content
       </a>
 
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur-md">
+      <header className="glass sticky top-0 z-50 border-b border-[var(--glass-border)] relative">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/landing" className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-orange-500" aria-hidden="true" />
@@ -151,7 +155,7 @@ export function LandingContent() {
         </div>
       </header>
 
-      <main id="content">
+      <main id="content" className="relative z-10">
         <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 pb-16 sm:pt-20 sm:pb-24">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="space-y-6">
@@ -180,16 +184,16 @@ export function LandingContent() {
                   View source
                 </a>
               </div>
-              <dl className="grid grid-cols-3 gap-4 pt-2 max-w-md">
-                <div>
+              <dl className="grid grid-cols-3 gap-2 pt-2 max-w-md">
+                <div className="glass-chip rounded-lg px-3 py-2">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Clips</dt>
                   <dd className="text-lg font-semibold tabular-nums">3</dd>
                 </div>
-                <div>
+                <div className="glass-chip rounded-lg px-3 py-2">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Text drafts</dt>
                   <dd className="text-lg font-semibold tabular-nums">4</dd>
                 </div>
-                <div>
+                <div className="glass-chip rounded-lg px-3 py-2">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Auto-post</dt>
                   <dd className="text-lg font-semibold">Never</dd>
                 </div>
@@ -260,7 +264,7 @@ export function LandingContent() {
                 <IconArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
-            <div className="panel p-5 sm:p-6 space-y-4">
+            <div className="glass p-5 sm:p-6 space-y-4 rounded-[var(--radius-xl)]">
               <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice loop</p>
               <ol className="space-y-3">
                 <LoopRow n="1" title="Job proposes" body="Default or learned style, grounded in the transcript window." />
@@ -299,7 +303,7 @@ export function LandingContent() {
         </section>
       </main>
 
-      <footer className="border-t border-[var(--border)] py-8 text-xs text-[var(--fg-muted)]">
+      <footer className="relative z-10 border-t border-[var(--border)] py-8 text-xs text-[var(--fg-muted)]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>
             <span className="font-medium text-[var(--fg)]">RepostAI</span>

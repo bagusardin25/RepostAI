@@ -60,7 +60,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
       </a>
 
       {/* Minimalist Topbar */}
-      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur-md">
+      <header className="glass sticky top-0 z-40 w-full border-b border-[var(--glass-border)]">
         <div className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Brand Logo & Nav */}
           <div className="flex items-center gap-6">
@@ -95,7 +95,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setShowHealthModal(true)}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-md border border-[var(--border)] text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--border-strong)] transition-colors"
+              className="glass-chip flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
             >
               <HealthDot ok={health?.cutter} label="Cutter" />
               <span className="text-[var(--fg-subtle)]">·</span>
@@ -145,7 +145,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
           onClick={() => setShowHealthModal(false)}
         >
           <div
-            className="panel relative w-full max-w-sm p-6 space-y-4 shadow-xl border-[var(--border-strong)]"
+            className="glass-strong relative w-full max-w-sm p-6 space-y-4 rounded-[var(--radius-xl)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">

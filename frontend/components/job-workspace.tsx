@@ -233,7 +233,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       <Pipeline status={job.status} />
 
       {followup && (
-        <aside className="panel p-4 sm:p-5 space-y-1.5 border-[var(--border-strong)]">
+        <aside className="glass p-4 sm:p-5 space-y-1.5 rounded-[var(--radius-xl)]">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Mind follow-up</p>
           <p className="text-sm text-[var(--fg)] leading-relaxed">{followup.reminder}</p>
           <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{followup.nextMove}</p>
@@ -241,7 +241,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       )}
 
       {clips.length > 0 && (
-        <section className="panel p-5 space-y-3">
+        <section className="glass p-5 space-y-3 rounded-[var(--radius-xl)]">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Mind brief</p>
           <h2 className="text-sm font-semibold text-[var(--fg)]">Why these three windows</h2>
           <ul className="grid gap-2 sm:grid-cols-3">
