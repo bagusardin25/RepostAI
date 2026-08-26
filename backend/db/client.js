@@ -152,7 +152,7 @@ export async function listJobs() {
   return result.rows
     .map(mapJob)
     .sort((a, b) => b.createdAt - a.createdAt)
-    .map(({ transcript, ...rest }) => rest);
+    .map(({ transcript, ...rest }) => ({ ...rest, hasTranscript: Boolean(transcript && transcript.length > 0) }));
 }
 
 export async function updateJob(id, patch) {
