@@ -16,7 +16,80 @@ export type JobSummary = {
   pendingReview?: number;
 };
 
-export type JobDetail = JobSummary & { transcript: string };
+export type FollowUp = {
+  reminder: string;
+  nextMove: string;
+};
+
+export type ContentArtifacts = {
+  tiktokScript: { lines: string[]; onScreenText: string; cta: string };
+  instagramCarousel: { slides: Array<{ title: string; body: string }> };
+  xThread: { tweets: string[] };
+  linkedinPost: { text: string };
+};
+
+export type VoiceScore = {
+  score: number | null;
+  max: number;
+  label: string;
+  detail: string;
+  trend: "up" | "down" | "flat";
+  approveRate: number;
+  editRate: number;
+  rejectRate: number;
+  sampleSize: number;
+};
+
+export type MindMessage = {
+  fingerprint: string;
+  messageId: string;
+  text: string;
+  createdAt: string | null;
+  fromMind: boolean;
+  senderName: string;
+};
+
+export type MindDesk = {
+  configured: boolean;
+  ok: boolean;
+  alias: string;
+  error?: string;
+  mind: {
+    mindId: string;
+    name: string | null;
+    email: string | null;
+    isEnabled?: boolean;
+    hasTelegram: boolean;
+    telegramBotId: string | null;
+    walletAddress: string | null;
+    chain: string | null;
+    cognition?: number | null;
+    species?: string | null;
+  } | null;
+  circle: Array<{ email?: string; name?: string; isSteward?: boolean }>;
+  equippedSkills: Array<{ skillId: string; name?: string; description?: string }>;
+  bazaarSkills: Array<{ skillId: string; name: string; description?: string; equippedCount?: number }>;
+};
+
+export type WatchState = {
+  enabled: boolean;
+  channelUrl: string;
+  channelId: string;
+  lastVideoId: string;
+  lastCheckedAt: number | null;
+  lastError: string;
+  lastJobId: string;
+  intervalSec: number;
+  polled?: boolean;
+  enqueued?: boolean;
+  jobId?: string;
+};
+
+export type JobDetail = JobSummary & {
+  transcript: string;
+  followup?: FollowUp | null;
+  artifacts?: ContentArtifacts | null;
+};
 
 export type ClipPackage = {
   id: string;
@@ -43,7 +116,9 @@ export type VoicePayload = {
     rejectedReasons: string[];
     preferredHooks?: string[];
     platformNotes: Partial<Record<string, string[]>>;
+    score?: VoiceScore;
   };
+  score?: VoiceScore | null;
   edits: Array<{
     id: string;
     clipId: string;
@@ -52,6 +127,8 @@ export type VoicePayload = {
     action: string;
     originalCaption: string;
     editedCaption: string | null;
+    originalHook?: string | null;
+    editedHook?: string | null;
     note: string | null;
     createdAt: number;
   }>;
@@ -95,7 +172,12 @@ export function listJobs() {
 }
 
 export function getJob(id: string) {
-  return parse<{ job: JobDetail; clips: ClipPackage[] }>(fetch(`/api/jobs/${id}`));
+  return parse<{
+    job: JobDetail;
+    clips: ClipPackage[];
+    artifacts?: ContentArtifacts | null;
+    followup?: FollowUp | null;
+  }>(fetch(`/api/jobs/${id}`));
 }
 
 export function retryJob(id: string) {
@@ -119,12 +201,68 @@ export function getVoice() {
   return parse<VoicePayload>(fetch("/api/voice"));
 }
 
+export function getMindDesk() {
+  return parse<MindDesk>(fetch("/api/mind"));
+}
+
+export function getMindHistory(limit = 40) {
+  return parse<{ alias: string; messages: MindMessage[] }>(fetch(`/api/mind/history?limit=${limit}`));
+}
+
+export function sendMindMessage(text: string) {
+  return parse<{ ok: boolean; alias: string }>(
+    fetch("/api/mind/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    }),
+  );
+}
+
+export function equipMindSkill(skillId: string) {
+  return parse<{ ok: boolean }>(
+    fetch("/api/mind/skills", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skillId }),
+    }),
+  );
+}
+
+export function getWatch() {
+  return parse<{ watch: WatchState }>(fetch("/api/watch"));
+}
+
+export function saveWatch(body: { channelUrl: string; enabled: boolean }) {
+  return parse<{ watch: WatchState }>(
+    fetch("/api/watch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+export function pollWatch() {
+  return parse<{ watch: WatchState }>(
+    fetch("/api/watch/poll", {
+      method: "POST",
+    }),
+  );
+}
+
 export function getHealth() {
   return parse<{
     ok: boolean;
     db: boolean;
     ffmpeg: { available: boolean };
-    minds: { configured: boolean; ok: boolean };
+    minds: {
+      configured: boolean;
+      ok: boolean;
+      isEnabled?: boolean;
+      hasTelegram?: boolean;
+      cognition?: number | null;
+    };
   }>(fetch("/api/health"));
 }
 

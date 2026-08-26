@@ -2,8 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
-import { getJob, retryJob, reviewClip, type ClipPackage, type JobDetail } from "@frontend/lib/api";
+import {
+  getJob,
+  retryJob,
+  reviewClip,
+  type ClipPackage,
+  type ContentArtifacts,
+  type FollowUp,
+  type JobDetail,
+} from "@frontend/lib/api";
 import { formatDuration, sourceTypeLabel } from "@frontend/lib/format";
+import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
 import { Pipeline } from "@frontend/components/pipeline";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -21,6 +30,8 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const toast = useToast();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [clips, setClips] = useState<ClipPackage[]>([]);
+  const [artifacts, setArtifacts] = useState<ContentArtifacts | null>(null);
+  const [followup, setFollowup] = useState<FollowUp | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -38,8 +49,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         if (cancelled) return;
         setJob(data.job);
         setClips(data.clips);
+        setArtifacts(data.artifacts ?? data.job.artifacts ?? null);
+        setFollowup(data.followup ?? data.job.followup ?? null);
         setError(null);
-        if (ACTIVE.has(data.job.status)) {
+        const waitingFollowup = data.job.status === "ready" && !(data.followup ?? data.job.followup);
+        if (ACTIVE.has(data.job.status) || waitingFollowup) {
           timer = setTimeout(() => void load(), 1500);
         }
       } catch (err) {
@@ -89,8 +103,13 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
   const filteredTranscript = useMemo(() => {
     if (!job?.transcript) return "";
-    return job.transcript;
-  }, [job?.transcript]);
+    const query = transcriptSearch.trim().toLowerCase();
+    if (!query) return job.transcript;
+    return job.transcript
+      .split("\n")
+      .filter((line) => line.toLowerCase().includes(query))
+      .join("\n");
+  }, [job?.transcript, transcriptSearch]);
 
   if (error) {
     return (
@@ -202,6 +221,14 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {/* Stepper Pipeline */}
       <Pipeline status={job.status} />
 
+      {followup && (
+        <aside className="panel p-4 sm:p-5 space-y-1.5 border-[var(--border-strong)]">
+          <p className="timecode text-[11px] text-[var(--fg-muted)]">Mind follow-up</p>
+          <p className="text-sm text-[var(--fg)] leading-relaxed">{followup.reminder}</p>
+          <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{followup.nextMove}</p>
+        </aside>
+      )}
+
       {/* Error Message */}
       {job.status === "failed" && job.error && (
         <div role="alert" className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-300">
@@ -262,6 +289,34 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           <p>This workspace updates automatically.</p>
         </div>
       ) : null}
+
+      {artifacts && <ArtifactsPanel artifacts={artifacts} />}
+
+      {clips.length > 0 && (
+        <section className="panel p-5 space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--fg)]">Ship kit</h2>
+            <p className="text-xs text-[var(--fg-muted)]">
+              Copy and download locally. RepostAI never posts to TikTok, Instagram, X, or LinkedIn.
+            </p>
+          </div>
+          <ul className="grid gap-2 text-xs text-[var(--fg-muted)] sm:grid-cols-3">
+            {clips.map((clip) => (
+              <li key={clip.id} className="rounded-lg border border-[var(--border)] p-3 space-y-1">
+                <p className="font-medium text-[var(--fg)]">{clip.platform}</p>
+                <p>{clip.status === "approved" || clip.status === "edited" ? "Ready to paste" : "Review first"}</p>
+                {clip.videoUrl ? (
+                  <a href={clip.videoUrl} download className="underline underline-offset-4">
+                    Download MP4
+                  </a>
+                ) : (
+                  <span>No file yet</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Source Video & Transcript Explorer */}
       {(job.sourceVideoUrl || job.transcript) && (

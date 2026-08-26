@@ -73,6 +73,9 @@ function ShellContent({ children }: { children: React.ReactNode }) {
               <NavLink href="/voice" active={pathname.startsWith("/voice")}>
                 Voice Memory
               </NavLink>
+              <NavLink href="/mind" active={pathname.startsWith("/mind")}>
+                Mind
+              </NavLink>
             </nav>
           </div>
 

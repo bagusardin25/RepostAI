@@ -85,6 +85,7 @@ export default function VoicePage() {
   const avoidCount = data.memory.rejectedReasons.length;
   const standingNotesCount = data.memory.notes.length;
   const platformCount = Object.keys(data.memory.platformNotes).length;
+  const score = data.score ?? data.memory.score ?? null;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -110,6 +111,27 @@ export default function VoicePage() {
           </button>
         )}
       </header>
+
+      {score && (
+        <section className="panel p-5 sm:p-6 space-y-3">
+          <div className="flex items-end justify-between gap-4">
+            <div className="space-y-1">
+              <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice consistency</p>
+              <h2 className="text-lg font-semibold text-[var(--fg-bright)]">{score.label}</h2>
+              <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-xl">{score.detail}</p>
+            </div>
+            <p className="text-3xl font-semibold tabular-nums text-[var(--fg)]">
+              {score.score == null ? "—" : score.score.toFixed(1)}
+              <span className="text-sm text-[var(--fg-muted)] font-normal"> / {score.max}</span>
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs text-[var(--fg-muted)]">
+            <p>Approve {Math.round(score.approveRate * 100)}%</p>
+            <p>Edit {Math.round(score.editRate * 100)}%</p>
+            <p>Reject {Math.round(score.rejectRate * 100)}%</p>
+          </div>
+        </section>
+      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -179,6 +201,24 @@ export default function VoicePage() {
                 className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-700 dark:text-rose-300 leading-relaxed"
               >
                 {reason}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.memory.preferredHooks && data.memory.preferredHooks.length > 0 && (
+        <section className="space-y-2.5">
+          <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">
+            Preferred hooks
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {data.memory.preferredHooks.map((hook) => (
+              <div
+                key={hook}
+                className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] text-xs text-[var(--fg)] leading-relaxed"
+              >
+                {hook}
               </div>
             ))}
           </div>

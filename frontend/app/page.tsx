@@ -1,5 +1,6 @@
 import { IngestForm } from "@frontend/components/ingest-form";
 import { JobList } from "@frontend/components/job-list";
+import { WatchCard } from "@frontend/components/watch-card";
 
 export default function HomePage() {
   return (
@@ -10,7 +11,7 @@ export default function HomePage() {
           One video in. Three vertical packages out.
         </h1>
         <p className="text-sm text-[var(--fg-muted)] leading-relaxed max-w-2xl">
-          RepostAI extracts high-engagement moments, re-frames 9:16 cuts, and drafts tailored copy for TikTok, Instagram Reels, and X.
+          RepostAI extracts high-engagement moments, re-frames 9:16 cuts, and drafts TikTok, Reels, X, carousel, thread, and LinkedIn packages.
           You review every package. The Mind remembers your edits.
         </p>
       </section>
@@ -19,6 +20,8 @@ export default function HomePage() {
       <section>
         <IngestForm />
       </section>
+
+      <WatchCard />
 
       {/* Desk Queue Feed */}
       <section className="space-y-3 pt-2">
@@ -46,7 +49,7 @@ export default function HomePage() {
         <div className="space-y-1">
           <p className="font-semibold text-[var(--fg)] timecode">03 / Human Review</p>
           <p className="leading-relaxed">
-            Review every package. Approvals and caption edits continuously train your Mind.
+            Review every package. Approvals and caption edits are written back into the Mind.
           </p>
         </div>
       </section>

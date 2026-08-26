@@ -94,5 +94,6 @@ export function sourceTypeLabel(value: string) {
   if (value === "youtube") return "YouTube";
   if (value === "fixture") return "Demo";
   if (value === "upload") return "Upload";
+  if (value === "watch") return "Channel watch";
   return value;
 }
