@@ -96,11 +96,35 @@ export function parseClipRecipes(payload, durationSec) {
   }
 
   const seen = new Set();
-  return recipes.filter((recipe) => {
+  const unique = recipes.filter((recipe) => {
     const key = `${recipe.platform}:${recipe.startSec}:${recipe.endSec}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
+  });
+
+  return diversifyClipWindows(unique, durationSec);
+}
+
+export function diversifyClipWindows(recipes, durationSec) {
+  const duration =
+    durationSec && durationSec > 0
+      ? durationSec
+      : Math.max(...recipes.map((recipe) => recipe.endSec), 60);
+  const used = new Set();
+  return recipes.map((recipe) => {
+    const key = `${recipe.startSec}:${recipe.endSec}`;
+    if (!used.has(key)) {
+      used.add(key);
+      return recipe;
+    }
+    const spread = fallbackWindow(recipe.platform, duration);
+    const next = clampRecipe({ ...recipe, startSec: spread.startSec, endSec: spread.endSec }, duration);
+    if (!next) return recipe;
+    const nextKey = `${next.startSec}:${next.endSec}`;
+    if (used.has(nextKey)) return recipe;
+    used.add(nextKey);
+    return next;
   });
 }
 
@@ -118,16 +142,16 @@ export function fallbackClipRecipes(transcript, durationSec) {
         : 60;
 
   const windows = [
-    { platform: "tiktok", start: Math.min(8, Math.max(0, duration * 0.08)), len: 18 },
-    { platform: "instagram", start: duration * 0.38, len: 22 },
-    { platform: "x", start: Math.max(duration * 0.72, duration - 28), len: 16 },
+    { platform: "tiktok", ...fallbackWindow("tiktok", duration) },
+    { platform: "instagram", ...fallbackWindow("instagram", duration) },
+    { platform: "x", ...fallbackWindow("x", duration) },
   ];
 
   return windows
     .map((window) => {
       const spec = PLATFORM_SPECS[window.platform];
-      const startSec = Math.floor(Math.max(0, window.start));
-      const endSec = Math.min(duration, startSec + window.len);
+      const startSec = window.startSec;
+      const endSec = window.endSec;
       const spoken = textBetween(cues, startSec, endSec);
       const snippet = spoken || "Key moment from the source video.";
       return clampRecipe(
@@ -145,6 +169,20 @@ export function fallbackClipRecipes(transcript, durationSec) {
       );
     })
     .filter(Boolean);
+}
+
+export function fallbackWindow(platform, durationSec) {
+  const duration = durationSec && durationSec > 0 ? durationSec : 60;
+  if (platform === "tiktok") {
+    const startSec = Math.floor(Math.min(8, Math.max(0, duration * 0.08)));
+    return { startSec, endSec: Math.min(duration, startSec + Math.min(18, Math.max(8, duration))) };
+  }
+  if (platform === "instagram") {
+    const startSec = Math.floor(duration * 0.38);
+    return { startSec, endSec: Math.min(duration, startSec + 22) };
+  }
+  const startSec = Math.floor(Math.max(duration * 0.72, duration - 28));
+  return { startSec, endSec: Math.min(duration, startSec + 16) };
 }
 
 function fallbackReason(platform) {

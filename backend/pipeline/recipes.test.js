@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { extractJsonObject } from "../lib/json.js";
 import { FIXTURE_TRANSCRIPT } from "./fixture.js";
 import {
+  diversifyClipWindows,
   fallbackClipRecipes,
   parseClipRecipes,
   parseMindClipRecipes,
@@ -50,5 +51,18 @@ Sure — here are the packages:
       recipes.every((recipe) => recipe.endSec - recipe.startSec >= 8),
       true,
     );
+  });
+
+  it("spreads cloned time windows across platforms", () => {
+    const recipes = diversifyClipWindows(
+      [
+        { platform: "tiktok", startSec: 0, endSec: 32, caption: "a", hashtags: [], reason: "", hook: "", aspectRatio: "9:16" },
+        { platform: "instagram", startSec: 0, endSec: 32, caption: "b", hashtags: [], reason: "", hook: "", aspectRatio: "9:16" },
+        { platform: "x", startSec: 0, endSec: 32, caption: "c", hashtags: [], reason: "", hook: "", aspectRatio: "9:16" },
+      ],
+      32,
+    );
+    const keys = recipes.map((recipe) => `${recipe.startSec}:${recipe.endSec}`);
+    assert.equal(new Set(keys).size, 3);
   });
 });

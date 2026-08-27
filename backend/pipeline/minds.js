@@ -314,6 +314,13 @@ Return ONLY JSON with this shape:
 }
 
 Produce exactly one clip per platform (tiktok, instagram, x). Timestamps must exist in the transcript window.
+Each platform MUST use a different time window (different startSec and endSec). Do not return the same slice three times.
+- tiktok: hook-first opening, usually 12–45s
+- instagram: a mid-video explanatory beat, usually 15–50s
+- x: a short closing takeaway, usually 8–25s
+If the source is shorter than 40s, still offset the windows (opening / middle / end) instead of cloning one range.
+hook = the on-screen first line spoken in the first seconds of THAT clip.
+caption = the post text pasted under the video. Put hashtags only in the hashtags array, not inside caption.
 Also produce the four text artifacts. Tweets <= 280 chars. Carousel 4-6 slides. LinkedIn stays professional.`;
 }
 
