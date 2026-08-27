@@ -124,8 +124,8 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   if (error) {
     return (
       <div className="panel p-8 text-center space-y-4 max-w-md mx-auto">
-        <p className="text-xs text-rose-500" role="alert">{error}</p>
-        <Link href="/" className="btn btn-ghost btn-sm">
+        <p className="text-xs text-bad" role="alert">{error}</p>
+        <Link href="/desk" className="btn btn-ghost btn-sm">
           Back to Desk
         </Link>
       </div>
@@ -154,7 +154,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {/* Breadcrumbs & Actions */}
       <div className="flex items-center justify-between text-xs text-[var(--fg-muted)]">
         <nav className="flex items-center gap-1.5" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-[var(--fg)] transition-colors">
+          <Link href="/desk" className="hover:text-[var(--fg)] transition-colors">
             Desk
           </Link>
           <span>/</span>
@@ -177,6 +177,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       <header className="panel p-5 sm:p-6 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-1 min-w-0">
+            <p className="kicker">Job bay</p>
             <div className="flex items-center gap-2 text-xs text-[var(--fg-muted)] timecode">
               <span>{sourceTypeLabel(job.sourceType)} Ingest</span>
               <span>·</span>
@@ -185,7 +186,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               {job.analyzer === "fallback" && <span>· Local fallback (Mind did not propose)</span>}
             </div>
 
-            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-[var(--fg-bright)]">
+            <h1 className="page-title text-lg sm:text-xl">
               {job.sourceTitle}
             </h1>
 
@@ -233,7 +234,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       <Pipeline status={job.status} />
 
       {followup && (
-        <aside className="glass p-4 sm:p-5 space-y-1.5 rounded-[var(--radius-xl)]">
+        <aside className="glass p-4 sm:p-5 space-y-1.5">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Mind follow-up</p>
           <p className="text-sm text-[var(--fg)] leading-relaxed">{followup.reminder}</p>
           <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{followup.nextMove}</p>
@@ -241,12 +242,12 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       )}
 
       {clips.length > 0 && (
-        <section className="glass p-5 space-y-3 rounded-[var(--radius-xl)]">
+        <section className="glass p-5 space-y-3">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Mind brief</p>
-          <h2 className="text-sm font-semibold text-[var(--fg)]">Why these three windows</h2>
+          <h2 className="section-title">Why these three windows</h2>
           <ul className="grid gap-2 sm:grid-cols-3">
             {clips.map((clip) => (
-              <li key={clip.id} className="rounded-lg border border-[var(--border)] p-3 space-y-1">
+              <li key={clip.id} className="cell p-3 space-y-1">
                 <p className="text-xs font-medium text-[var(--fg)]">{clip.platform}</p>
                 <p className="timecode text-[10px] text-[var(--fg-muted)]">
                   {formatTimecode(clip.startSec)}–{formatTimecode(clip.endSec)}
@@ -269,7 +270,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
       {/* Error Message */}
       {job.status === "failed" && job.error && (
-        <div role="alert" className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-300">
+        <div role="alert" className="alert alert-bad">
           <p className="font-semibold mb-0.5">Pipeline stopped</p>
           <p>{job.error}</p>
         </div>
@@ -280,7 +281,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
             <div>
-              <h2 className="text-sm font-semibold text-[var(--fg)]">Clip Packages</h2>
+              <h2 className="section-title">Clip Packages</h2>
               <p className="text-xs text-[var(--fg-muted)]">
                 {approvedCount} of {clips.length} approved
               </p>
@@ -336,10 +337,10 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {clips.length > 0 && waitingCount === 0 && (
         <aside className="panel p-5 space-y-2">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Session recap</p>
-          <h2 className="text-sm font-semibold text-[var(--fg)]">These decisions were sent to the Mind</h2>
+          <h2 className="section-title">These decisions were sent to the Mind</h2>
           <ul className="grid gap-2 sm:grid-cols-3 text-xs text-[var(--fg-muted)]">
             {clips.map((clip) => (
-              <li key={clip.id} className="rounded-lg border border-[var(--border)] p-3">
+              <li key={clip.id} className="cell p-3">
                 <span className="text-[var(--fg)] font-medium">{clip.platform}</span>
                 <span className="block mt-1">{clip.status}{clip.reviewNote ? ` — ${clip.reviewNote}` : ""}</span>
               </li>
@@ -356,14 +357,14 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {clips.length > 0 && (
         <section className="panel p-5 space-y-3">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--fg)]">Ship kit</h2>
+            <h2 className="section-title">Ship kit</h2>
             <p className="text-xs text-[var(--fg-muted)]">
               Copy and download locally. RepostAI never posts to TikTok, Instagram, X, or LinkedIn.
             </p>
           </div>
           <ul className="grid gap-2 text-xs text-[var(--fg-muted)] sm:grid-cols-3">
             {clips.map((clip) => (
-              <li key={clip.id} className="rounded-lg border border-[var(--border)] p-3 space-y-1">
+              <li key={clip.id} className="cell p-3 space-y-1">
                 <p className="font-medium text-[var(--fg)]">{clip.platform}</p>
                 <p>{clip.status === "approved" || clip.status === "edited" ? "Ready to paste" : "Review first"}</p>
                 {clip.videoUrl ? (
@@ -381,18 +382,16 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
       {/* Source Video & Transcript Explorer */}
       {(job.sourceVideoUrl || job.transcript) && (
-        <section className="panel rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-card)]/50 px-4 py-2.5">
-            <span className="text-xs font-semibold text-[var(--fg)]">Raw Source</span>
+        <section className="panel overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+            <span className="section-title text-xs">Raw Source</span>
 
-            <div className="flex items-center gap-1 text-xs">
+            <div className="seg">
               {job.sourceVideoUrl && (
                 <button
                   type="button"
                   onClick={() => setSourceTab("video")}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    sourceTab === "video" ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                  }`}
+                  className={`seg-item ${sourceTab === "video" ? "is-active" : ""}`}
                 >
                   Video
                 </button>
@@ -401,9 +400,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                 <button
                   type="button"
                   onClick={() => setSourceTab("transcript")}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    sourceTab === "transcript" ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                  }`}
+                  className={`seg-item ${sourceTab === "transcript" ? "is-active" : ""}`}
                 >
                   Transcript
                 </button>
@@ -424,7 +421,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           )}
 
           {sourceTab === "transcript" && job.transcript && (
-            <div className="p-4 space-y-3 bg-[var(--bg-surface)]">
+            <div className="p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="relative flex-1 max-w-xs">
                   <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
@@ -449,7 +446,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                 </button>
               </div>
 
-              <pre className="max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3.5 text-xs font-mono leading-relaxed text-[var(--fg)] whitespace-pre-wrap">
+              <pre className="max-h-64 overflow-y-auto cell p-3.5 text-xs font-mono leading-relaxed text-[var(--fg)] whitespace-pre-wrap">
                 {filteredTranscript}
               </pre>
             </div>

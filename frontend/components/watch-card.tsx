@@ -59,7 +59,7 @@ export function WatchCard() {
     <section className="panel p-5 sm:p-6 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-[var(--fg)]">Autonomous channel watch</h2>
+          <h2 className="section-title">Autonomous channel watch</h2>
           <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-xl">
             When a new public upload appears, the Mind starts a job without you pasting the link. Nothing publishes.
           </p>
@@ -111,7 +111,7 @@ export function WatchCard() {
       </div>
 
       {(error || watch?.lastError) && (
-        <p className="text-xs text-rose-500" role="alert">
+        <p className="text-xs text-bad" role="alert">
           {error || watch?.lastError}
         </p>
       )}

@@ -6,11 +6,8 @@ import { createJob } from "@frontend/lib/api";
 import { formatBytes } from "@frontend/lib/format";
 import { useToast } from "@frontend/components/toast";
 import {
-  IconYoutube,
   IconUpload,
-  IconSparkles,
   IconAlertCircle,
-  IconXMark,
 } from "@frontend/components/icons";
 
 type IngestMode = "youtube" | "upload" | "presets";
@@ -103,21 +100,16 @@ export function IngestForm() {
   }
 
   return (
-    <div className="glass p-6 sm:p-7 space-y-5 rounded-[var(--radius-xl)]">
-      {/* Clear Segmented Control */}
+    <div className="glass p-6 sm:p-7 space-y-5">
       <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-xs">
+        <div className="seg">
           <button
             type="button"
             onClick={() => {
               setMode("youtube");
               setError(null);
             }}
-            className={`px-3.5 py-1.5 rounded-md font-medium transition-colors ${
-              mode === "youtube"
-                ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-sm"
-                : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${mode === "youtube" ? "is-active" : ""}`}
           >
             YouTube
           </button>
@@ -128,14 +120,10 @@ export function IngestForm() {
               setMode("upload");
               setError(null);
             }}
-            className={`px-3.5 py-1.5 rounded-md font-medium transition-colors ${
-              mode === "upload"
-                ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-sm"
-                : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${mode === "upload" ? "is-active" : ""}`}
           >
             Upload File
-            {file && <span className="ml-1.5 h-1.5 w-1.5 inline-block rounded-full bg-emerald-500" />}
+            {file && <span className="ml-1.5 h-1.5 w-1.5 inline-block rounded-full bg-[var(--ok)]" />}
           </button>
 
           <button
@@ -144,11 +132,7 @@ export function IngestForm() {
               setMode("presets");
               setError(null);
             }}
-            className={`px-3.5 py-1.5 rounded-md font-medium transition-colors ${
-              mode === "presets"
-                ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-sm"
-                : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${mode === "presets" ? "is-active" : ""}`}
           >
             Demo Samples
           </button>
@@ -213,10 +197,10 @@ export function IngestForm() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`p-8 rounded-xl border text-center cursor-pointer transition-colors ${
+              className={`p-8 panel-dashed text-center cursor-pointer transition-colors ${
                 isDragging
-                  ? "border-[var(--fg)] bg-[var(--border)]"
-                  : "border-dashed border-[var(--border-strong)] hover:border-[var(--fg-muted)] bg-[var(--bg-card)]/40"
+                  ? "border-solid border-[var(--fg)]"
+                  : "hover:border-[var(--fg-muted)]"
               }`}
             >
               <IconUpload className="h-5 w-5 mx-auto text-[var(--fg-muted)] mb-2" />
@@ -225,7 +209,7 @@ export function IngestForm() {
               <p className="text-[11px] text-[var(--fg-muted)] mt-2">Upload alone has no speech-to-text. Pair with a YouTube URL that has captions, or use a fixture.</p>
             </div>
           ) : (
-            <div className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between gap-4">
+            <div className="cell p-3.5 flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-medium text-xs text-[var(--fg)] truncate">{file.name}</p>
                 <p className="timecode text-[11px] text-[var(--fg-muted)]">{formatBytes(file.size)}</p>
@@ -262,7 +246,7 @@ export function IngestForm() {
               type="button"
               onClick={() => void submit("fixture")}
               disabled={busy !== null}
-              className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left transition-colors space-y-1"
+              className="panel-card p-3.5 text-left space-y-1"
             >
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-[var(--fg)]">{preset.title}</span>
@@ -278,9 +262,9 @@ export function IngestForm() {
       {error && (
         <div
           role="alert"
-          className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2"
+          className="alert alert-bad"
         >
-          <IconAlertCircle className="h-4 w-4 flex-shrink-0 text-rose-500" />
+          <IconAlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}

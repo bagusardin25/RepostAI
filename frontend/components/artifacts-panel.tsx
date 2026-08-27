@@ -25,7 +25,7 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
     <section className="panel overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--fg)]">Text packages</h2>
+          <h2 className="section-title">Text packages</h2>
           <p className="text-xs text-[var(--fg-muted)]">Script, carousel, thread, and LinkedIn — still review-only.</p>
         </div>
         <button type="button" className="btn btn-ghost btn-xs" onClick={copy}>
@@ -34,7 +34,8 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-1 px-4 pt-3 text-xs">
+      <div className="px-4 pt-3">
+        <div className="seg flex-wrap">
         {(
           [
             ["script", "TikTok script"],
@@ -47,15 +48,12 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              tab === key
-                ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium"
-                : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${tab === key ? "is-active" : ""}`}
           >
             {label}
           </button>
         ))}
+        </div>
       </div>
 
       <div className="p-4">
@@ -83,7 +81,7 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
         {tab === "carousel" && (
           <div className="grid gap-2 sm:grid-cols-2">
             {artifacts.instagramCarousel.slides.map((slide, index) => (
-              <article key={`${slide.title}-${index}`} className="rounded-lg border border-[var(--border)] p-3 space-y-1">
+              <article key={`${slide.title}-${index}`} className="cell p-3 space-y-1">
                 <p className="timecode text-[11px] text-[var(--fg-muted)]">
                   {index + 1} / {artifacts.instagramCarousel.slides.length}
                 </p>
@@ -97,7 +95,7 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
         {tab === "thread" && (
           <ol className="space-y-2">
             {artifacts.xThread.tweets.map((tweet, index) => (
-              <li key={`${index}-${tweet}`} className="rounded-lg border border-[var(--border)] p-3 text-sm leading-relaxed">
+              <li key={`${index}-${tweet}`} className="cell p-3 text-sm leading-relaxed">
                 <span className="timecode text-[11px] text-[var(--fg-muted)] block mb-1">
                   {index + 1}/{artifacts.xThread.tweets.length} · {tweet.length}/280
                 </span>

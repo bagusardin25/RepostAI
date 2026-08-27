@@ -10,6 +10,7 @@ import {
   type MindDesk,
   type MindMessage,
 } from "@frontend/lib/api";
+import { PageHeader } from "@frontend/components/page-header";
 import { useToast } from "@frontend/components/toast";
 
 export default function MindPage() {
@@ -114,39 +115,41 @@ export default function MindPage() {
   if (error) {
     return (
       <div className="panel p-8 text-center space-y-3 max-w-md mx-auto">
-        <p className="text-xs text-rose-500" role="alert">{error}</p>
+        <p className="text-xs text-bad" role="alert">{error}</p>
       </div>
     );
   }
 
   if (!desk) {
     return (
-      <div className="space-y-4" aria-busy="true">
-        <div className="skel h-24 rounded-xl" />
-        <div className="skel h-80 rounded-xl" />
+      <div className="space-y-8 max-w-4xl mx-auto" aria-busy="true">
+        <PageHeader
+          kicker="Agent"
+          title="Mind desk"
+          lede="Same persistent conversation the pipeline uses. Telegram is the native channel if it is connected on the Mind."
+        />
+        <div className="skel h-24 rounded-[var(--radius-xl)]" />
+        <div className="skel h-80 rounded-[var(--radius-xl)]" />
       </div>
     );
   }
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
-      <header className="space-y-1 border-b border-[var(--border)] pb-5">
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--fg-bright)]">
-          Mind desk
-        </h1>
-        <p className="text-xs sm:text-sm text-[var(--fg-muted)] leading-relaxed">
-          Same persistent conversation the pipeline uses. Telegram is the native channel if it is connected on the Mind.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Agent"
+        title="Mind desk"
+        lede="Same persistent conversation the pipeline uses. Telegram is the native channel if it is connected on the Mind."
+      />
 
-      <section className="glass p-5 space-y-3 rounded-[var(--radius-xl)]">
+      <section className="glass p-5 space-y-3">
         <p className="timecode text-[11px] text-[var(--fg-muted)]">Tenets on every propose</p>
-        <h2 className="text-sm font-semibold text-[var(--fg)]">What this Mind is not allowed to do</h2>
+        <h2 className="section-title">What this Mind is not allowed to do</h2>
         <ul className="grid gap-2 sm:grid-cols-2 text-xs text-[var(--fg-muted)]">
-          <li className="rounded-lg border border-[var(--border)] p-3">Never publish. Packages stay on the desk until you review.</li>
-          <li className="rounded-lg border border-[var(--border)] p-3">Never change the creator&apos;s core claim — adapt format and tone only.</li>
-          <li className="rounded-lg border border-[var(--border)] p-3">Hook-first. Skip long intros unless you have said you like them.</li>
-          <li className="rounded-lg border border-[var(--border)] p-3">Timestamps must exist in the transcript. No invented moments.</li>
+          <li className="cell p-3">Never publish. Packages stay on the desk until you review.</li>
+          <li className="cell p-3">Never change the creator&apos;s core claim — adapt format and tone only.</li>
+          <li className="cell p-3">Hook-first. Skip long intros unless you have said you like them.</li>
+          <li className="cell p-3">Timestamps must exist in the transcript. No invented moments.</li>
         </ul>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-ghost btn-xs" onClick={() => void copyTenets()}>
@@ -201,7 +204,7 @@ export default function MindPage() {
 
       <section className="panel overflow-hidden">
         <div className="border-b border-[var(--border)] px-4 py-3">
-          <h2 className="text-sm font-semibold text-[var(--fg)]">Conversation</h2>
+          <h2 className="section-title">Conversation</h2>
         </div>
         <div className="max-h-[28rem] overflow-y-auto p-4 space-y-3 bg-[var(--bg-card)]/40">
           {messages.length === 0 ? (
@@ -210,10 +213,8 @@ export default function MindPage() {
             messages.map((message) => (
               <article
                 key={message.fingerprint || message.messageId}
-                className={`rounded-lg border px-3 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
-                  message.fromMind
-                    ? "border-[var(--border)] bg-[var(--bg-surface)] text-[var(--fg)]"
-                    : "border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--fg)]"
+                className={`cell px-3 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
+                  message.fromMind ? "text-[var(--fg)]" : "border-[var(--border-strong)]"
                 }`}
               >
                 <p className="timecode text-[10px] text-[var(--fg-muted)] mb-1">
@@ -246,7 +247,7 @@ export default function MindPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">Circle</h2>
+        <h2 className="kicker">Circle</h2>
         {desk.circle.length === 0 ? (
           <p className="text-xs text-[var(--fg-muted)]">
             Single-agent mode. Add another Mind in the Builder console if you want a quality reviewer in the circle.
@@ -264,7 +265,7 @@ export default function MindPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">Skills</h2>
+        <h2 className="kicker">Skills</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <article className="panel p-4 space-y-2">
             <h3 className="text-xs font-semibold text-[var(--fg)]">Equipped</h3>

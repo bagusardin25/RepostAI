@@ -89,7 +89,7 @@ export function JobList() {
   if (error) {
     return (
       <div className="panel p-6 text-center space-y-3">
-        <p className="text-xs text-rose-500" role="alert">{error}</p>
+        <p className="text-xs text-bad" role="alert">{error}</p>
         <button type="button" className="btn btn-ghost btn-xs" onClick={() => void load()}>
           Retry
         </button>
@@ -111,40 +111,32 @@ export function JobList() {
     <div className="space-y-3">
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-1">
+        <div className="seg flex-wrap">
           <button
             type="button"
             onClick={() => setFilter("all")}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              filter === "all" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${filter === "all" ? "is-active" : ""}`}
           >
             All ({counts.all})
           </button>
           <button
             type="button"
             onClick={() => setFilter("review")}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              filter === "review" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${filter === "review" ? "is-active" : ""}`}
           >
             Needs Review ({counts.review})
           </button>
           <button
             type="button"
             onClick={() => setFilter("active")}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              filter === "active" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${filter === "active" ? "is-active" : ""}`}
           >
             In Progress ({counts.active})
           </button>
           <button
             type="button"
             onClick={() => setFilter("done")}
-            className={`px-2.5 py-1 rounded transition-colors ${
-              filter === "done" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-            }`}
+            className={`seg-item ${filter === "done" ? "is-active" : ""}`}
           >
             Completed ({counts.done})
           </button>
@@ -215,7 +207,7 @@ export function JobList() {
 
                 <div className="flex items-center gap-3 self-end sm:self-center">
                   {pending > 0 && (
-                    <span className="timecode text-[10px] text-orange-600 dark:text-orange-400 font-medium">
+                    <span className="timecode text-[10px] text-tally font-medium">
                       {pending} awaiting review
                     </span>
                   )}

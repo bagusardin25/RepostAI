@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getHealth } from "@frontend/lib/api";
 import { ToastProvider } from "@frontend/components/toast";
 import { ThemeProvider, ThemeToggle } from "@frontend/components/theme-provider";
+import { BrandMark } from "@frontend/components/brand-mark";
 import {
   IconXMark,
   IconRefresh,
@@ -31,7 +32,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [health, setHealth] = useState<Health | null>(null);
   const [showHealthModal, setShowHealthModal] = useState(false);
-  const isLanding = pathname.startsWith("/landing");
+  const isLanding = pathname === "/" || pathname.startsWith("/landing");
 
   useEffect(() => {
     if (isLanding) return;
@@ -51,36 +52,29 @@ function ShellContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--fg)]">
+    <div className="min-h-screen flex flex-col text-[var(--fg)]">
       <a
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:dark:bg-white focus:dark:text-black focus:rounded-md focus:shadow-xl focus:border focus:border-neutral-300 text-xs font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--fg)] focus:text-[var(--bg)] focus:rounded-md text-xs font-semibold"
         href="#content"
       >
         Skip to content
       </a>
 
-      {/* Minimalist Topbar */}
-      <header className="glass sticky top-0 z-40 w-full border-b border-[var(--glass-border)]">
-        <div className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center justify-between px-4 sm:px-6">
-          {/* Brand Logo & Nav */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 group">
-              <span className="h-2 w-2 rounded-full bg-orange-500" />
-              <span className="text-sm font-semibold tracking-tight text-[var(--fg)]">
-                Repost<span className="text-[var(--fg-muted)]">AI</span>
-              </span>
-            </Link>
+      <header className="site-header sticky top-0 z-40 w-full">
+        <div className="site-wrap flex min-h-[var(--header-h)] items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
+            <BrandMark href="/" current={false} />
 
-            {/* Navigation */}
-            <nav aria-label="Primary" className="flex items-center gap-1">
-              <NavLink href="/landing" active={false}>
+            <nav aria-label="Primary" className="flex min-w-0 items-center gap-1 overflow-x-auto">
+              <NavLink href="/" active={false}>
                 Overview
               </NavLink>
-              <NavLink href="/" active={pathname === "/"}>
+              <NavLink href="/desk" active={pathname === "/desk"}>
                 Desk
               </NavLink>
               <NavLink href="/voice" active={pathname.startsWith("/voice")}>
-                Voice Memory
+                <span className="sm:hidden">Voice</span>
+                <span className="hidden sm:inline">Voice Memory</span>
               </NavLink>
               <NavLink href="/mind" active={pathname.startsWith("/mind")}>
                 Mind
@@ -89,13 +83,13 @@ function ShellContent({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Right Status & Theme Toggle */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-2.5">
             <ThemeToggle />
 
             <button
               type="button"
               onClick={() => setShowHealthModal(true)}
-              className="glass-chip flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+              className="glass-chip hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
             >
               <HealthDot ok={health?.cutter} label="Cutter" />
               <span className="text-[var(--fg-subtle)]">·</span>
@@ -108,13 +102,12 @@ function ShellContent({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Container */}
-      <main id="content" className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <main id="content" className="site-wrap flex-1 py-8 sm:py-12">
         {children}
       </main>
 
-      {/* Minimalist Footer */}
-      <footer className="border-t border-[var(--border)] bg-[var(--bg)] py-8 mt-auto text-xs text-[var(--fg-muted)]">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-[var(--border)] py-8 mt-auto text-xs text-[var(--fg-muted)]">
+        <div className="site-wrap flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-medium text-[var(--fg)]">RepostAI</span>
             <span>—</span>
@@ -145,7 +138,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
           onClick={() => setShowHealthModal(false)}
         >
           <div
-            className="glass-strong relative w-full max-w-sm p-6 space-y-4 rounded-[var(--radius-xl)]"
+            className="glass-strong relative w-full max-w-sm p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
@@ -161,15 +154,15 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]">
+              <div className="flex items-center justify-between p-2.5 cell">
                 <span className="text-[var(--fg)]">FFmpeg Video Cutter</span>
                 <StatusBadge ok={health?.cutter} />
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]">
+              <div className="flex items-center justify-between p-2.5 cell">
                 <span className="text-[var(--fg)]">Minds AI Agent</span>
                 <StatusBadge ok={health?.mind} />
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]">
+              <div className="flex items-center justify-between p-2.5 cell">
                 <span className="text-[var(--fg)]">SQLite Database</span>
                 <StatusBadge ok={health?.desk} />
               </div>
@@ -217,11 +210,7 @@ function NavLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-        active
-          ? "text-[var(--fg)] bg-[var(--border)]"
-          : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--border)]/50"
-      }`}
+      className={`chip ${active ? "is-active" : ""}`}
     >
       {children}
     </Link>
@@ -235,7 +224,7 @@ function HealthDot({ ok, label }: { ok: boolean | undefined; label: string }) {
     <span className="inline-flex items-center gap-1.5">
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          isOk ? "bg-emerald-500" : isErr ? "bg-red-500" : "bg-amber-500"
+          isOk ? "bg-[var(--ok)]" : isErr ? "bg-[var(--bad)]" : "bg-[var(--warn)]"
         }`}
         aria-hidden
       />
@@ -249,7 +238,7 @@ function StatusBadge({ ok }: { ok: boolean | undefined }) {
     return <span className="timecode text-[10px] text-[var(--fg-muted)]">Checking…</span>;
   }
   if (ok) {
-    return <span className="timecode text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Online</span>;
+    return <span className="timecode text-[10px] text-ok font-medium">Online</span>;
   }
   return <span className="timecode text-[10px] text-[var(--fg-muted)]">Offline</span>;
 }

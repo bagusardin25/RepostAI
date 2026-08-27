@@ -29,18 +29,18 @@ export function Pipeline({ status }: { status: string }) {
               key={stage.key}
               className={`p-3 rounded-lg border text-xs transition-colors ${
                 isFailHere
-                  ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                  ? "bg-[var(--bad-bg)] border-[var(--bad-border)] text-[var(--bad)]"
                   : isDone
-                    ? "bg-white/[0.03] border-white/[0.1] text-zinc-300"
+                    ? "glass-chip text-[var(--fg)]"
                     : isActive
-                      ? "bg-white/[0.06] border-white/[0.2] text-white font-medium"
-                      : "bg-transparent border-white/[0.04] text-zinc-600"
+                      ? "glass-strong text-[var(--fg-bright)] font-medium"
+                      : "border-[var(--border)] bg-transparent text-[var(--fg-subtle)]"
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="timecode text-[10px] text-zinc-500">0{index + 1}</span>
-                {isDone && <IconCheck className="h-3 w-3 text-emerald-400" />}
-                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />}
+                <span className="timecode text-[10px] text-[var(--fg-subtle)]">0{index + 1}</span>
+                {isDone && <IconCheck className="h-3 w-3 text-[var(--ok)]" />}
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[var(--tally)] animate-pulse" />}
               </div>
               <p className="font-semibold">{stage.label}</p>
             </div>
@@ -49,7 +49,7 @@ export function Pipeline({ status }: { status: string }) {
       </div>
 
       {copy && !isReady && (
-        <p className="text-xs text-zinc-400" aria-live="polite">
+        <p className="text-xs text-[var(--fg-muted)]" aria-live="polite">
           {copy.detail}
         </p>
       )}

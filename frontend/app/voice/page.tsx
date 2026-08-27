@@ -6,6 +6,7 @@ import { getVoice, type VoicePayload } from "@frontend/lib/api";
 import { formatRelative } from "@frontend/lib/format";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
+import { PageHeader } from "@frontend/components/page-header";
 import { useToast } from "@frontend/components/toast";
 import {
   IconDownload,
@@ -52,8 +53,8 @@ export default function VoicePage() {
   if (error) {
     return (
       <div className="panel p-8 text-center space-y-4 max-w-md mx-auto">
-        <p className="text-xs text-rose-500" role="alert">{error}</p>
-        <Link href="/" className="btn btn-ghost btn-sm">
+        <p className="text-xs text-bad" role="alert">{error}</p>
+        <Link href="/desk" className="btn btn-ghost btn-sm">
           Back to Desk
         </Link>
       </div>
@@ -62,15 +63,19 @@ export default function VoicePage() {
 
   if (!data) {
     return (
-      <div className="space-y-6" aria-busy="true">
-        <div className="skel h-20 rounded-xl" />
+      <div className="space-y-8 max-w-4xl mx-auto" aria-busy="true">
+        <PageHeader
+          kicker="Memory"
+          title="What the Mind Remembers"
+          lede="Standing rules from your reviews are injected into the next Mind proposal. Open a later job to see hooks change against the previous package."
+        />
         <div className="grid gap-3 sm:grid-cols-4">
-          <div className="skel h-20 rounded-lg" />
-          <div className="skel h-20 rounded-lg" />
-          <div className="skel h-20 rounded-lg" />
-          <div className="skel h-20 rounded-lg" />
+          <div className="skel h-20 rounded-[var(--radius-lg)]" />
+          <div className="skel h-20 rounded-[var(--radius-lg)]" />
+          <div className="skel h-20 rounded-[var(--radius-lg)]" />
+          <div className="skel h-20 rounded-[var(--radius-lg)]" />
         </div>
-        <div className="skel h-64 rounded-xl" />
+        <div className="skel h-64 rounded-[var(--radius-xl)]" />
       </div>
     );
   }
@@ -89,35 +94,30 @@ export default function VoicePage() {
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[var(--border)] pb-5">
-        <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--fg-bright)]">
-            What the Mind Remembers
-          </h1>
-          <p className="text-xs sm:text-sm text-[var(--fg-muted)] leading-relaxed">
-            Standing rules from your reviews are injected into the next Mind proposal. Open a later job to see hooks change against the previous package.
-          </p>
-        </div>
-
-        {!isEmpty && (
-          <button
-            type="button"
-            onClick={exportMemoryJson}
-            className="btn btn-ghost btn-xs text-[var(--fg-muted)] hover:text-[var(--fg)]"
-          >
-            <IconDownload className="h-3 w-3" />
-            <span>Export JSON</span>
-          </button>
-        )}
-      </header>
+      <PageHeader
+        kicker="Memory"
+        title="What the Mind Remembers"
+        lede="Standing rules from your reviews are injected into the next Mind proposal. Open a later job to see hooks change against the previous package."
+        actions={
+          !isEmpty ? (
+            <button
+              type="button"
+              onClick={exportMemoryJson}
+              className="btn btn-ghost btn-xs"
+            >
+              <IconDownload className="h-3 w-3" />
+              <span>Export JSON</span>
+            </button>
+          ) : null
+        }
+      />
 
       {score && (
         <section className="panel p-5 sm:p-6 space-y-3">
           <div className="flex items-end justify-between gap-4">
             <div className="space-y-1">
               <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice consistency</p>
-              <h2 className="text-lg font-semibold text-[var(--fg-bright)]">{score.label}</h2>
+              <h2 className="section-title text-base">{score.label}</h2>
               <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-xl">{score.detail}</p>
             </div>
             <p className="text-3xl font-semibold tabular-nums text-[var(--fg)]">
@@ -163,7 +163,7 @@ export default function VoicePage() {
           <p className="text-xs text-[var(--fg-muted)] max-w-sm mx-auto">
             When you edit a caption or reject a clip on the desk, the Mind records your style preference here.
           </p>
-          <Link href="/" className="btn btn-primary btn-xs">
+          <Link href="/desk" className="btn btn-primary btn-xs">
             Open Desk
           </Link>
         </div>
@@ -172,14 +172,14 @@ export default function VoicePage() {
       {/* Section 1: Standing Guidelines */}
       {data.memory.notes.length > 0 && (
         <section className="space-y-2.5">
-          <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">
+          <h2 className="kicker">
             Style Guidelines
           </h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {data.memory.notes.map((note) => (
               <div
                 key={note}
-                className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] text-xs text-[var(--fg)] leading-relaxed"
+                className="cell p-3 text-xs text-[var(--fg)] leading-relaxed"
               >
                 {note}
               </div>
@@ -191,7 +191,7 @@ export default function VoicePage() {
       {/* Section 2: Negative Constraints */}
       {data.memory.rejectedReasons.length > 0 && (
         <section className="space-y-2.5">
-          <h2 className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider timecode">
+          <h2 className="kicker text-bad">
             Avoid Patterns (Negative Constraints)
           </h2>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -200,7 +200,7 @@ export default function VoicePage() {
               return (
                 <div
                   key={reason}
-                  className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-700 dark:text-rose-300 leading-relaxed space-y-2"
+                  className="alert alert-bad space-y-2"
                 >
                   <p>{reason}</p>
                   <LaterJobs jobs={impact?.laterJobs} />
@@ -213,14 +213,14 @@ export default function VoicePage() {
 
       {data.memory.preferredHooks && data.memory.preferredHooks.length > 0 && (
         <section className="space-y-2.5">
-          <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">
+          <h2 className="kicker">
             Preferred hooks
           </h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {data.memory.preferredHooks.map((hook) => (
               <div
                 key={hook}
-                className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] text-xs text-[var(--fg)] leading-relaxed"
+                className="cell p-3 text-xs text-[var(--fg)] leading-relaxed"
               >
                 {hook}
               </div>
@@ -232,14 +232,14 @@ export default function VoicePage() {
       {/* Section 3: Platform Profiles */}
       {Object.entries(data.memory.platformNotes).length > 0 && (
         <section className="space-y-2.5">
-          <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">
+          <h2 className="kicker">
             Per-Platform Profiles
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {Object.entries(data.memory.platformNotes).map(([platform, notes]) => (
               <article
                 key={platform}
-                className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] space-y-2.5"
+                className="cell p-3.5 space-y-2.5"
               >
                 <PlatformMark platform={platform} detail />
                 <ul className="space-y-1.5 pt-2 border-t border-[var(--border)] text-xs text-[var(--fg-muted)]">
@@ -259,45 +259,36 @@ export default function VoicePage() {
       {data.edits.length > 0 && (
         <section className="space-y-3 pt-4 border-t border-[var(--border)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <h2 className="text-xs font-semibold text-[var(--fg)] uppercase tracking-wider timecode">
+            <h2 className="kicker">
               Decision Ledger
             </h2>
 
-            {/* Filter controls */}
-            <div className="flex items-center gap-1">
+            <div className="seg">
               <button
                 type="button"
                 onClick={() => setActionFilter("all")}
-                className={`px-2.5 py-1 rounded transition-colors ${
-                  actionFilter === "all" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                }`}
+                className={`seg-item ${actionFilter === "all" ? "is-active" : ""}`}
               >
                 All
               </button>
               <button
                 type="button"
                 onClick={() => setActionFilter("approve")}
-                className={`px-2.5 py-1 rounded transition-colors ${
-                  actionFilter === "approve" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                }`}
+                className={`seg-item ${actionFilter === "approve" ? "is-active" : ""}`}
               >
                 Approved
               </button>
               <button
                 type="button"
                 onClick={() => setActionFilter("edit")}
-                className={`px-2.5 py-1 rounded transition-colors ${
-                  actionFilter === "edit" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                }`}
+                className={`seg-item ${actionFilter === "edit" ? "is-active" : ""}`}
               >
                 Edited
               </button>
               <button
                 type="button"
                 onClick={() => setActionFilter("reject")}
-                className={`px-2.5 py-1 rounded transition-colors ${
-                  actionFilter === "reject" ? "text-[var(--fg)] bg-[var(--border)] font-medium" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                }`}
+                className={`seg-item ${actionFilter === "reject" ? "is-active" : ""}`}
               >
                 Rejected
               </button>
@@ -337,7 +328,7 @@ export default function VoicePage() {
                   )}
 
                   {edit.editedCaption ? (
-                    <div className="p-2.5 rounded bg-[var(--bg-card)] border border-[var(--border)] text-[var(--fg)]">
+                    <div className="p-2.5 cell text-[var(--fg)]">
                       <span className="timecode text-[10px] text-[var(--fg-muted)] block mb-0.5">Rewritten caption:</span>
                       <p className="leading-relaxed">{edit.editedCaption}</p>
                     </div>

@@ -105,13 +105,13 @@ export function ThemeToggle() {
       aria-label="Toggle Light / Dark / System theme"
     >
       {theme === "light" ? (
-        <IconSun className="h-3.5 w-3.5 text-amber-500" />
+        <IconSun className="h-3.5 w-3.5 text-[var(--tally-fg)]" />
       ) : theme === "dark" ? (
-        <IconMoon className="h-3.5 w-3.5 text-indigo-400" />
+        <IconMoon className="h-3.5 w-3.5 text-[var(--fg)]" />
       ) : (
-        <IconMonitor className="h-3.5 w-3.5 text-zinc-400" />
+        <IconMonitor className="h-3.5 w-3.5 text-[var(--fg-muted)]" />
       )}
-      <span className="capitalize">{theme}</span>
+      <span className="capitalize hidden sm:inline">{theme}</span>
     </button>
   );
 }

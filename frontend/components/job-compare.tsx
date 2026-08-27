@@ -11,6 +11,7 @@ import {
   type JobSummary,
 } from "@frontend/lib/api";
 import { formatDuration, platformLabel } from "@frontend/lib/format";
+import { PageHeader } from "@frontend/components/page-header";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
 
@@ -79,22 +80,18 @@ export function JobCompare() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <nav className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)]" aria-label="Breadcrumb">
-        <Link href="/" className="hover:text-[var(--fg)]">
+        <Link href="/desk" className="hover:text-[var(--fg)]">
           Desk
         </Link>
         <span>/</span>
         <span className="text-[var(--fg)] font-medium">Compare jobs</span>
       </nav>
 
-      <header className="space-y-2">
-        <p className="kicker">Persistence</p>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--fg-bright)]">
-          What changed after you taught the Mind
-        </h1>
-        <p className="text-sm text-[var(--fg-muted)] max-w-2xl leading-relaxed">
-          Earlier job on the left, later job on the right. Reviews on the left are what steered the packages on the right.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Persistence"
+        title="What changed after you taught the Mind"
+        lede="Earlier job on the left, later job on the right. Reviews on the left are what steered the packages on the right."
+      />
 
       <div className="panel p-4 grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
         <JobSelect
@@ -127,7 +124,7 @@ export function JobCompare() {
       ) : busy && !data ? (
         <div className="skel h-80 rounded-xl" aria-busy="true" />
       ) : error ? (
-        <p className="text-xs text-rose-500" role="alert">
+        <p className="text-xs text-bad" role="alert">
           {error}
         </p>
       ) : data ? (
@@ -188,7 +185,7 @@ function CompareResult({ data }: { data: JobComparePayload }) {
         ) : (
           <ul className="grid gap-2 sm:grid-cols-3 text-xs">
             {teaching.map((edit) => (
-              <li key={edit.id} className="rounded-lg border border-[var(--border)] p-3 space-y-1">
+              <li key={edit.id} className="cell p-3 space-y-1">
                 <p className="font-medium text-[var(--fg)]">
                   {platformLabel(edit.platform)} · {edit.action}
                 </p>
@@ -212,7 +209,7 @@ function CompareResult({ data }: { data: JobComparePayload }) {
             <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
               <PlatformMark platform={row.platform} />
               <div className="flex flex-wrap gap-2 timecode text-[10px] text-[var(--fg-muted)]">
-                {row.taughtBy ? <span className="text-orange-600 dark:text-orange-400">Taught by {row.taughtBy}</span> : null}
+                {row.taughtBy ? <span className="text-tally">Taught by {row.taughtBy}</span> : null}
                 {row.hookChanged ? <span>Hook changed</span> : null}
                 {row.captionChanged ? <span>Caption changed</span> : null}
                 {row.windowChanged ? <span>Window changed</span> : null}
@@ -282,7 +279,7 @@ function Side({
         </p>
       ) : null}
       {clip.reviewNote ? (
-        <p className="text-[11px] text-orange-700 dark:text-orange-300">Note: {clip.reviewNote}</p>
+        <p className="text-[11px] text-tally">Note: {clip.reviewNote}</p>
       ) : null}
     </div>
   );

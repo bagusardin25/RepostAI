@@ -19,11 +19,11 @@ export function VoiceInfluence({
   const notes = (voiceApplied?.notes ?? []).slice(0, 4);
 
   return (
-    <section className="glass p-5 sm:p-6 space-y-4 rounded-[var(--radius-xl)]">
+    <section className="glass p-5 sm:p-6 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice applied to this job</p>
-          <h2 className="text-sm font-semibold text-[var(--fg)]">
+          <h2 className="section-title">
             {steered ? "The Mind was steered by your prior reviews" : "No prior voice yet"}
           </h2>
           <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-2xl">
@@ -50,13 +50,13 @@ export function VoiceInfluence({
       {steered && (rejects.length > 0 || notes.length > 0) && (
         <ul className="grid gap-2 sm:grid-cols-2 text-xs">
           {rejects.slice(0, 4).map((reason) => (
-            <li key={reason} className="rounded-lg border border-[var(--border)] p-3 text-[var(--fg)]">
-              <span className="timecode text-[10px] text-rose-600 dark:text-rose-400 block mb-1">Avoid</span>
+            <li key={reason} className="cell p-3 text-[var(--fg)]">
+              <span className="timecode text-[10px] text-bad block mb-1">Avoid</span>
               {reason}
             </li>
           ))}
           {notes.map((note) => (
-            <li key={note} className="rounded-lg border border-[var(--border)] p-3 text-[var(--fg-muted)]">
+            <li key={note} className="cell p-3 text-[var(--fg-muted)]">
               {note}
             </li>
           ))}
@@ -80,7 +80,7 @@ export function VoiceInfluence({
           </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {lineage.platforms.map((row) => (
-              <article key={row.platform} className="rounded-lg bg-[var(--bg-card)] border border-[var(--border)] p-3 space-y-1.5">
+              <article key={row.platform} className="cell p-3 space-y-1.5">
                 <p className="timecode text-[10px] text-[var(--fg-muted)]">{platformLabel(row.platform)}</p>
                 {row.first ? (
                   <p className="text-xs text-[var(--fg-muted)]">No earlier clip on this platform.</p>
@@ -93,7 +93,7 @@ export function VoiceInfluence({
                       {row.previousNote ? ` — ${row.previousNote}` : ""}
                     </p>
                     {row.changed ? (
-                      <p className="timecode text-[10px] text-orange-600 dark:text-orange-400">Hook changed</p>
+                      <p className="timecode text-[10px] text-tally">Hook changed</p>
                     ) : null}
                   </>
                 )}

@@ -182,8 +182,8 @@ Get your API key from the [Minds Builder Console](https://build.hellominds.ai/co
 pnpm dev
 ```
 
-- Desk: [http://localhost:3000](http://localhost:3000)
-- Overview: [http://localhost:3000/landing](http://localhost:3000/landing)
+- Overview: [http://localhost:3000](http://localhost:3000)
+- Desk: [http://localhost:3000/desk](http://localhost:3000/desk)
 - Mind: [http://localhost:3000/mind](http://localhost:3000/mind)
 - Voice: [http://localhost:3000/voice](http://localhost:3000/voice)
 - Compare: [http://localhost:3000/jobs/compare](http://localhost:3000/jobs/compare)
@@ -305,7 +305,7 @@ RepostAI/
 │   ├── db/                # SQLite schema + CRUD operations
 │   └── lib/               # Constants, paths, ports, helpers
 ├── frontend/              # Next.js UI (:3000)
-│   ├── app/               # /, /landing, /jobs/[id], /jobs/compare, /voice, /mind
+│   ├── app/               # /, /desk, /jobs/[id], /jobs/compare, /voice, /mind
 │   ├── components/        # UI components (11 files)
 │   ├── lib/               # API client, constants, formatters
 │   └── styles/            # CSS

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { BrandMark } from "@frontend/components/brand-mark";
 import {
   IconArrowRight,
   IconBrain,
@@ -91,16 +92,16 @@ function PackageStrip() {
   ];
 
   return (
-    <figure className="glass overflow-hidden rounded-[var(--radius-xl)]">
+    <figure className="glass w-full min-w-0 overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-2.5">
         <figcaption className="timecode text-[11px] text-[var(--fg-muted)]">Example packages from one source</figcaption>
         <span className="timecode text-[11px] text-[var(--fg-muted)]">9:16</span>
       </div>
-      <div className="grid grid-cols-3 gap-2 p-3 bg-[var(--bg-card)]">
+      <div className="grid grid-cols-3 gap-2 p-3 min-w-0">
         {frames.map((frame) => (
-          <article key={frame.platform} className="rounded-md border border-[var(--border)] bg-[var(--bg-surface)] p-3 min-h-[11rem] flex flex-col">
+          <article key={frame.platform} className="cell min-w-0 p-2 sm:p-3 min-h-[11rem] flex flex-col">
             <p className="timecode text-[10px] text-[var(--fg-muted)]">{frame.platform}</p>
-            <p className="mt-3 text-xs font-medium leading-relaxed text-[var(--fg)]">{frame.hook}</p>
+            <p className="mt-3 text-xs font-medium leading-relaxed text-[var(--fg)] break-words">{frame.hook}</p>
             <p className="timecode mt-auto pt-4 text-[10px] text-[var(--fg-subtle)]">{frame.time}</p>
           </article>
         ))}
@@ -114,40 +115,31 @@ function PackageStrip() {
 
 export function LandingContent() {
   return (
-    <div className="relative min-h-screen bg-[var(--bg)] text-[var(--fg)]">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -top-28 right-[-8%] h-[28rem] w-[28rem] rounded-full bg-orange-500/20 blur-3xl dark:bg-orange-500/15" />
-        <div className="absolute top-[36%] left-[-12%] h-72 w-72 rounded-full bg-amber-400/10 blur-3xl dark:bg-amber-500/10" />
-      </div>
+    <div className="relative min-h-screen text-[var(--fg)]">
       <a
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded-md focus:border focus:border-neutral-300 text-xs font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--fg)] focus:text-[var(--bg)] focus:rounded-md text-xs font-semibold"
         href="#content"
       >
         Skip to content
       </a>
 
-      <header className="glass sticky top-0 z-50 border-b border-[var(--glass-border)] relative">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/landing" className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-orange-500" aria-hidden="true" />
-            <span className="text-sm font-semibold tracking-tight">
-              Repost<span className="text-[var(--fg-muted)]">AI</span>
-            </span>
-          </Link>
-          <nav aria-label="Landing" className="hidden sm:flex items-center gap-5 text-xs text-[var(--fg-muted)]">
-            <a href="#how" className="hover:text-[var(--fg)]">
+      <header className="site-header sticky top-0 z-50">
+        <div className="site-wrap flex min-h-[var(--header-h)] items-center justify-between gap-2 sm:gap-3">
+          <BrandMark href="/" current />
+          <nav aria-label="Landing" className="hidden sm:flex min-w-0 flex-1 items-center justify-center gap-1 text-xs text-[var(--fg-muted)]">
+            <a href="#how" className="chip">
               How it works
             </a>
-            <a href="#packages" className="hover:text-[var(--fg)]">
+            <a href="#packages" className="chip">
               Packages
             </a>
-            <a href="#mind" className="hover:text-[var(--fg)]">
+            <a href="#mind" className="chip">
               Mind
             </a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
-            <Link href="/" className="btn btn-primary btn-sm">
+            <Link href="/desk" className="btn btn-primary btn-sm shrink-0">
               Open desk
               <IconArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
@@ -156,23 +148,23 @@ export function LandingContent() {
       </header>
 
       <main id="content" className="relative z-10">
-        <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 pb-16 sm:pt-20 sm:pb-24">
+        <section className="site-wrap pt-14 pb-16 sm:pt-20 sm:pb-24">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="space-y-6">
               <p className="kicker">Creative Minds Jam #1 · Content repurposing</p>
-              <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.08] text-[var(--fg-bright)]">
+              <h1 className="display-title">
                 One source.
                 <br />
                 Three vertical cuts.
                 <br />
                 Four text packages.
               </h1>
-              <p className="text-sm sm:text-base text-[var(--fg-muted)] leading-relaxed max-w-xl">
+              <p className="page-lede text-sm sm:text-base">
                 Paste a YouTube URL. The Minds agent picks moments, FFmpeg cuts 9:16 clips, and you
                 review every hook and caption. Approvals write back into the Mind. Nothing publishes.
               </p>
               <div className="flex flex-col sm:flex-row gap-2.5">
-                <Link href="/" className="btn btn-primary px-5">
+                <Link href="/desk" className="btn btn-primary px-5">
                   Try the desk
                 </Link>
                 <a
@@ -184,18 +176,18 @@ export function LandingContent() {
                   View source
                 </a>
               </div>
-              <dl className="grid grid-cols-3 gap-2 pt-2 max-w-md">
-                <div className="glass-chip rounded-lg px-3 py-2">
+              <dl className="grid grid-cols-3 gap-2 pt-2 max-w-md min-w-0">
+                <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Clips</dt>
                   <dd className="text-lg font-semibold tabular-nums">3</dd>
                 </div>
-                <div className="glass-chip rounded-lg px-3 py-2">
+                <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Text drafts</dt>
                   <dd className="text-lg font-semibold tabular-nums">4</dd>
                 </div>
-                <div className="glass-chip rounded-lg px-3 py-2">
+                <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Auto-post</dt>
-                  <dd className="text-lg font-semibold">Never</dd>
+                  <dd className="text-sm sm:text-lg font-semibold leading-tight">Never</dd>
                 </div>
               </dl>
             </div>
@@ -203,11 +195,11 @@ export function LandingContent() {
           </div>
         </section>
 
-        <section id="how" className="border-y border-[var(--border)] bg-[var(--bg-surface)]">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20 grid gap-10 lg:grid-cols-2 lg:items-center">
+        <section id="how" className="border-y border-[var(--border)]">
+          <div className="site-wrap py-14 sm:py-20 grid gap-10 lg:grid-cols-2 lg:items-center">
             <div className="space-y-3">
               <p className="kicker">Pipeline</p>
-              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--fg-bright)]">
+              <h2 className="page-title">
                 The desk runs the job. You run the gate.
               </h2>
               <p className="text-sm text-[var(--fg-muted)] leading-relaxed max-w-lg">
@@ -217,17 +209,17 @@ export function LandingContent() {
             </div>
             <PipelineDemo />
           </div>
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-16 grid gap-6 sm:grid-cols-3">
+          <div className="site-wrap pb-16 grid gap-6 sm:grid-cols-3">
             <Step number="01" title="Ingest" body="Paste a public YouTube link with captions, drop an MP4 plus transcript, or run the demo fixture." />
             <Step number="02" title="Mind & cut" body="The Mind proposes one window per platform. FFmpeg re-frames 9:16 and writes the files locally." />
             <Step number="03" title="Review" body="Approve, rewrite, or reject. Each decision is stored and sent to the Mind before the next job." />
           </div>
         </section>
 
-        <section id="packages" className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-24">
+        <section id="packages" className="site-wrap py-16 sm:py-24">
           <div className="max-w-2xl space-y-3 mb-10">
             <p className="kicker">Packages</p>
-            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--fg-bright)]">
+            <h2 className="page-title">
               Video cuts and copy, still review-only
             </h2>
           </div>
@@ -241,11 +233,11 @@ export function LandingContent() {
           </p>
         </section>
 
-        <section id="mind" className="border-t border-[var(--border)] bg-[var(--bg-surface)]">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-24 grid gap-10 lg:grid-cols-2">
+        <section id="mind" className="border-t border-[var(--border)]">
+          <div className="site-wrap py-16 sm:py-24 grid gap-10 lg:grid-cols-2">
             <div className="space-y-4">
               <p className="kicker">Minds agent</p>
-              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--fg-bright)]">
+              <h2 className="page-title">
                 Persistence is the product
               </h2>
               <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
@@ -264,7 +256,7 @@ export function LandingContent() {
                 <IconArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
-            <div className="glass p-5 sm:p-6 space-y-4 rounded-[var(--radius-xl)]">
+            <div className="glass p-5 sm:p-6 space-y-4">
               <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice loop</p>
               <ol className="space-y-3">
                 <LoopRow n="1" title="Job proposes" body="Default or learned style, grounded in the transcript window." />
@@ -285,14 +277,14 @@ export function LandingContent() {
         <section className="border-t border-[var(--border)]">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 py-20 sm:py-24 text-center space-y-5">
             <p className="kicker">Start a job</p>
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[var(--fg-bright)]">
+            <h2 className="display-title">
               Chop once. Review forever.
             </h2>
             <p className="text-sm text-[var(--fg-muted)] max-w-lg mx-auto">
               Open the desk, paste a captioned YouTube link, and keep the publish button in your own hands.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
-              <Link href="/" className="btn btn-primary px-6">
+              <Link href="/desk" className="btn btn-primary px-6">
                 Launch desk
               </Link>
               <a href="https://hellominds.ai" target="_blank" rel="noreferrer" className="btn btn-ghost px-6">
@@ -304,7 +296,7 @@ export function LandingContent() {
       </main>
 
       <footer className="relative z-10 border-t border-[var(--border)] py-8 text-xs text-[var(--fg-muted)]">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="site-wrap flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>
             <span className="font-medium text-[var(--fg)]">RepostAI</span>
             <span> · Creative Minds Jam #1 · MIT</span>
@@ -324,7 +316,7 @@ export function LandingContent() {
 function Step({ number, title, body }: { number: string; title: string; body: string }) {
   return (
     <article className="space-y-2">
-      <p className="timecode text-orange-600 dark:text-orange-400">{number}</p>
+      <p className="timecode text-tally">{number}</p>
       <h3 className="text-sm font-semibold text-[var(--fg)]">{title}</h3>
       <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{body}</p>
     </article>
@@ -379,7 +371,7 @@ function MindPoint({
 function LoopRow({ n, title, body }: { n: string; title: string; body: string }) {
   return (
     <li className="flex gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
-      <span className="timecode text-[11px] text-orange-600 dark:text-orange-400 w-4">{n}</span>
+      <span className="timecode text-[11px] text-tally w-4">{n}</span>
       <span>
         <span className="block text-xs font-semibold text-[var(--fg)]">{title}</span>
         <span className="block text-xs text-[var(--fg-muted)] leading-relaxed">{body}</span>

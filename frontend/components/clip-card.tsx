@@ -111,9 +111,8 @@ export function ClipCard({
   }
 
   return (
-    <article className="panel flex flex-col rounded-xl overflow-hidden shadow-sm">
-      {/* Card Header */}
-      <header className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 bg-[var(--bg-card)]/50">
+    <article className="panel flex flex-col overflow-hidden">
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <PlatformMark platform={clip.platform} />
         <StatusPill value={clip.status} />
       </header>
@@ -160,10 +159,10 @@ export function ClipCard({
       </div>
 
       {/* Card Content Form */}
-      <div className="flex flex-1 flex-col gap-3.5 p-4 bg-[var(--bg-surface)]">
+      <div className="flex flex-1 flex-col gap-3.5 p-4">
         {/* Mind Selection Rationale */}
         {clip.reason && (
-          <div className="text-xs bg-[var(--bg-card)] p-2.5 rounded border border-[var(--border)] space-y-1">
+          <div className="text-xs cell p-2.5 space-y-1">
             <p className="timecode text-[10px] text-[var(--fg-muted)]">Mind chose this window</p>
             <p className="text-[var(--fg)] leading-relaxed">{clip.reason}</p>
           </div>
@@ -187,7 +186,7 @@ export function ClipCard({
               onClick={() => void copyToClipboard(hook, "Hook")}
               className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] inline-flex items-center gap-1"
             >
-              {copiedField === "Hook" ? <IconCheck className="h-3 w-3 text-emerald-500" /> : <IconCopy className="h-3 w-3" />}
+              {copiedField === "Hook" ? <IconCheck className="h-3 w-3 text-[var(--ok)]" /> : <IconCopy className="h-3 w-3" />}
               <span>{copiedField === "Hook" ? "Copied" : "Copy"}</span>
             </button>
           </div>
@@ -213,10 +212,10 @@ export function ClipCard({
                 onClick={() => void copyToClipboard(caption, "Caption")}
                 className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] inline-flex items-center gap-1"
               >
-                {copiedField === "Caption" ? <IconCheck className="h-3 w-3 text-emerald-500" /> : <IconCopy className="h-3 w-3" />}
+                {copiedField === "Caption" ? <IconCheck className="h-3 w-3 text-[var(--ok)]" /> : <IconCopy className="h-3 w-3" />}
                 <span>{copiedField === "Caption" ? "Copied" : "Copy"}</span>
               </button>
-              <span className={`timecode ${overLimit ? "text-rose-500 font-bold" : "text-[var(--fg-muted)]"}`}>
+              <span className={`timecode ${overLimit ? "text-bad font-bold" : "text-[var(--fg-muted)]"}`}>
                 {charCount}/{limit}
               </span>
             </div>
@@ -228,7 +227,7 @@ export function ClipCard({
             rows={4}
             aria-invalid={overLimit}
             className={`field text-xs leading-relaxed ${
-              overLimit ? "border-rose-500" : ""
+              overLimit ? "border-[var(--bad)]" : ""
             }`}
             placeholder="Platform caption..."
           />
@@ -242,7 +241,7 @@ export function ClipCard({
                 <button
                   type="button"
                   onClick={() => void copyToClipboard(tag.startsWith("#") ? tag : `#${tag}`, tag)}
-                  className="timecode text-[11px] px-2 py-0.5 rounded bg-[var(--bg-card)] text-[var(--fg-muted)] hover:text-[var(--fg)] border border-[var(--border)] transition-colors"
+                  className="timecode text-[11px] px-2 py-0.5 rounded-md glass-chip text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
                 >
                   {tag.startsWith("#") ? tag : `#${tag}`}
                 </button>
@@ -266,7 +265,7 @@ export function ClipCard({
         </div>
 
         {/* Error */}
-        {error && <p className="text-xs text-rose-500" role="alert">{error}</p>}
+        {error && <p className="text-xs text-bad" role="alert">{error}</p>}
 
         {/* Action Buttons */}
         <div className="mt-auto pt-2 border-t border-[var(--border)] space-y-1.5">
