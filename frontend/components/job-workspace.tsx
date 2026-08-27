@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, type Dispatch, type SetStateAction } from "react";
 import {
   getJob,
   retryJob,
+  deleteJob,
   reviewClip,
   type ClipPackage,
   type ContentArtifacts,
@@ -13,6 +15,7 @@ import {
   type JobLineage,
   type VoiceApplied,
 } from "@frontend/lib/api";
+
 import { formatContentPack, isClipReady, summarizeClipDecisions } from "@frontend/lib/content-pack";
 import {
   analyzerLabel,
@@ -36,14 +39,17 @@ import {
   IconScissors,
   IconSearch,
   IconTikTok,
+  IconTrash,
   IconX,
 } from "@frontend/components/icons";
+
 
 const ACTIVE = new Set(["queued", "fetching_source", "analyzing", "clipping"]);
 
 type PackView = "all" | "video" | "copy";
 
 export function JobWorkspace({ jobId }: { jobId: string }) {
+  const router = useRouter();
   const toast = useToast();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [clips, setClips] = useState<ClipPackage[]>([]);
@@ -54,11 +60,27 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [lineage, setLineage] = useState<JobLineage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
   const [nonce, setNonce] = useState(0);
   const [sourceTab, setSourceTab] = useState<"video" | "transcript">("video");
   const [transcriptSearch, setTranscriptSearch] = useState("");
   const [packView, setPackView] = useState<PackView>("all");
+
+  async function handleDeleteJob() {
+    if (!job) return;
+    if (!window.confirm(`Delete "${job.sourceTitle}"?`)) return;
+    setDeleting(true);
+    try {
+      await deleteJob(job.id);
+      toast.success(`Deleted "${job.sourceTitle}"`);
+      router.push("/desk");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete project");
+      setDeleting(false);
+    }
+  }
+
 
   useEffect(() => {
     let cancelled = false;
@@ -228,7 +250,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               <button
                 type="button"
                 className="btn btn-ghost btn-xs"
-                disabled={retrying}
+                disabled={retrying || deleting}
                 onClick={() => {
                   setRetrying(true);
                   void retryJob(job.id)
@@ -244,6 +266,17 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                 <span>Retry</span>
               </button>
             )}
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs text-[var(--fg-muted)] hover:text-bad hover:bg-bad/10"
+              disabled={deleting}
+              onClick={() => void handleDeleteJob()}
+              title="Delete this project"
+            >
+              <IconTrash className="h-3 w-3" />
+              <span>{deleting ? "Deleting…" : "Delete"}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -251,11 +284,23 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {processing && <Pipeline status={job.status} />}
 
       {job.status === "failed" && job.error && (
-        <div role="alert" className="alert alert-bad">
-          <p className="font-semibold mb-0.5">This pack stopped</p>
-          <p>{job.error}</p>
+        <div role="alert" className="alert alert-bad flex items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold mb-0.5">This pack stopped</p>
+            <p>{job.error}</p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs text-bad hover:bg-bad/20 whitespace-nowrap self-start"
+            disabled={deleting}
+            onClick={() => void handleDeleteJob()}
+          >
+            <IconTrash className="h-3 w-3" />
+            <span>Delete pack</span>
+          </button>
         </div>
       )}
+
 
       {clips.length > 0 ? (
         <section className="review-bar p-4 sm:p-5 space-y-3">

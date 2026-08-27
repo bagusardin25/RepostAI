@@ -1,10 +1,12 @@
-import { getJob, listClipsForJob, listJobs } from "../db/client.js";
+import fs from "node:fs";
+import { deleteJob as dbDeleteJob, getJob, listClipsForJob, listJobs } from "../db/client.js";
 import { artifactsHaveContent, fallbackArtifacts } from "../pipeline/artifacts.js";
 import { comparePlatformClips, snapshotVoice, voiceHasHistory } from "../pipeline/lineage.js";
 import { processJob } from "../pipeline/process.js";
 import { loadVoiceMemory } from "../pipeline/voice.js";
 import { publicClip, publicJobDetail } from "./serialize.js";
 import { defer, json } from "../lib/http.js";
+
 
 export async function GET(_request, params) {
   const job = await getJob(params.id);
@@ -65,3 +67,26 @@ export async function POST(_request, params) {
 
   return json({ ok: true, status: "queued" });
 }
+
+export async function DELETE(_request, params) {
+  const job = await getJob(params.id);
+  if (!job) return json({ error: "Job not found" }, 404);
+  const clips = await listClipsForJob(params.id);
+
+  if (job.sourceVideoPath && fs.existsSync(job.sourceVideoPath)) {
+    try {
+      fs.unlinkSync(job.sourceVideoPath);
+    } catch {}
+  }
+  for (const clip of clips) {
+    if (clip.videoPath && fs.existsSync(clip.videoPath)) {
+      try {
+        fs.unlinkSync(clip.videoPath);
+      } catch {}
+    }
+  }
+
+  await dbDeleteJob(params.id);
+  return json({ ok: true, id: params.id });
+}
+

@@ -2,25 +2,47 @@
 
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
-import { listJobs, type JobSummary } from "@frontend/lib/api";
+import { listJobs, deleteJob, type JobSummary } from "@frontend/lib/api";
 import { formatDuration, formatRelative, sourceTypeLabel } from "@frontend/lib/format";
 import { StatusPill } from "@frontend/components/status-pill";
+import { useToast } from "@frontend/components/toast";
 import {
   IconSearch,
   IconRefresh,
   IconArrowRight,
+  IconTrash,
 } from "@frontend/components/icons";
+
 
 const ACTIVE = new Set(["queued", "fetching_source", "analyzing", "clipping"]);
 
 type FilterTab = "all" | "active" | "review" | "done";
 
 export function JobList() {
+  const toast = useToast();
   const [jobs, setJobs] = useState<JobSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(e: React.MouseEvent, jobId: string, title: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${title}"?`)) return;
+    setDeletingId(jobId);
+    try {
+      await deleteJob(jobId);
+      setJobs((prev) => (prev ? prev.filter((j) => j.id !== jobId) : null));
+      toast.success(`Deleted "${title}"`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete project");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
 
   async function load(quiet = false) {
     if (!quiet) setIsRefreshing(true);
@@ -218,8 +240,19 @@ export function JobList() {
                     <span className="timecode text-[10px] text-[var(--fg-subtle)]">Alt process</span>
                   ) : null}
                   <StatusPill value={job.status} />
+                  <button
+                    type="button"
+                    onClick={(e) => void handleDelete(e, job.id, job.sourceTitle)}
+                    disabled={deletingId === job.id}
+                    className="p-1 rounded text-[var(--fg-subtle)] hover:text-[var(--bad)] hover:bg-[var(--bg-panel)] opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-all duration-150"
+                    title="Delete project"
+                    aria-label={`Delete project ${job.sourceTitle}`}
+                  >
+                    <IconTrash className="h-3.5 w-3.5" />
+                  </button>
                   <IconArrowRight className="h-3.5 w-3.5 text-[var(--fg-subtle)] group-hover:text-[var(--fg)] group-hover:translate-x-0.5 transition-all duration-200" />
                 </div>
+
               </Link>
             );
           })}

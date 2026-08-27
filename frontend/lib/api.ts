@@ -259,6 +259,11 @@ export function retryJob(id: string) {
   return parse<{ ok: boolean }>(fetch(apiUrl(`/api/jobs/${id}`), { method: "POST" }));
 }
 
+export function deleteJob(id: string) {
+  return parse<{ ok: boolean; id: string }>(fetch(apiUrl(`/api/jobs/${id}`), { method: "DELETE" }));
+}
+
+
 export function reviewClip(
   id: string,
   body: { action: "approve" | "reject" | "edit"; caption?: string; hook?: string; note?: string },

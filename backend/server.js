@@ -6,8 +6,9 @@ import { GET as getClip } from "./http/clip.js";
 import { POST as reviewClip } from "./http/clip-review.js";
 import { GET as getHealth } from "./http/health.js";
 import { GET as compareJobs } from "./http/compare.js";
-import { GET as getJob, POST as retryJob } from "./http/job.js";
+import { GET as getJob, POST as retryJob, DELETE as deleteJobRoute } from "./http/job.js";
 import { GET as listJobs, POST as createJob } from "./http/jobs.js";
+
 import { GET as getMedia } from "./http/media.js";
 import { GET as getMind, POST as postMind } from "./http/mind.js";
 import { GET as getVoice } from "./http/voice.js";
@@ -88,6 +89,8 @@ async function route(request, url) {
   const job = pathname.match(/^\/api\/jobs\/([^/]+)$/);
   if (job && method === "GET") return getJob(request, { id: job[1] });
   if (job && method === "POST") return retryJob(request, { id: job[1] });
+  if (job && method === "DELETE") return deleteJobRoute(request, { id: job[1] });
+
 
   const clipReview = pathname.match(/^\/api\/clips\/([^/]+)\/review$/);
   if (clipReview && method === "POST") return reviewClip(request, { id: clipReview[1] });

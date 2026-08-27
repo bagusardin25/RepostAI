@@ -240,6 +240,14 @@ export async function updateJob(id, patch) {
   });
 }
 
+export async function deleteJob(id) {
+  const db = await getDb();
+  await db.execute({ sql: "DELETE FROM voice_edits WHERE job_id = ?", args: [id] });
+  await db.execute({ sql: "DELETE FROM clips WHERE job_id = ?", args: [id] });
+  await db.execute({ sql: "DELETE FROM jobs WHERE id = ?", args: [id] });
+}
+
+
 export async function insertClips(records) {
   if (records.length === 0) return;
   const db = await getDb();
