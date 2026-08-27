@@ -27,20 +27,20 @@ export function Pipeline({ status }: { status: string }) {
           return (
             <div
               key={stage.key}
-              className={`p-3 rounded-lg border text-xs transition-colors ${
+              className={`p-3 rounded-lg border text-xs transition-all duration-300 ${
                 isFailHere
                   ? "bg-[var(--bad-bg)] border-[var(--bad-border)] text-[var(--bad)]"
                   : isDone
-                    ? "glass-chip text-[var(--fg)]"
+                    ? "glass-chip text-[var(--fg)] hover:border-[var(--ok-border)]"
                     : isActive
-                      ? "glass-strong text-[var(--fg-bright)] font-medium"
+                      ? "glass-strong text-[var(--fg-bright)] font-medium ring-1 ring-[var(--tally-border)] shadow-[0_0_16px_rgba(234,88,12,0.12)] scale-[1.02]"
                       : "border-[var(--border)] bg-transparent text-[var(--fg-subtle)]"
               }`}
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="timecode text-[10px] text-[var(--fg-subtle)]">0{index + 1}</span>
-                {isDone && <IconCheck className="h-3 w-3 text-[var(--ok)]" />}
-                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[var(--tally)] animate-pulse" />}
+                {isDone && <IconCheck className="h-3.5 w-3.5 text-[var(--ok)] animate-pop" />}
+                {isActive && <span className="radar-dot" />}
               </div>
               <p className="font-semibold">{stage.label}</p>
             </div>

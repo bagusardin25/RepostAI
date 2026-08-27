@@ -80,20 +80,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={toast.id}
               role="status"
-              className={toneStyle}
+              className={`${toneStyle} animate-toast-in relative overflow-hidden`}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 z-10">
                 {icon}
                 <span className="truncate">{toast.message}</span>
               </div>
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="opacity-70 hover:opacity-100 p-0.5 transition-opacity"
+                className="opacity-70 hover:opacity-100 p-0.5 transition-opacity z-10 active:scale-90"
                 aria-label="Dismiss notification"
               >
                 <IconXMark className="h-3.5 w-3.5" />
               </button>
+              {toast.durationMs && toast.durationMs > 0 && (
+                <div
+                  className="absolute bottom-0 left-0 h-[2px] bg-current opacity-25"
+                  style={{
+                    animation: `toastProgress ${toast.durationMs}ms linear forwards`,
+                  }}
+                />
+              )}
             </div>
           );
         })}
