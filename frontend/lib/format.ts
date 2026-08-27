@@ -15,33 +15,46 @@ export const PLATFORM_CODE: Record<Platform, string> = {
 export const JOB_STAGES = [
   {
     key: "fetching_source",
-    label: "Fetch",
-    detail: "Pulling the source video and transcript.",
+    label: "Reading source",
+    detail: "Pulling the video and captions.",
   },
   {
     key: "analyzing",
-    label: "Analyze",
-    detail: "The Mind is choosing moments and writing platform copy.",
+    label: "Finding moments",
+    detail: "Picking the strongest windows and drafting copy.",
   },
   {
     key: "clipping",
-    label: "Cut",
-    detail: "Writing 9:16 files from the selected windows.",
+    label: "Preparing clips",
+    detail: "Cutting 9:16 files and finishing your drafts.",
   },
   {
     key: "ready",
-    label: "Review",
-    detail: "Packages are ready. Nothing publishes without you.",
+    label: "Ready for review",
+    detail: "Review each clip, then copy or download.",
   },
 ] as const;
 
 export const JOB_STATUS_COPY: Record<string, { label: string; detail: string }> = {
-  queued: { label: "Queued", detail: "Waiting for the cutter to pick up the job." },
+  queued: { label: "Queued", detail: "Waiting to start this content pack." },
   fetching_source: JOB_STAGES[0],
   analyzing: JOB_STAGES[1],
   clipping: JOB_STAGES[2],
   ready: JOB_STAGES[3],
-  failed: { label: "Failed", detail: "The job stopped. Retry, or start a new source." },
+  failed: { label: "Failed", detail: "This pack stopped. Retry, or start a new source." },
+};
+
+export const STATUS_LABEL: Record<string, string> = {
+  queued: "Queued",
+  fetching_source: "Reading source",
+  analyzing: "Finding moments",
+  clipping: "Preparing clips",
+  ready: "Ready for review",
+  failed: "Failed",
+  needs_review: "Needs review",
+  approved: "Ready",
+  edited: "Ready",
+  rejected: "Rejected",
 };
 
 export function isPlatform(value: string): value is Platform {
@@ -96,4 +109,22 @@ export function sourceTypeLabel(value: string) {
   if (value === "upload") return "Upload";
   if (value === "watch") return "Channel watch";
   return value;
+}
+
+export function statusLabel(value: string) {
+  return STATUS_LABEL[value] ?? value.replaceAll("_", " ");
+}
+
+export function analyzerLabel(value: string | null | undefined) {
+  if (value === "minds") return "Mind";
+  if (value === "fallback") return "Alternative processing";
+  return null;
+}
+
+export function formatElapsed(fromUnixSec: number, nowMs = Date.now()) {
+  const sec = Math.max(0, Math.floor(nowMs / 1000) - fromUnixSec);
+  if (sec < 60) return `${sec}s`;
+  const minutes = Math.floor(sec / 60);
+  const remain = sec % 60;
+  return `${minutes}m ${String(remain).padStart(2, "0")}s`;
 }

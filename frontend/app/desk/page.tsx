@@ -6,7 +6,7 @@ import { WatchCard } from "@frontend/components/watch-card";
 
 export const metadata: Metadata = {
   title: "Desk",
-  description: "One video in. Three vertical packages out. Review before anything ships.",
+  description: "Turn one video into 3 vertical clips and 4 text drafts. Review before you post.",
 };
 
 export default function DeskPage() {
@@ -16,44 +16,43 @@ export default function DeskPage() {
         kicker="Desk"
         title={
           <>
-            One video in.{" "}
-            <span className="block sm:inline">Three vertical packages out.</span>
+            Turn one video into{" "}
+            <span className="block sm:inline">ready-to-use content.</span>
           </>
         }
-        lede="RepostAI extracts high-engagement moments, re-frames 9:16 cuts, and drafts TikTok, Reels, X, carousel, thread, and LinkedIn packages. You review every package. The Mind remembers your edits."
+        lede="Get 3 vertical cuts and 4 text drafts. Review everything before you post."
       />
 
       <section>
         <IngestForm />
       </section>
 
-      <WatchCard />
-
       <section className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h2 className="section-title">Desk Queue</h2>
-          <span className="timecode text-[11px] text-[var(--fg-muted)]">Live Realtime</span>
+          <h2 className="section-title">Your projects</h2>
         </div>
         <JobList />
       </section>
 
+      <WatchCard />
+
       <section className="pt-8 border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-[var(--fg-muted)]">
         <div className="space-y-1">
-          <p className="font-semibold text-tally timecode">01 / Ingest</p>
+          <p className="font-semibold text-tally timecode">01 / Start</p>
           <p className="leading-relaxed">
-            Paste a public YouTube link with captions, or run a demo sample.
+            Paste a YouTube link with captions, or try the demo sample.
           </p>
         </div>
         <div className="space-y-1">
-          <p className="font-semibold text-tally timecode">02 / Mind & Cut</p>
+          <p className="font-semibold text-tally timecode">02 / Cut</p>
           <p className="leading-relaxed">
-            Minds agent identifies 3 story arcs. FFmpeg re-frames clean 9:16 vertical clips.
+            Three 9:16 windows, one per platform, plus four text drafts.
           </p>
         </div>
         <div className="space-y-1">
-          <p className="font-semibold text-tally timecode">03 / Human Review</p>
+          <p className="font-semibold text-tally timecode">03 / Review</p>
           <p className="leading-relaxed">
-            Review every package. Approvals and caption edits are written back into the Mind.
+            Approve, rewrite, or skip. Then copy and download. Nothing publishes.
           </p>
         </div>
       </section>

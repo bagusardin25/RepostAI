@@ -144,13 +144,14 @@ export function JobList() {
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
+            <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search jobs…"
-              className="field h-8 pl-8 pr-2.5 text-xs w-48 sm:w-56"
+              placeholder="Search projects…"
+              aria-label="Search projects"
+              className="field field-icon h-8 text-xs w-48 sm:w-56"
             />
           </div>
           <button
@@ -172,15 +173,15 @@ export function JobList() {
 
       {/* Jobs List */}
       {filteredJobs.length === 0 ? (
-        <div className="panel p-8 text-center text-xs text-[var(--fg-muted)] space-y-2">
+        <div className="panel p-8 text-center text-xs text-[var(--fg-muted)] space-y-2 animate-fade-in-up">
           <p>
             {jobs.length === 0
-              ? "No jobs yet. Paste a captioned YouTube link or run a demo sample — then review so the Mind has a voice to remember."
-              : "No jobs match this filter."}
+              ? "No projects yet. Paste a captioned YouTube link or try the demo sample."
+              : "No projects match this filter."}
           </p>
         </div>
       ) : (
-        <div className="panel divide-y divide-[var(--border)] rounded-xl overflow-hidden">
+        <div key={filter} className="panel divide-y divide-[var(--border)] rounded-xl overflow-hidden animate-fade-in-up">
           {filteredJobs.map((job) => {
             const pending = job.pendingReview ?? 0;
 
@@ -188,10 +189,10 @@ export function JobList() {
               <Link
                 key={job.id}
                 href={`/jobs/${job.id}`}
-                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 hover:bg-[var(--bg-card)] transition-colors"
+                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 hover:bg-[var(--bg-card)] transition-all duration-200"
               >
                 <div className="min-w-0 space-y-1">
-                  <p className="font-medium text-xs sm:text-sm text-[var(--fg)] truncate">
+                  <p className="font-medium text-xs sm:text-sm text-[var(--fg)] truncate group-hover:text-[var(--fg-bright)]">
                     {job.sourceTitle}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--fg-muted)] timecode">
@@ -214,10 +215,10 @@ export function JobList() {
                   {job.analyzer === "minds" ? (
                     <span className="timecode text-[10px] text-[var(--fg)]">Mind</span>
                   ) : job.analyzer === "fallback" ? (
-                    <span className="timecode text-[10px] text-[var(--fg-subtle)]">Fallback</span>
+                    <span className="timecode text-[10px] text-[var(--fg-subtle)]">Alt process</span>
                   ) : null}
                   <StatusPill value={job.status} />
-                  <IconArrowRight className="h-3.5 w-3.5 text-[var(--fg-subtle)] group-hover:text-[var(--fg)] transition-colors" />
+                  <IconArrowRight className="h-3.5 w-3.5 text-[var(--fg-subtle)] group-hover:text-[var(--fg)] group-hover:translate-x-0.5 transition-all duration-200" />
                 </div>
               </Link>
             );

@@ -1,3 +1,5 @@
+import { statusLabel } from "@frontend/lib/format";
+
 interface StatusPillProps {
   value: string;
   className?: string;
@@ -16,10 +18,11 @@ export function StatusPill({ value, className = "" }: StatusPillProps) {
     case "analyzing":
     case "clipping":
       tone = "pill pill-live";
-      dot = <span className="h-1.5 w-1.5 rounded-full bg-[var(--tally)] animate-pulse" />;
+      dot = <span className="radar-dot" />;
       break;
     case "ready":
     case "approved":
+    case "edited":
       tone = "pill pill-ok";
       dot = <span className="h-1.5 w-1.5 rounded-full bg-[var(--ok)]" />;
       break;
@@ -34,14 +37,11 @@ export function StatusPill({ value, className = "" }: StatusPillProps) {
       tone = "pill pill-tally";
       dot = <span className="h-1.5 w-1.5 rounded-full bg-[var(--tally)]" />;
       break;
-    case "edited":
-      tone = "pill pill-live";
-      break;
     default:
       tone = "pill";
   }
 
-  const label = value.replaceAll("_", " ");
+  const label = statusLabel(value);
 
   return (
     <span className={`${tone} ${className}`.trim()}>

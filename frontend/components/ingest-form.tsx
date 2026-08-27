@@ -13,30 +13,16 @@ import {
 type IngestMode = "youtube" | "upload" | "presets";
 type BusyKind = "url" | "file" | "fixture" | null;
 
-const DEMO_PRESETS = [
-  {
-    id: "podcast",
-    title: "Creator Economy & AI Agents",
-    duration: "14m",
-    desc: "Autonomous workflow discussion and multi-platform distribution strategy.",
-  },
-  {
-    id: "launch",
-    title: "Product Keynote & Architecture",
-    duration: "8m",
-    desc: "Fast-paced breakdown with core takeaways and problem-solution arcs.",
-  },
-  {
-    id: "tutorial",
-    title: "Fullstack Engineering Walkthrough",
-    duration: "18m",
-    desc: "Technical walk-through with concise, actionable insights.",
-  },
-];
+const DEMO_SAMPLE = {
+  title: "Stop posting the same YouTube video everywhere",
+  duration: "1m 36s",
+  desc: "A short creator-workflow sample. You get 3 vertical cuts and 4 text drafts — the same result every time.",
+};
 
 export function IngestForm() {
   const router = useRouter();
   const fileInputId = useId();
+  const captionInputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
@@ -111,7 +97,7 @@ export function IngestForm() {
             }}
             className={`seg-item ${mode === "youtube" ? "is-active" : ""}`}
           >
-            YouTube
+            YouTube link
           </button>
 
           <button
@@ -122,7 +108,7 @@ export function IngestForm() {
             }}
             className={`seg-item ${mode === "upload" ? "is-active" : ""}`}
           >
-            Upload File
+            Upload video
             {file && <span className="ml-1.5 h-1.5 w-1.5 inline-block rounded-full bg-[var(--ok)]" />}
           </button>
 
@@ -134,23 +120,22 @@ export function IngestForm() {
             }}
             className={`seg-item ${mode === "presets" ? "is-active" : ""}`}
           >
-            Demo Samples
+            Try sample
           </button>
         </div>
 
         <span className="timecode text-[11px] text-[var(--fg-muted)] hidden sm:inline-block">
-          Auto 9:16 Re-framing
+          3 clips · 4 drafts
         </span>
       </div>
 
-      {/* Mode 1: YouTube */}
       {mode === "youtube" && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             void submit("url");
           }}
-          className="space-y-3.5"
+          className="space-y-3.5 animate-fade-in-up"
         >
           <div className="flex flex-col sm:flex-row gap-2.5">
             <input
@@ -162,25 +147,24 @@ export function IngestForm() {
               inputMode="url"
               autoComplete="url"
               disabled={busy !== null}
-              className="field flex-1 text-sm"
+              className="field flex-1 text-sm focus:ring-1 focus:ring-[var(--fg)]"
             />
             <button
               type="submit"
               disabled={busy !== null || !url.trim()}
               className="btn btn-primary min-h-10 px-5 text-xs font-semibold whitespace-nowrap"
             >
-              {busy === "url" ? "Processing…" : "Make 3 Clips"}
+              {busy === "url" ? "Starting…" : "Create content pack"}
             </button>
           </div>
           <p className="text-xs text-[var(--fg-muted)]">
-            Needs a public video with captions. The Mind grounds timestamps in that transcript — it will not invent speech.
+            Needs a public video with captions. Timestamps come from that transcript — speech is never invented.
           </p>
         </form>
       )}
 
-      {/* Mode 2: Upload */}
       {mode === "upload" && (
-        <div className="space-y-3">
+        <div className="space-y-3 animate-fade-in-up">
           <input
             id={fileInputId}
             ref={fileInputRef}
@@ -191,25 +175,45 @@ export function IngestForm() {
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
 
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--fg)]" htmlFor={captionInputId}>
+              YouTube link for captions (optional)
+            </label>
+            <input
+              id={captionInputId}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="youtube.com/watch?v=… with captions"
+              inputMode="url"
+              autoComplete="url"
+              disabled={busy !== null}
+              className="field w-full text-sm focus:ring-1 focus:ring-[var(--fg)]"
+            />
+            <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">
+              {url.trim()
+                ? "Your uploaded file will be cut. Captions from this YouTube link become the transcript."
+                : "Upload alone has no speech-to-text. Add a YouTube link with captions, or try the demo sample."}
+            </p>
+          </div>
+
           {!file ? (
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`p-8 panel-dashed text-center cursor-pointer transition-colors ${
+              className={`p-8 panel-dashed text-center cursor-pointer transition-all duration-200 ${
                 isDragging
-                  ? "border-solid border-[var(--fg)]"
-                  : "hover:border-[var(--fg-muted)]"
+                  ? "border-solid border-[var(--fg)] bg-[var(--cell-bg)] scale-[1.01] shadow-lg"
+                  : "hover:border-[var(--fg-muted)] hover:bg-[var(--cell-bg)]/60"
               }`}
             >
-              <IconUpload className="h-5 w-5 mx-auto text-[var(--fg-muted)] mb-2" />
+              <IconUpload className={`h-5 w-5 mx-auto text-[var(--fg-muted)] mb-2 transition-transform duration-200 ${isDragging ? "-translate-y-1 text-[var(--fg)] scale-110" : ""}`} />
               <p className="text-sm font-medium text-[var(--fg)]">Drop video file here or click to browse</p>
               <p className="timecode text-[11px] text-[var(--fg-muted)] mt-1">MP4, WebM, MOV · Max 500MB</p>
-              <p className="text-[11px] text-[var(--fg-muted)] mt-2">Upload alone has no speech-to-text. Pair with a YouTube URL that has captions, or use a fixture.</p>
             </div>
           ) : (
-            <div className="cell p-3.5 flex items-center justify-between gap-4">
+            <div className="cell p-3.5 flex items-center justify-between gap-4 animate-scale-in">
               <div className="min-w-0">
                 <p className="font-medium text-xs text-[var(--fg)] truncate">{file.name}</p>
                 <p className="timecode text-[11px] text-[var(--fg-muted)]">{formatBytes(file.size)}</p>
@@ -229,7 +233,7 @@ export function IngestForm() {
                   disabled={busy !== null}
                   className="btn btn-primary btn-sm font-medium"
                 >
-                  {busy === "file" ? "Starting…" : "Start Job"}
+                  {busy === "file" ? "Starting…" : "Create content pack"}
                 </button>
               </div>
             </div>
@@ -237,28 +241,29 @@ export function IngestForm() {
         </div>
       )}
 
-      {/* Mode 3: Presets */}
       {mode === "presets" && (
-        <div className="grid gap-2.5 sm:grid-cols-3">
-          {DEMO_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => void submit("fixture")}
-              disabled={busy !== null}
-              className="panel-card p-3.5 text-left space-y-1"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-[var(--fg)]">{preset.title}</span>
-                <span className="timecode text-[10px] text-[var(--fg-muted)]">{preset.duration}</span>
-              </div>
-              <p className="text-xs text-[var(--fg-muted)] line-clamp-2 leading-relaxed">{preset.desc}</p>
-            </button>
-          ))}
+        <div className="animate-fade-in-up">
+          <button
+            type="button"
+            onClick={() => void submit("fixture")}
+            disabled={busy !== null}
+            className="panel-card p-4 text-left w-full space-y-2 cursor-pointer group"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="pill pill-tally">Demo data</span>
+              <span className="timecode text-[11px] text-[var(--fg-muted)]">{DEMO_SAMPLE.duration}</span>
+            </div>
+            <p className="font-semibold text-sm text-[var(--fg)] group-hover:text-[var(--tally-fg)] transition-colors">
+              {DEMO_SAMPLE.title}
+            </p>
+            <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{DEMO_SAMPLE.desc}</p>
+            <p className="text-xs font-medium text-[var(--fg)] pt-1">
+              {busy === "fixture" ? "Starting…" : "Try this sample"}
+            </p>
+          </button>
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div
           role="alert"
@@ -269,9 +274,8 @@ export function IngestForm() {
         </div>
       )}
 
-      {/* Platform target badges */}
       <div className="pt-2.5 border-t border-[var(--border)] flex flex-wrap items-center justify-between text-xs text-[var(--fg-muted)]">
-        <span className="timecode text-[11px]">Supported Platforms:</span>
+        <span className="timecode text-[11px]">Output:</span>
         <div className="flex items-center gap-4 text-[11px]">
           <span>TikTok (9:16 · 60s)</span>
           <span>Instagram Reels (9:16 · 90s)</span>
