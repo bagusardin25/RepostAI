@@ -19,17 +19,17 @@ export function VoiceInfluence({
   const notes = (voiceApplied?.notes ?? []).slice(0, 4);
 
   return (
-    <section className="glass p-5 sm:p-6 space-y-4">
+    <section className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice applied to this job</p>
+          <p className="timecode text-[11px] text-[var(--fg-muted)]">Your style used here</p>
           <h2 className="section-title">
-            {steered ? "The Mind was steered by your prior reviews" : "No prior voice yet"}
+            {steered ? "Prior reviews steered these clips" : "No saved style yet"}
           </h2>
           <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-2xl">
             {steered
-              ? "These standing notes were injected into the Mind before it proposed packages."
-              : "Approve, edit, or reject these clips. The next job will show what changed."}
+              ? "These notes were used before the moments were chosen."
+              : "Approve, edit, or reject these clips. The next pack will follow what you keep."}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -42,7 +42,7 @@ export function VoiceInfluence({
             </Link>
           ) : null}
           <Link href="/voice" className="btn btn-ghost btn-xs">
-            Voice memory
+            Saved style
           </Link>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ContentArtifacts } from "@frontend/lib/api";
+import { draftTeasers, formatAllDrafts, formatDraft } from "@frontend/lib/content-pack";
 import { useToast } from "@frontend/components/toast";
 import { IconCopy, IconCheck } from "@frontend/components/icons";
 
@@ -10,53 +11,64 @@ type Tab = "script" | "carousel" | "thread" | "linkedin";
 export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("script");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"tab" | "all" | null>(null);
 
-  const text = artifactText(artifacts, tab);
+  const text = formatDraft(artifacts, tab);
+  const teasers = draftTeasers(artifacts);
 
-  function copy() {
+  function copyTab() {
     void navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast.success("Copied draft");
-    setTimeout(() => setCopied(false), 1600);
+    setCopied("tab");
+    toast.success("Copied this draft");
+    setTimeout(() => setCopied(null), 1600);
+  }
+
+  function copyAll() {
+    void navigator.clipboard.writeText(formatAllDrafts(artifacts));
+    setCopied("all");
+    toast.success("Copied all 4 drafts");
+    setTimeout(() => setCopied(null), 1600);
   }
 
   return (
     <section className="panel overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <div>
-          <h2 className="section-title">Text packages</h2>
-          <p className="text-xs text-[var(--fg-muted)]">Script, carousel, thread, and LinkedIn — still review-only.</p>
+          <h2 className="section-title">4 text drafts</h2>
+          <p className="text-xs text-[var(--fg-muted)]">Script, carousel, thread, and LinkedIn — same source as the clips.</p>
         </div>
-        <button type="button" className="btn btn-ghost btn-xs" onClick={copy}>
-          {copied ? <IconCheck className="h-3 w-3" /> : <IconCopy className="h-3 w-3" />}
-          <span>{copied ? "Copied" : "Copy tab"}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn btn-ghost btn-xs active:scale-95 transition-transform" onClick={copyTab}>
+            {copied === "tab" ? <IconCheck className="h-3 w-3 text-[var(--ok)] animate-pop" /> : <IconCopy className="h-3 w-3" />}
+            <span>{copied === "tab" ? "Copied" : "Copy this draft"}</span>
+          </button>
+          <button type="button" className="btn btn-primary btn-xs active:scale-95 transition-transform" onClick={copyAll}>
+            {copied === "all" ? <IconCheck className="h-3 w-3 text-[var(--ok)] animate-pop" /> : <IconCopy className="h-3 w-3" />}
+            <span>{copied === "all" ? "Copied" : "Copy all 4 drafts"}</span>
+          </button>
+        </div>
       </div>
 
-      <div className="px-4 pt-3">
-        <div className="seg flex-wrap">
-        {(
-          [
-            ["script", "TikTok script"],
-            ["carousel", "IG carousel"],
-            ["thread", "X thread"],
-            ["linkedin", "LinkedIn"],
-          ] as const
-        ).map(([key, label]) => (
+      <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-4">
+        {teasers.map((tease) => (
           <button
-            key={key}
+            key={tease.key}
             type="button"
-            onClick={() => setTab(key)}
-            className={`seg-item ${tab === key ? "is-active" : ""}`}
+            onClick={() => setTab(tease.key)}
+            className={`cell p-3 text-left space-y-1.5 transition-colors ${
+              tab === tease.key ? "border-[var(--border-strong)] bg-[var(--bg-card-hover)]" : "hover:border-[var(--border-strong)]"
+            }`}
           >
-            {label}
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-[var(--fg)]">{tease.label}</p>
+              <span className="timecode text-[10px] text-[var(--fg-muted)]">{tease.meta}</span>
+            </div>
+            <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed line-clamp-2">{tease.tease}</p>
           </button>
         ))}
-        </div>
       </div>
 
-      <div className="p-4">
+      <div key={tab} className="p-4 pt-1 animate-fade-in-up">
         {tab === "script" && (
           <div className="space-y-3">
             {artifacts.tiktokScript.onScreenText && (
@@ -113,25 +125,4 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
       </div>
     </section>
   );
-}
-
-function artifactText(artifacts: ContentArtifacts, tab: Tab) {
-  if (tab === "script") {
-    return [
-      artifacts.tiktokScript.onScreenText && `On-screen: ${artifacts.tiktokScript.onScreenText}`,
-      ...artifacts.tiktokScript.lines.map((line, index) => `${index + 1}. ${line}`),
-      artifacts.tiktokScript.cta && `CTA: ${artifacts.tiktokScript.cta}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-  if (tab === "carousel") {
-    return artifacts.instagramCarousel.slides
-      .map((slide, index) => `${index + 1}. ${slide.title}\n${slide.body}`)
-      .join("\n\n");
-  }
-  if (tab === "thread") {
-    return artifacts.xThread.tweets.map((tweet, index) => `${index + 1}/${artifacts.xThread.tweets.length}\n${tweet}`).join("\n\n");
-  }
-  return artifacts.linkedinPost.text;
 }

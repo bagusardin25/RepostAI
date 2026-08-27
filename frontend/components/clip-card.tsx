@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
+import { formatHashtags, isClipReady } from "@frontend/lib/content-pack";
 import { isPlatform } from "@frontend/lib/format";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -36,6 +37,8 @@ export function ClipCard({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [justApproved, setJustApproved] = useState(false);
+  const [reasonOpen, setReasonOpen] = useState(false);
 
   useEffect(() => {
     setCaption(clip.displayCaption);
@@ -47,6 +50,7 @@ export function ClipCard({
   const limit = isPlatform(clip.platform) ? PLATFORM_SPECS[clip.platform].captionLimit : 2200;
   const charCount = caption.length;
   const overLimit = charCount > limit;
+  const ready = isClipReady(clip.status);
 
   async function copyToClipboard(text: string, fieldLabel: string) {
     try {
@@ -59,10 +63,14 @@ export function ClipCard({
     }
   }
 
-  function copyAllPackage() {
-    const tags = clip.hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ");
-    const fullText = `${hook}\n\n${caption}\n\n${tags}`.trim();
-    void copyToClipboard(fullText, "Package");
+  function captionWithHashtags() {
+    const tags = formatHashtags(clip.hashtags);
+    return [caption.trim(), tags].filter(Boolean).join("\n\n");
+  }
+
+  function copyPost() {
+    const fullText = `${hook}\n\n${captionWithHashtags()}`.trim();
+    void copyToClipboard(fullText, "post");
   }
 
   async function act(action: "approve" | "reject" | "edit") {
@@ -95,11 +103,13 @@ export function ClipCard({
       onChange(next);
 
       if (action === "approve") {
-        toast.success(`Approved ${clip.platform}. Mind will keep this.`);
+        setJustApproved(true);
+        setTimeout(() => setJustApproved(false), 1400);
+        toast.success(`Approved ${clip.platform}. We'll keep this style.`);
       } else if (action === "reject") {
-        toast.showToast(`Rejected — Mind will avoid this pattern next job`, "error");
+        toast.showToast(`Rejected — we'll avoid this pattern next time`, "error");
       } else {
-        toast.success("Edit sent to the Mind");
+        toast.success("Saved your edit");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Review action failed";
@@ -110,14 +120,26 @@ export function ClipCard({
     }
   }
 
+  const primaryLabel = busy === "approve"
+    ? "Saving…"
+    : dirty
+      ? "Save & approve"
+      : ready
+        ? "Ready"
+        : "Approve";
+
   return (
-    <article className="panel flex flex-col overflow-hidden">
+    <article
+      id={`clip-${clip.id}`}
+      className={`panel clip-card flex flex-col overflow-hidden transition-all duration-300 scroll-mt-28 ${
+        ready ? "clip-accent-ready" : clip.status === "rejected" ? "clip-accent-rejected" : "clip-accent-review"
+      } ${justApproved ? "card-approved-flash" : ""}`}
+    >
       <header className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <PlatformMark platform={clip.platform} />
         <StatusPill value={clip.status} />
       </header>
 
-      {/* 9:16 Video Player Area */}
       <div className="bg-black p-3 flex flex-col items-center">
         {clip.videoUrl ? (
           <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg overflow-hidden bg-black border border-white/10 flex items-center justify-center">
@@ -130,13 +152,14 @@ export function ClipCard({
             />
           </div>
         ) : (
-          <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg flex flex-col items-center justify-center p-4 text-center text-xs text-zinc-400 space-y-1 bg-zinc-900 border border-white/10">
-            <p className="font-medium text-white">Slice: {clip.durationSec}s</p>
-            <p className="text-[11px] text-zinc-400">Video cut ready</p>
+          <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg flex flex-col items-center justify-center p-4 text-center text-xs text-zinc-400 space-y-2 bg-zinc-900 border border-white/10">
+            <p className="font-medium text-white">No MP4 for this clip</p>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              The window is ready, but the source file was not downloaded so the clip could not be cut. Copy the caption, or retry.
+            </p>
           </div>
         )}
 
-        {/* Video Timecode & Download */}
         <div className="w-full flex items-center justify-between pt-2 px-1 text-xs text-zinc-400">
           <div className="flex items-center gap-1 timecode text-[11px]">
             <IconClock className="h-3 w-3" />
@@ -158,67 +181,57 @@ export function ClipCard({
         </div>
       </div>
 
-      {/* Card Content Form */}
       <div className="flex flex-1 flex-col gap-3.5 p-4">
-        {/* Mind Selection Rationale */}
         {clip.reason && (
           <div className="text-xs cell p-2.5 space-y-1">
-            <p className="timecode text-[10px] text-[var(--fg-muted)]">Mind chose this window</p>
-            <p className="text-[var(--fg)] leading-relaxed">{clip.reason}</p>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 text-left"
+              aria-expanded={reasonOpen}
+              onClick={() => setReasonOpen((current) => !current)}
+            >
+              <p className="timecode text-[10px] text-[var(--fg-muted)]">Why this moment</p>
+              <span className="timecode text-[10px] text-[var(--fg-subtle)]">{reasonOpen ? "Hide" : "Show"}</span>
+            </button>
+            {reasonOpen && <p className="text-[var(--fg)] leading-relaxed">{clip.reason}</p>}
+            {!reasonOpen && (
+              <p className="text-[var(--fg-muted)] leading-relaxed line-clamp-2">{clip.reason}</p>
+            )}
           </div>
         )}
 
         {previousHook && previousHook !== clip.displayHook && (
           <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">
-            Last job: {previousHook}
+            Last pack: {previousHook}
             {previousNote ? ` — ${previousNote}` : ""}
           </p>
         )}
 
-        {/* Hook */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-[var(--fg)]" htmlFor={hookId}>
-              Hook
-            </label>
-            <button
-              type="button"
-              onClick={() => void copyToClipboard(hook, "Hook")}
-              className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] inline-flex items-center gap-1"
-            >
-              {copiedField === "Hook" ? <IconCheck className="h-3 w-3 text-[var(--ok)]" /> : <IconCopy className="h-3 w-3" />}
-              <span>{copiedField === "Hook" ? "Copied" : "Copy"}</span>
-            </button>
-          </div>
+          <label className="text-xs font-medium text-[var(--fg)]" htmlFor={hookId}>
+            Hook
+          </label>
           <textarea
             id={hookId}
             value={hook}
             onChange={(e) => setHook(e.target.value)}
             rows={2}
             className="field text-xs leading-relaxed"
-            placeholder="Opening hook..."
+            placeholder="Opening line on screen..."
           />
+          <p className="text-[11px] text-[var(--fg-subtle)] leading-relaxed">
+            First line on screen in the first seconds. Not the post.
+          </p>
         </div>
 
-        {/* Caption */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-[var(--fg)]" htmlFor={captionId}>
               Caption
             </label>
-            <div className="flex items-center gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => void copyToClipboard(caption, "Caption")}
-                className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] inline-flex items-center gap-1"
-              >
-                {copiedField === "Caption" ? <IconCheck className="h-3 w-3 text-[var(--ok)]" /> : <IconCopy className="h-3 w-3" />}
-                <span>{copiedField === "Caption" ? "Copied" : "Copy"}</span>
-              </button>
-              <span className={`timecode ${overLimit ? "text-bad font-bold" : "text-[var(--fg-muted)]"}`}>
-                {charCount}/{limit}
-              </span>
-            </div>
+            <span className={`timecode text-[11px] ${overLimit ? "text-bad font-bold" : "text-[var(--fg-muted)]"}`}>
+              {charCount}/{limit}
+            </span>
           </div>
           <textarea
             id={captionId}
@@ -231,71 +244,56 @@ export function ClipCard({
             }`}
             placeholder="Platform caption..."
           />
+          <p className="text-[11px] text-[var(--fg-subtle)] leading-relaxed">
+            The post you paste under the video.
+          </p>
         </div>
 
-        {/* Hashtags */}
         {clip.hashtags.length > 0 && (
           <ul className="flex flex-wrap gap-1" aria-label="Hashtags">
             {clip.hashtags.map((tag) => (
               <li key={tag}>
-                <button
-                  type="button"
-                  onClick={() => void copyToClipboard(tag.startsWith("#") ? tag : `#${tag}`, tag)}
-                  className="timecode text-[11px] px-2 py-0.5 rounded-md glass-chip text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-                >
+                <span className="timecode text-[11px] px-2 py-0.5 rounded-md glass-chip text-[var(--fg-muted)]">
                   {tag.startsWith("#") ? tag : `#${tag}`}
-                </button>
+                </span>
               </li>
             ))}
           </ul>
         )}
 
-        {/* Note to Mind */}
         <div className="space-y-1 pt-1 border-t border-[var(--border)]">
           <label className="text-[11px] text-[var(--fg-muted)]" htmlFor={noteId}>
-            Feedback note for Mind
+            Note for future clips
           </label>
           <input
             id={noteId}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g., Shorter hook, skip intro"
+            placeholder="e.g. Shorter hook, skip intro"
             className="field h-8 text-xs"
           />
         </div>
 
-        {/* Error */}
         {error && <p className="text-xs text-bad" role="alert">{error}</p>}
 
-        {/* Action Buttons */}
         <div className="mt-auto pt-2 border-t border-[var(--border)] space-y-1.5">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => void act("approve")}
-              className="btn btn-primary min-h-9 text-xs"
-            >
-              {busy === "approve" ? "Saving…" : clip.status === "approved" ? "Approved" : "Approve"}
-            </button>
-
-            <button
-              type="button"
-              disabled={busy !== null || !dirty}
-              onClick={() => void act("edit")}
-              className="btn btn-ghost min-h-9 text-xs"
-            >
-              {busy === "edit" ? "Saving…" : "Save Edit"}
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => void act("approve")}
+            className="btn btn-primary min-h-9 w-full text-xs"
+          >
+            {primaryLabel}
+          </button>
 
           <div className="flex items-center justify-between gap-2 text-xs">
             <button
               type="button"
-              onClick={copyAllPackage}
+              onClick={copyPost}
               className="btn btn-ghost btn-xs flex-1 text-[var(--fg-muted)] hover:text-[var(--fg)]"
             >
-              Copy Full Text
+              {copiedField === "post" ? <IconCheck className="h-3 w-3 text-[var(--ok)]" /> : <IconCopy className="h-3 w-3" />}
+              <span>{copiedField === "post" ? "Copied" : "Copy post"}</span>
             </button>
             <button
               type="button"
