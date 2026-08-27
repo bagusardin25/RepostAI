@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   equipMindSkill,
@@ -12,6 +13,7 @@ import {
 } from "@frontend/lib/api";
 import { PageHeader } from "@frontend/components/page-header";
 import { useToast } from "@frontend/components/toast";
+import { IconChevronRight } from "@frontend/components/icons";
 
 export default function MindPage() {
   const toast = useToast();
@@ -23,6 +25,7 @@ export default function MindPage() {
   const [sending, setSending] = useState(false);
   const [equipping, setEquipping] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
 
   async function loadHistory() {
     const { messages: next } = await getMindHistory(50);
@@ -39,7 +42,7 @@ export default function MindPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Could not load Mind desk");
+        setError(err instanceof Error ? err.message : "Could not load Mind");
       });
     return () => {
       cancelled = true;
@@ -56,8 +59,9 @@ export default function MindPage() {
   }, [messages]);
 
   useEffect(() => {
+    if (!conversationOpen) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
+  }, [messages.length, conversationOpen]);
 
   async function send() {
     const text = draft.trim();
@@ -79,7 +83,7 @@ export default function MindPage() {
     setSeeding(true);
     try {
       await seedMindTenets();
-      toast.success("Tenets sent into the Mind conversation");
+      toast.success("Rules sent to the Mind");
       await loadHistory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not seed tenets");
@@ -96,7 +100,7 @@ export default function MindPage() {
       "Ground every timestamp in the transcript. Do not invent moments.",
     ].join("\n");
     await navigator.clipboard.writeText(text);
-    toast.success("Tenets copied — paste into Soul on hellominds.ai");
+    toast.success("Rules copied — paste into Soul on hellominds.ai");
   }
 
   async function equip(skillId: string) {
@@ -116,161 +120,189 @@ export default function MindPage() {
     return (
       <div className="panel p-8 text-center space-y-3 max-w-md mx-auto">
         <p className="text-xs text-bad" role="alert">{error}</p>
+        <Link href="/desk" className="btn btn-ghost btn-sm">
+          Back to desk
+        </Link>
       </div>
     );
   }
 
   if (!desk) {
     return (
-      <div className="space-y-8 max-w-4xl mx-auto" aria-busy="true">
+      <div className="space-y-8 max-w-3xl mx-auto" aria-busy="true">
         <PageHeader
-          kicker="Agent"
-          title="Mind desk"
-          lede="Same persistent conversation the pipeline uses. Telegram is the native channel if it is connected on the Mind."
+          kicker="Mind"
+          title="The agent behind the cuts"
+          lede="It picks moments. You still review every pack."
         />
-        <div className="skel h-24 rounded-[var(--radius-xl)]" />
-        <div className="skel h-80 rounded-[var(--radius-xl)]" />
+        <div className="skel h-32 rounded-[var(--radius-xl)]" />
+        <div className="skel h-16 rounded-[var(--radius-xl)]" />
       </div>
     );
   }
 
+  const online = desk.ok && desk.mind?.isEnabled !== false;
+  const statusLabel = desk.mind?.isEnabled === false ? "Disabled" : desk.ok ? "Connected" : "Offline";
+
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-3xl mx-auto">
       <PageHeader
-        kicker="Agent"
-        title="Mind desk"
-        lede="Same persistent conversation the pipeline uses. Telegram is the native channel if it is connected on the Mind."
+        kicker="Mind"
+        title="The agent behind the cuts"
+        lede="It picks the three moments and drafts the copy. You still review, copy, and post. Nothing publishes."
+        actions={
+          <Link href="/desk" className="btn btn-primary btn-sm">
+            Back to desk
+          </Link>
+        }
       />
 
-      <section className="glass p-5 space-y-3">
-        <p className="timecode text-[11px] text-[var(--fg-muted)]">Tenets on every propose</p>
-        <h2 className="section-title">What this Mind is not allowed to do</h2>
-        <ul className="grid gap-2 sm:grid-cols-2 text-xs text-[var(--fg-muted)]">
-          <li className="cell p-3">Never publish. Packages stay on the desk until you review.</li>
-          <li className="cell p-3">Never change the creator&apos;s core claim — adapt format and tone only.</li>
-          <li className="cell p-3">Hook-first. Skip long intros unless you have said you like them.</li>
-          <li className="cell p-3">Timestamps must exist in the transcript. No invented moments.</li>
-        </ul>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn btn-ghost btn-xs" onClick={() => void copyTenets()}>
-            Copy for Soul
-          </button>
-          <button type="button" className="btn btn-primary btn-xs" disabled={seeding || !desk.ok} onClick={() => void seedTenets()}>
-            {seeding ? "Sending…" : "Seed into conversation"}
-          </button>
+      <section className="panel p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <p className="timecode text-[11px] text-[var(--fg-muted)]">{desk.mind?.name || "RepostAI Mind"}</p>
+            <h2 className="section-title">
+              {online ? "Ready to pick moments" : "Offline — local fallback can still cut"}
+            </h2>
+            <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-lg">
+              You do not need this page to review clips. Style is taught from Approve, Save & approve, and Reject on the desk.
+            </p>
+          </div>
+          <span className={`pill ${online ? "pill-ok" : "pill-warn"}`}>{statusLabel}</span>
         </div>
-        <ol className="text-[11px] text-[var(--fg-muted)] space-y-1 list-decimal pl-4">
-          <li>
-            Open{" "}
-            <a href="https://hellominds.ai/profile" target="_blank" rel="noreferrer" className="underline underline-offset-4">
-              hellominds.ai/profile
-            </a>
-            , select Mind RepostAI, paste tenets into Soul.
-          </li>
-          <li>
-            Same page: Link Account for Telegram so web and Telegram share one memory. Refresh this desk after.
-          </li>
-        </ol>
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-3">
-        <article className="panel p-4 space-y-1">
-          <p className="timecode text-[11px] text-[var(--fg-muted)]">Agent</p>
-          <p className="text-sm font-semibold text-[var(--fg)]">{desk.mind?.name || "RepostAI Mind"}</p>
-          <p className="text-xs text-[var(--fg-muted)]">
-            {desk.alias} · {desk.mind?.isEnabled === false ? "disabled" : desk.ok ? "online" : "offline"}
-            {desk.mind?.cognition != null ? ` · cognition ${Number(desk.mind.cognition).toFixed(1)}` : ""}
-          </p>
-        </article>
-        <article className="panel p-4 space-y-1">
-          <p className="timecode text-[11px] text-[var(--fg-muted)]">Telegram</p>
-          <p className="text-sm font-semibold text-[var(--fg)]">
-            {desk.mind?.hasTelegram ? "Connected" : "Not connected"}
-          </p>
-          <p className="text-xs text-[var(--fg-muted)]">
-            {desk.mind?.hasTelegram
-              ? "Talk to the Mind in Telegram — memory is shared."
-              : "Connect Telegram in the Minds Builder console."}
-          </p>
-        </article>
-        <article className="panel p-4 space-y-1">
-          <p className="timecode text-[11px] text-[var(--fg-muted)]">Email / wallet</p>
-          <p className="text-xs text-[var(--fg)] break-all">{desk.mind?.email || "No Mind email yet"}</p>
-          <p className="text-xs text-[var(--fg-muted)] break-all">
-            {desk.mind?.walletAddress || "No wallet on this Mind"}
-          </p>
-        </article>
-      </section>
-
-      <section className="panel overflow-hidden">
-        <div className="border-b border-[var(--border)] px-4 py-3">
-          <h2 className="section-title">Conversation</h2>
-        </div>
-        <div className="max-h-[28rem] overflow-y-auto p-4 space-y-3 bg-[var(--bg-card)]/40">
-          {messages.length === 0 ? (
-            <p className="text-xs text-[var(--fg-muted)]">No messages yet. Run a job or send a note below.</p>
-          ) : (
-            messages.map((message) => (
-              <article
-                key={message.fingerprint || message.messageId}
-                className={`cell px-3 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
-                  message.fromMind ? "text-[var(--fg)]" : "border-[var(--border-strong)]"
-                }`}
-              >
-                <p className="timecode text-[10px] text-[var(--fg-muted)] mb-1">
-                  {message.fromMind ? "Mind" : "You"}
-                </p>
-                {message.text}
-              </article>
-            ))
-          )}
-          <div ref={bottomRef} />
-        </div>
-        <form
-          className="flex gap-2 border-t border-[var(--border)] p-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void send();
-          }}
-        >
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Message the Mind (this is the web stand-in for Telegram)"
-            className="field flex-1 text-sm"
-            disabled={sending || !desk.ok}
-          />
-          <button type="submit" className="btn btn-primary btn-sm" disabled={sending || !draft.trim() || !desk.ok}>
-            {sending ? "Sending…" : "Send"}
-          </button>
-        </form>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="kicker">Circle</h2>
-        {desk.circle.length === 0 ? (
-          <p className="text-xs text-[var(--fg-muted)]">
-            Single-agent mode. Add another Mind in the Builder console if you want a quality reviewer in the circle.
-          </p>
-        ) : (
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {desk.circle.map((member) => (
-              <li key={member.email || member.name} className="panel p-3 text-xs">
-                <p className="font-medium text-[var(--fg)]">{member.name || member.email}</p>
-                <p className="text-[var(--fg-muted)]">{member.isSteward ? "Steward" : member.email}</p>
-              </li>
-            ))}
-          </ul>
+        {!online && desk.error && (
+          <p className="text-xs text-bad" role="alert">{desk.error}</p>
         )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="kicker">Skills</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <article className="panel p-4 space-y-2">
-            <h3 className="text-xs font-semibold text-[var(--fg)]">Equipped</h3>
+      <details
+        className="disclosure panel"
+        onToggle={(event) => setConversationOpen((event.currentTarget as HTMLDetailsElement).open)}
+      >
+        <summary className="px-5 py-4">
+          <span className="flex items-center gap-2 min-w-0">
+            <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
+            <span>
+              <span className="section-title block">Conversation</span>
+              <span className="text-xs text-[var(--fg-muted)]">
+                {messages.length === 0 ? "No messages yet" : `${messages.length} messages`}
+              </span>
+            </span>
+          </span>
+        </summary>
+        <div className="border-t border-[var(--border)]">
+          <div className="max-h-[28rem] overflow-y-auto p-4 space-y-3 bg-[var(--bg-card)]/40">
+            {messages.length === 0 ? (
+              <p className="text-xs text-[var(--fg-muted)]">No messages yet. Run a job or send a note below.</p>
+            ) : (
+              messages.map((message) => (
+                <article
+                  key={message.fingerprint || message.messageId}
+                  className={`cell px-3 py-2.5 text-xs leading-relaxed whitespace-pre-wrap animate-fade-in-up ${
+                    message.fromMind ? "text-[var(--fg)]" : "border-[var(--border-strong)]"
+                  }`}
+                >
+                  <p className="timecode text-[10px] text-[var(--fg-muted)] mb-1">
+                    {message.fromMind ? "Mind" : "You"}
+                  </p>
+                  {message.text}
+                </article>
+              ))
+            )}
+            {sending && (
+              <div className="cell px-3 py-2.5 text-xs text-[var(--fg-muted)] flex items-center gap-2 animate-fade-in-up w-fit">
+                <span className="timecode text-[10px]">Mind thinking</span>
+                <div className="flex items-center gap-1">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+          <form
+            className="flex gap-2 border-t border-[var(--border)] p-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void send();
+            }}
+          >
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Optional note to the Mind"
+              className="field flex-1 text-sm"
+              disabled={sending || !desk.ok}
+            />
+            <button type="submit" className="btn btn-primary btn-sm" disabled={sending || !draft.trim() || !desk.ok}>
+              {sending ? "Sending…" : "Send"}
+            </button>
+          </form>
+        </div>
+      </details>
+
+      <details className="disclosure panel">
+        <summary className="px-5 py-4">
+          <span className="flex items-center gap-2 min-w-0">
+            <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
+            <span>
+              <span className="section-title block">Rules and setup</span>
+              <span className="text-xs text-[var(--fg-muted)]">
+                Never publish · Telegram {desk.mind?.hasTelegram ? "connected" : "not connected"}
+              </span>
+            </span>
+          </span>
+        </summary>
+        <div className="px-5 pb-5 space-y-4 border-t border-[var(--border)] pt-4">
+          <ul className="grid gap-2 sm:grid-cols-2 text-xs text-[var(--fg-muted)]">
+            <li className="cell p-3">Never publish. Packs stay on the desk until you review.</li>
+            <li className="cell p-3">Never change the core claim — adapt format and tone only.</li>
+            <li className="cell p-3">Hook-first. Skip long intros unless you have said you like them.</li>
+            <li className="cell p-3">Timestamps must exist in the transcript. No invented moments.</li>
+          </ul>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-ghost btn-xs" onClick={() => void copyTenets()}>
+              Copy rules
+            </button>
+            <button type="button" className="btn btn-ghost btn-xs" disabled={seeding || !desk.ok} onClick={() => void seedTenets()}>
+              {seeding ? "Sending…" : "Send rules to Mind"}
+            </button>
+          </div>
+          <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">
+            Optional: paste those rules into Soul on{" "}
+            <a href="https://hellominds.ai/profile" target="_blank" rel="noreferrer" className="underline underline-offset-4">
+              hellominds.ai/profile
+            </a>
+            , and link Telegram if you want the same memory there.
+          </p>
+        </div>
+      </details>
+
+      <details className="disclosure panel">
+        <summary className="px-5 py-4">
+          <span className="flex items-center gap-2 min-w-0">
+            <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
+            <span>
+              <span className="section-title block">Agent details</span>
+              <span className="text-xs text-[var(--fg-muted)]">Skills, circle, and account</span>
+            </span>
+          </span>
+        </summary>
+        <div className="px-5 pb-5 space-y-4 border-t border-[var(--border)] pt-4">
+          <div className="grid gap-2 sm:grid-cols-2 text-xs">
+            <p className="cell p-3 text-[var(--fg-muted)]">
+              Alias <span className="block text-[var(--fg)] break-all">{desk.alias}</span>
+            </p>
+            <p className="cell p-3 text-[var(--fg-muted)]">
+              Email <span className="block text-[var(--fg)] break-all">{desk.mind?.email || "None yet"}</span>
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-[var(--fg)]">Equipped skills</h3>
             {desk.equippedSkills.length === 0 ? (
-              <p className="text-xs text-[var(--fg-muted)]">None equipped yet. The clip playbook currently lives in the prompt.</p>
+              <p className="text-xs text-[var(--fg-muted)]">None equipped. The clip playbook currently lives in the prompt.</p>
             ) : (
               <ul className="space-y-1.5 text-xs text-[var(--fg-muted)]">
                 {desk.equippedSkills.map((skill) => (
@@ -278,12 +310,11 @@ export default function MindPage() {
                 ))}
               </ul>
             )}
-          </article>
-          <article className="panel p-4 space-y-2">
-            <h3 className="text-xs font-semibold text-[var(--fg)]">Bazaar (content)</h3>
-            {desk.bazaarSkills.length === 0 ? (
-              <p className="text-xs text-[var(--fg-muted)]">No matching Bazaar skills returned.</p>
-            ) : (
+          </div>
+
+          {desk.bazaarSkills.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-[var(--fg)]">Available skills</h3>
               <ul className="space-y-2">
                 {desk.bazaarSkills.map((skill) => (
                   <li key={skill.skillId} className="flex items-start justify-between gap-2 text-xs">
@@ -304,10 +335,24 @@ export default function MindPage() {
                   </li>
                 ))}
               </ul>
-            )}
-          </article>
+            </div>
+          )}
+
+          {desk.circle.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-[var(--fg)]">Circle</h3>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {desk.circle.map((member) => (
+                  <li key={member.email || member.name} className="cell p-3 text-xs">
+                    <p className="font-medium text-[var(--fg)]">{member.name || member.email}</p>
+                    <p className="text-[var(--fg-muted)]">{member.isSteward ? "Steward" : member.email}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-      </section>
+      </details>
     </div>
   );
 }

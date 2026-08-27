@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mind desk",
+  title: "Mind",
 };
 
 export default function MindLayout({ children }: { children: React.ReactNode }) {

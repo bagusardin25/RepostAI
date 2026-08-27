@@ -63,18 +63,17 @@ function ShellContent({ children }: { children: React.ReactNode }) {
       <header className="site-header sticky top-0 z-40 w-full">
         <div className="site-wrap flex min-h-[var(--header-h)] items-center gap-2 sm:gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
-            <BrandMark href="/" current={false} />
+            <BrandMark
+              href="/desk"
+              current={pathname === "/desk" || pathname.startsWith("/jobs")}
+            />
 
             <nav aria-label="Primary" className="flex min-w-0 items-center gap-1 overflow-x-auto">
-              <NavLink href="/" active={false}>
-                Overview
-              </NavLink>
-              <NavLink href="/desk" active={pathname === "/desk"}>
+              <NavLink href="/desk" active={pathname === "/desk" || pathname.startsWith("/jobs")}>
                 Desk
               </NavLink>
               <NavLink href="/voice" active={pathname.startsWith("/voice")}>
-                <span className="sm:hidden">Voice</span>
-                <span className="hidden sm:inline">Voice Memory</span>
+                Style
               </NavLink>
               <NavLink href="/mind" active={pathname.startsWith("/mind")}>
                 Mind
@@ -91,11 +90,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
               onClick={() => setShowHealthModal(true)}
               className="glass-chip hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
             >
-              <HealthDot ok={health?.cutter} label="Cutter" />
-              <span className="text-[var(--fg-subtle)]">·</span>
-              <HealthDot ok={health?.mind} label="Mind" />
-              <span className="text-[var(--fg-subtle)]">·</span>
-              <HealthDot ok={health?.desk} label="DB" />
+              <SystemStatus health={health} />
             </button>
           </div>
         </div>
@@ -109,7 +104,9 @@ function ShellContent({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-[var(--border)] py-8 mt-auto text-xs text-[var(--fg-muted)]">
         <div className="site-wrap flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-[var(--fg)]">RepostAI</span>
+            <Link href="/" className="font-medium text-[var(--fg)] hover:opacity-80 transition-opacity">
+              RepostAI
+            </Link>
             <span>—</span>
             <span>Creative Minds Jam #1</span>
           </div>
@@ -134,19 +131,19 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-backdrop-in"
           onClick={() => setShowHealthModal(false)}
         >
           <div
-            className="glass-strong relative w-full max-w-sm p-6 space-y-4"
+            className="glass-strong relative w-full max-w-sm p-6 space-y-4 animate-scale-in shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <h3 className="font-semibold text-sm text-[var(--fg)]">System Engines</h3>
+              <h3 className="font-semibold text-sm text-[var(--fg)]">System status</h3>
               <button
                 type="button"
                 onClick={() => setShowHealthModal(false)}
-                className="text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                className="text-[var(--fg-muted)] hover:text-[var(--fg)] active:scale-90 transition-transform"
                 aria-label="Close"
               >
                 <IconXMark className="h-4 w-4" />
@@ -154,22 +151,22 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-2.5 cell">
-                <span className="text-[var(--fg)]">FFmpeg Video Cutter</span>
+              <div className="flex items-center justify-between p-2.5 cell hover:border-[var(--border-strong)] transition-colors">
+                <span className="text-[var(--fg)]">Video cutter</span>
                 <StatusBadge ok={health?.cutter} />
               </div>
-              <div className="flex items-center justify-between p-2.5 cell">
-                <span className="text-[var(--fg)]">Minds AI Agent</span>
+              <div className="flex items-center justify-between p-2.5 cell hover:border-[var(--border-strong)] transition-colors">
+                <span className="text-[var(--fg)]">Mind</span>
                 <StatusBadge ok={health?.mind} />
               </div>
-              <div className="flex items-center justify-between p-2.5 cell">
-                <span className="text-[var(--fg)]">SQLite Database</span>
+              <div className="flex items-center justify-between p-2.5 cell hover:border-[var(--border-strong)] transition-colors">
+                <span className="text-[var(--fg)]">Saved projects</span>
                 <StatusBadge ok={health?.desk} />
               </div>
             </div>
 
             <div className="pt-2 flex justify-between items-center text-[11px] text-[var(--fg-muted)] border-t border-[var(--border)]">
-              <span>Realtime telemetry</span>
+              <span>If something is offline, retry or refresh</span>
               <button
                 type="button"
                 onClick={() => {
@@ -210,24 +207,29 @@ function NavLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`chip ${active ? "is-active" : ""}`}
+      className={`chip transition-all duration-200 ${active ? "is-active font-medium scale-[1.02]" : "hover:text-[var(--fg)]"}`}
     >
       {children}
     </Link>
   );
 }
 
-function HealthDot({ ok, label }: { ok: boolean | undefined; label: string }) {
-  const isOk = ok === true;
-  const isErr = ok === false;
+function SystemStatus({ health }: { health: Health | null }) {
+  const processingOk = health?.cutter === true && health?.desk === true;
+  const allOk = processingOk && health?.mind === true;
+  const knownBad = health?.cutter === false || health?.desk === false;
+  const label = !health
+    ? "Checking…"
+    : allOk
+      ? "System ready"
+      : processingOk
+        ? "Processing available"
+        : "Check system";
+  const tone = !health ? "bg-[var(--warn)]" : allOk || processingOk ? "bg-[var(--ok)] shadow-[0_0_6px_rgba(4,120,87,0.5)]" : knownBad ? "bg-[var(--bad)]" : "bg-[var(--warn)]";
+
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          isOk ? "bg-[var(--ok)]" : isErr ? "bg-[var(--bad)]" : "bg-[var(--warn)]"
-        }`}
-        aria-hidden
-      />
+      <span className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${tone}`} aria-hidden />
       <span>{label}</span>
     </span>
   );

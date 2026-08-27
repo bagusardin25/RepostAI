@@ -94,7 +94,7 @@ function PackageStrip() {
   return (
     <figure className="glass w-full min-w-0 overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-2.5">
-        <figcaption className="timecode text-[11px] text-[var(--fg-muted)]">Example packages from one source</figcaption>
+        <figcaption className="timecode text-[11px] text-[var(--fg-muted)]">What you walk away with</figcaption>
         <span className="timecode text-[11px] text-[var(--fg-muted)]">9:16</span>
       </div>
       <div className="grid grid-cols-3 gap-2 p-3 min-w-0">
@@ -131,7 +131,7 @@ export function LandingContent() {
               How it works
             </a>
             <a href="#packages" className="chip">
-              Packages
+              What you get
             </a>
             <a href="#mind" className="chip">
               Mind
@@ -151,21 +151,21 @@ export function LandingContent() {
         <section className="site-wrap pt-14 pb-16 sm:pt-20 sm:pb-24">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="space-y-6">
-              <p className="kicker">Creative Minds Jam #1 · Content repurposing</p>
+              <p className="kicker">One long video. A week of posts.</p>
               <h1 className="display-title">
                 One source.
                 <br />
                 Three vertical cuts.
                 <br />
-                Four text packages.
+                Four text drafts.
               </h1>
               <p className="page-lede text-sm sm:text-base">
-                Paste a YouTube URL. The Minds agent picks moments, FFmpeg cuts 9:16 clips, and you
-                review every hook and caption. Approvals write back into the Mind. Nothing publishes.
+                Paste a YouTube link. Review 3 vertical clips and 4 drafts in minutes, not the afternoon recut.
+                You stay the publisher — nothing posts without you.
               </p>
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <Link href="/desk" className="btn btn-primary px-5">
-                  Try the desk
+                  Start with a video
                 </Link>
                 <a
                   href="https://github.com/bagusardin25/RepostAI"
@@ -178,12 +178,12 @@ export function LandingContent() {
               </div>
               <dl className="grid grid-cols-3 gap-2 pt-2 max-w-md min-w-0">
                 <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
-                  <dt className="text-[11px] text-[var(--fg-muted)]">Clips</dt>
-                  <dd className="text-lg font-semibold tabular-nums">3</dd>
+                  <dt className="text-[11px] text-[var(--fg-muted)]">Recut time</dt>
+                  <dd className="text-sm sm:text-lg font-semibold leading-tight">Minutes</dd>
                 </div>
                 <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
-                  <dt className="text-[11px] text-[var(--fg-muted)]">Text drafts</dt>
-                  <dd className="text-lg font-semibold tabular-nums">4</dd>
+                  <dt className="text-[11px] text-[var(--fg-muted)]">You walk away with</dt>
+                  <dd className="text-sm sm:text-lg font-semibold leading-tight">3 + 4</dd>
                 </div>
                 <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
                   <dt className="text-[11px] text-[var(--fg-muted)]">Auto-post</dt>
@@ -198,61 +198,65 @@ export function LandingContent() {
         <section id="how" className="border-y border-[var(--border)]">
           <div className="site-wrap py-14 sm:py-20 grid gap-10 lg:grid-cols-2 lg:items-center">
             <div className="space-y-3">
-              <p className="kicker">Pipeline</p>
+              <p className="kicker">How it works</p>
               <h2 className="page-title">
-                The desk runs the job. You run the gate.
+                We cut. You decide what ships.
               </h2>
               <p className="text-sm text-[var(--fg-muted)] leading-relaxed max-w-lg">
-                YouTube captions become the transcript. If a video has no captions, the job stops —
-                we do not invent speech. Uploads need a transcript too.
+                Captions become the transcript. If a video has no captions, we stop — speech is never invented.
               </p>
             </div>
             <PipelineDemo />
           </div>
           <div className="site-wrap pb-16 grid gap-6 sm:grid-cols-3">
-            <Step number="01" title="Ingest" body="Paste a public YouTube link with captions, drop an MP4 plus transcript, or run the demo fixture." />
-            <Step number="02" title="Mind & cut" body="The Mind proposes one window per platform. FFmpeg re-frames 9:16 and writes the files locally." />
-            <Step number="03" title="Review" body="Approve, rewrite, or reject. Each decision is stored and sent to the Mind before the next job." />
+            <Step number="01" title="Start" body="Paste a public YouTube link with captions, upload a file plus a caption link, or try the demo sample." />
+            <Step number="02" title="Cut" body="Three 9:16 windows, one per platform, plus four text drafts — script, carousel, thread, and LinkedIn." />
+            <Step number="03" title="Review" body="Approve, rewrite, or skip. Then copy and download. Nothing publishes." />
           </div>
         </section>
 
         <section id="packages" className="site-wrap py-16 sm:py-24">
           <div className="max-w-2xl space-y-3 mb-10">
-            <p className="kicker">Packages</p>
+            <p className="kicker">What you get</p>
             <h2 className="page-title">
-              Video cuts and copy, still review-only
+              Clips to post and copy to paste
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <PlatformCard icon={<IconTikTok className="h-5 w-5" />} name="TikTok" spec="9:16 · ≤ 60s · 2,200 chars" note="Hook-first clip plus spoken script." />
-            <PlatformCard icon={<IconInstagram className="h-5 w-5" />} name="Instagram" spec="9:16 · ≤ 90s · 2,200 chars" note="Reels cut plus carousel slides." />
-            <PlatformCard icon={<IconX className="h-5 w-5" />} name="X" spec="9:16 · ≤ 140s · 280 chars" note="Short takeaway clip plus a thread." />
+            <PlatformCard icon={<IconTikTok className="h-5 w-5" />} name="TikTok" spec="9:16 · ≤ 60s" note="Vertical cut plus a spoken script." />
+            <PlatformCard icon={<IconInstagram className="h-5 w-5" />} name="Instagram" spec="9:16 · ≤ 90s" note="Reels cut plus carousel slides." />
+            <PlatformCard icon={<IconX className="h-5 w-5" />} name="X" spec="9:16 · ≤ 140s" note="Short takeaway clip plus a thread." />
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <DraftChip name="TikTok script" note="Line-by-line spoken draft" />
+            <DraftChip name="IG carousel" note="Slide titles and body" />
+            <DraftChip name="X thread" note="Post-sized beats" />
+            <DraftChip name="LinkedIn" note="Text draft only — no video" />
           </div>
           <p className="mt-6 text-xs text-[var(--fg-muted)]">
-            LinkedIn is a text draft only. Ship kit copies and downloads locally — RepostAI never posts.
+            Copy and download locally — RepostAI never posts.
           </p>
         </section>
 
         <section id="mind" className="border-t border-[var(--border)]">
           <div className="site-wrap py-16 sm:py-24 grid gap-10 lg:grid-cols-2">
             <div className="space-y-4">
-              <p className="kicker">Minds agent</p>
+              <p className="kicker">It learns what you keep</p>
               <h2 className="page-title">
-                Persistence is the product
+                The next pack follows your taste
               </h2>
               <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
-                RepostAI talks to one Mind on a stable conversation alias. Reviews are messages, not
-                just rows in SQLite. The next job sees what you rewrote, rejected, and approved.
+                Approve, rewrite, or skip. Those choices shape the next hooks and captions. You still review every pack.
               </p>
               <ul className="space-y-3 text-sm">
                 <MindPoint icon={<IconBrain className="h-4 w-4" />} title="Memory" body="Voice notes, preferred hooks, and reject patterns go back to the Mind." />
                 <MindPoint icon={<IconSparkles className="h-4 w-4" />} title="Follow-up" body="When a job is ready, the Mind writes the next move without another prompt." />
                 <MindPoint icon={<IconYoutube className="h-4 w-4" />} title="Channel watch" body="Point at a public channel. New uploads can enqueue themselves." />
-                <MindPoint icon={<IconMessageCircle className="h-4 w-4" />} title="Mind desk" body="Read the transcript in the app. Telegram is optional once you connect it in Minds." />
+                <MindPoint icon={<IconMessageCircle className="h-4 w-4" />} title="Optional chat" body="You can talk to the Mind in the app. Telegram is extra, once connected." />
                 <MindPoint icon={<IconShield className="h-4 w-4" />} title="Tenet" body="Never publish. The steward stays on the gate." />
               </ul>
               <Link href="/mind" className="btn btn-ghost btn-sm mt-2">
-                Open Mind desk
+                See the Mind
                 <IconArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
@@ -265,7 +269,7 @@ export function LandingContent() {
                 <LoopRow n="4" title="Next job adapts" body="No cold intros if you said so. Shorter captions if you rewrote them." />
               </ol>
               <p className="text-xs text-[var(--fg-muted)]">
-                Voice Memory also scores how close recent packages are to your edits.
+                Style is taught from what you keep, rewrite, or skip.
               </p>
               <Link href="/voice" className="text-xs underline underline-offset-4 text-[var(--fg-muted)] hover:text-[var(--fg)]">
                 What the Mind remembers
@@ -276,16 +280,16 @@ export function LandingContent() {
 
         <section className="border-t border-[var(--border)]">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 py-20 sm:py-24 text-center space-y-5">
-            <p className="kicker">Start a job</p>
+            <p className="kicker">Start</p>
             <h2 className="display-title">
               Chop once. Review forever.
             </h2>
             <p className="text-sm text-[var(--fg-muted)] max-w-lg mx-auto">
-              Open the desk, paste a captioned YouTube link, and keep the publish button in your own hands.
+              Paste a captioned YouTube link, review the pack, and keep the publish button in your own hands.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
               <Link href="/desk" className="btn btn-primary px-6">
-                Launch desk
+                Start with a video
               </Link>
               <a href="https://hellominds.ai" target="_blank" rel="noreferrer" className="btn btn-ghost px-6">
                 Minds platform
@@ -319,6 +323,15 @@ function Step({ number, title, body }: { number: string; title: string; body: st
       <p className="timecode text-tally">{number}</p>
       <h3 className="text-sm font-semibold text-[var(--fg)]">{title}</h3>
       <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{body}</p>
+    </article>
+  );
+}
+
+function DraftChip({ name, note }: { name: string; note: string }) {
+  return (
+    <article className="cell p-3 space-y-1">
+      <h3 className="text-xs font-semibold text-[var(--fg)]">{name}</h3>
+      <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">{note}</p>
     </article>
   );
 }
