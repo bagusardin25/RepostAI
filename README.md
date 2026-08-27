@@ -1,36 +1,110 @@
 # RepostAI
 
-**One source. Three 9:16 cuts. Four text packages. The Mind remembers every review. Nothing publishes.**
+**One source. Three vertical cuts. Four text drafts. You review. Nothing publishes.**
 
-RepostAI is a content-repurposing agent for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**. A single YouTube video becomes TikTok / Reels / X clips plus a script, carousel, thread, and LinkedIn draft. A persistent [Minds](https://hellominds.ai) agent proposes the packages. You approve, edit, or reject. Those decisions are **sent back into the same Mind conversation** so the next job is steered by your voice.
+RepostAI turns a YouTube video into a **content pack**: TikTok, Reels, and X clips plus a script, carousel, thread, and LinkedIn draft. A persistent [Minds](https://hellominds.ai) agent picks the moments. You approve, rewrite, or skip. Those decisions steer the next pack.
 
-The Mind is not optional on the happy path. Fallback recipes exist only if the Mind times out — the desk labels that **Fallback**, never as Mind.
+Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**.
 
 > Built with [Minds by Animoca Brands](https://hellominds.ai).
 
+<p align="center">
+  <img src="docs/screenshots/landing.png" alt="RepostAI landing: one source, three vertical cuts, four text drafts" width="920" />
+</p>
+
 ---
 
-## The Problem
+## What you walk away with
 
-Content creators spend hours after every YouTube upload manually chopping clips for different platforms. TikTok wants a punch-first hook. Instagram needs a loopable moment. X needs one sharp takeaway under 280 characters. Copy-pasting the same clip everywhere doesn't work — each platform has different expectations for format, tone, and length.
+Paste a public YouTube link (captions required). Review in minutes, not the afternoon recut.
 
-## The Solution
+| Output | What it is |
+|---|---|
+| 3 vertical clips | 9:16 cuts for TikTok, Instagram Reels, and X |
+| 4 text drafts | TikTok script, IG carousel, X thread, LinkedIn post |
+| Your call | Approve, Save & approve, or Reject — then **Copy pack** |
 
-RepostAI automates this with a persistent Mind agent that:
+Nothing posts. MP4s download one at a time.
 
-1. **Analyzes** your source video transcript
-2. **Proposes** three clip packages (one per platform) with hooks and captions
-3. **Waits** for your review — approve, edit, or reject each clip
-4. **Learns** from every review to improve future proposals
+---
 
-The Mind doesn't just generate — it **remembers**. If you reject cold intros, it stops proposing them. If you rewrite a caption to be shorter, it adjusts its tone for next time.
+## How a creator uses it
+
+```
+Pick a source  →  Wait  →  Review what is left  →  Take the pack
+```
+
+1. **Start** on `/desk` — YouTube link, upload + optional caption URL, or the labeled **Demo data** sample.
+2. **Wait** — reading source, finding moments, preparing clips. The page updates by itself.
+3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**.
+4. **Take** — **Copy pack** copies ready clips plus all four drafts. Download each MP4 separately.
+
+Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (`/mind`) is the agent status. You do not need either page to finish a pack.
+
+**Start** on the desk — paste a YouTube link, upload, or try the sample.
+
+<p align="center">
+  <img src="docs/screenshots/desk.png" alt="Desk — paste a YouTube link or run the demo sample" width="920" />
+</p>
+
+**Review** the pack — three 9:16 clips, hooks, captions, and Copy pack. Nothing publishes.
+
+<p align="center">
+  <img src="docs/screenshots/pack.png" alt="Content pack — review three 9:16 clips before anything ships" width="920" />
+</p>
+
+---
+
+## Why the Mind matters
+
+Fallback recipes exist if the agent is offline — the desk labels that **Alt process**, never as Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
+
+### Prove persistence (pack 1 → pack 2)
+
+1. Open [`/desk`](http://localhost:3000/desk), run **Try sample** or a **public YouTube URL with captions**.
+2. Reject one clip with a note (for example `skip cold intros`) and/or save a shorter caption.
+3. Open **Style** — keep/stop rules. Open **Mind** → Conversation if you want the transcript.
+4. Run a second pack.
+5. Compare (`/jobs/compare?a=<first>&b=<second>`) for hook / caption / window diffs.
+
+Tenets live in every propose prompt. Mirror them in the Mind's **Soul** at [hellominds.ai/profile](https://hellominds.ai/profile). On `/mind`, open **Rules and setup** to copy or send them. Link Telegram on the same profile if you want native chat with the same memory.
+
+### Voice loop
+
+```
+Pack N: Mind proposes clips
+        │
+        ▼
+You reject TikTok: "skip cold intros"
+You rewrite an Instagram caption shorter
+You approve X
+        │
+        ▼
+Next pack injects those notes before the Mind proposes again
+```
+
+<p align="center">
+  <img src="docs/screenshots/style.png" alt="Style — keep and stop rules learned from your reviews" width="920" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/mind.png" alt="Mind — connected agent with conversation memory" width="920" />
+</p>
+
+### Tenets
+
+- **NEVER publish** — only propose packs for human review
+- **NEVER change** the creator's core claim — adapt format and tone only
+- **Prefer hook-first clips** — skip long intros unless you like them
+- **Ground every timestamp** in the transcript — do not invent speech
+- **Respect platform limits** — TikTok/IG ≤ 2200 chars, X ≤ 280 chars
 
 ---
 
 ## Architecture
 
 ```
-npm run dev
+pnpm dev
 ```
 
 Starts two processes:
@@ -40,118 +114,43 @@ Starts two processes:
 │   Next.js Frontend   │  /api/*  │   Node.js Backend    │
 │      :3000           │ ──────── │      :4000           │
 │                      │  rewrite │                      │
-│  Desk (/)            │          │  HTTP handlers        │
-│  Job Workspace       │          │  Pipeline:            │
-│  Voice Memory        │          │   YouTube → Mind →    │
-│                      │          │   ffmpeg → clips      │
-│                      │          │  SQLite database      │
+│  Landing (/)         │          │  HTTP handlers       │
+│  Desk (/desk)        │          │  Pipeline:           │
+│  Content pack        │          │   YouTube → Mind →   │
+│  Style / Mind        │          │   ffmpeg → clips     │
 └──────────────────────┘          └──────────────────────┘
                                           │
                                           ▼
                                   ┌──────────────────┐
-                                  │  Minds Platform   │
-                                  │  (AI Agent)       │
-                                  │                   │
-                                  │  Memory ◄── edits │
-                                  │  Voice  ◄── prefs │
+                                  │  Minds Platform  │
+                                  │  Memory ◄── reviews
                                   └──────────────────┘
 ```
 
-### Pipeline Flow
-
 ```
-Source Video ──► YouTube meta + transcript
-                      │
-                      ▼
-              ┌───────────────┐
-              │  Minds Agent  │◄── voice memory (learned prefs)
-              │  proposes 3   │
-              │  clip recipes │
-              └───────┬───────┘
-                      │ (fallback if Minds unavailable)
-                      ▼
-              ffmpeg cuts 9:16 clips
-                      │
-                      ▼
-              3 clip packages ready for review
-                      │
-                      ▼
-              Creator: approve / edit / reject
-                      │
-                      ▼
-              Voice memory updated ──► next job uses these prefs
+Source ──► captions / transcript
+              │
+              ▼
+        Minds Agent  ◄── style from prior reviews
+        (local fallback if the Mind is offline)
+              │
+              ▼
+        ffmpeg cuts 9:16 files
+              │
+              ▼
+        Ready for review → Copy pack / download MP4s
 ```
 
 ---
 
-## Minds Integration
-
-The Mind agent is **integral** to RepostAI's core value. It is not a wrapper around a generic LLM — it is a persistent agent with memory, continuity, and autonomous decision-making.
-
-### How the Mind Works
-
-| Capability | Implementation |
-|---|---|
-| **Memory** | Each review is stored in SQLite **and** `sendMessage`'d to conversation alias `main`. The next job injects that voice snapshot before the Mind proposes. |
-| **Continuity** | One Mind (`MINDS_MIND_ID`), one alias (`main`). History, follow-ups, and reviews share that transcript. |
-| **Autonomous follow-up** | After clips are ready the Mind writes a reminder + next move. Optional channel watch enqueues new public uploads without a paste. |
-
-### Prove persistence (Job 1 → Job 2)
-
-1. Open `/`, run a **demo sample** or a **public YouTube URL with captions**.
-2. On the job, **reject** one clip with a note (example: `I hate cold intros`) and/or rewrite a caption shorter.
-3. Confirm `/mind` shows the review message and `/voice` lists the rule.
-4. Run a **second** job.
-5. Open the new job — **Voice applied** and **Mind brief**. Then **Compare jobs** (`/jobs/compare?a=<first>&b=<second>`) for hook / caption / window diffs.
-
-Tenets live in every propose prompt. Mirror them in the Mind's **Soul** at [hellominds.ai/profile](https://hellominds.ai/profile). Optionally **Seed into conversation** on `/mind`. Link Telegram on the same profile if you want native chat with the same memory.
-
-### Voice Memory Loop
-
-```
-Job N: Mind proposes clips with default style
-         │
-         ▼
-Creator rejects TikTok clip: "I hate cold intros"
-Creator edits Instagram caption: shorter, punchier
-Creator approves X clip
-         │
-         ▼
-voice_edits table stores all three actions
-         │
-         ▼
-Job N+1: Mind receives voice memory prompt:
-  "Learned creator preferences:
-   - On tiktok: Rejected: I hate cold intros
-   - On instagram: Prefer copy like: [shorter version]
-   - Approved x clip"
-         │
-         ▼
-Mind adapts: no cold intros, shorter captions
-```
-
-This feedback loop means RepostAI gets better with every review cycle. The Mind doesn't just follow rules — it learns the creator's voice over time.
-
-### Soul & Tenets
-
-The Mind agent operates under strict tenets:
-
-- **NEVER publish** — only propose clip packages for human review
-- **NEVER change** the creator's core message — adapt format and tone only
-- **Prefer hook-first clips** — skip long intros unless the creator likes them
-- **Ground every timestamp** in the transcript — do not invent moments
-- **Respect platform limits** — TikTok/IG ≤ 2200 chars, X ≤ 280 chars
-
----
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
 - Node.js 22+
-- pnpm (or npm)
+- pnpm
 
-### Installation
+### Install
 
 ```bash
 git clone https://github.com/bagusardin25/RepostAI.git
@@ -159,9 +158,9 @@ cd RepostAI
 pnpm install
 ```
 
-### Configuration
+### Configure
 
-Create `.env.local` at the project root:
+Copy `.env.example` to `.env.local` at the project root:
 
 ```env
 FRONTEND_PORT=3000
@@ -172,9 +171,9 @@ MINDS_MIND_ID=your_mind_id
 MINDS_CONVERSATION_ALIAS=main
 ```
 
-Get your API key from the [Minds Builder Console](https://build.hellominds.ai/console).
+Get a key from the [Minds Builder Console](https://build.hellominds.ai/console).
 
-> **Without a Minds API key** the cutter still runs on fixtures, but jobs are labeled Fallback. For the real product loop you need a Builder key and Mind id.
+Without a Minds key the cutter still runs on the demo sample, but jobs are labeled **Alt process**. The real loop needs a Builder key and Mind id.
 
 ### Run
 
@@ -182,93 +181,99 @@ Get your API key from the [Minds Builder Console](https://build.hellominds.ai/co
 pnpm dev
 ```
 
-- Overview: [http://localhost:3000](http://localhost:3000)
-- Desk: [http://localhost:3000/desk](http://localhost:3000/desk)
-- Mind: [http://localhost:3000/mind](http://localhost:3000/mind)
-- Voice: [http://localhost:3000/voice](http://localhost:3000/voice)
-- Compare: [http://localhost:3000/jobs/compare](http://localhost:3000/jobs/compare)
+| URL | What |
+|---|---|
+| [http://localhost:3000](http://localhost:3000) | Landing |
+| [http://localhost:3000/desk](http://localhost:3000/desk) | Start a content pack |
+| [http://localhost:3000/jobs/…](http://localhost:3000/desk) | Review and copy |
+| [http://localhost:3000/voice](http://localhost:3000/voice) | Style (keep / stop) |
+| [http://localhost:3000/mind](http://localhost:3000/mind) | Mind status |
+| [http://localhost:3000/jobs/compare](http://localhost:3000/jobs/compare) | Compare two packs |
 
-YouTube jobs need **captions**. Uploads have no speech-to-text unless you also pass a captioned YouTube URL.
+YouTube jobs need **captions**. Upload-only has no speech-to-text unless you also paste a captioned YouTube URL on the upload tab.
 
-### Demo Mode
+### Demo sample
 
-Click **Run demo fixture** on the desk — this skips YouTube download, uses a built-in transcript, and generates clips locally. Useful for testing without a Minds API key.
+On the desk, open **Try sample**. There is one **Demo data** clip: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
 
-### Other Commands
+### Other commands
 
 | Command | Description |
 |---|---|
-| `pnpm test` | Run recipe parser unit tests |
-| `pnpm run lint` | TypeScript type-check |
-| `pnpm run build` | Production build |
-| `pnpm start` | Start production server |
+| `pnpm test` | Pipeline unit tests (recipes, captions, voice, watch, lineage) |
+| `pnpm lint` | TypeScript check |
+| `pnpm build` | Production build |
+| `pnpm start` | Production frontend |
 
 ---
 
 ## Pages
 
-### Desk (`/`)
+### Landing (`/`)
 
-The main dashboard. Paste a YouTube URL, upload a video file, or run the demo fixture. Active and completed jobs appear in a live-updating feed.
+One source → 3 clips + 4 drafts. You stay the publisher.
 
-### Job Workspace (`/jobs/[id]`)
+### Desk (`/desk`)
 
-Mind brief (why each window), voice applied from prior reviews, follow-up, 9:16 players, hooks/captions, approve/edit/reject, session recap, text packages, ship kit (copy/download only).
+YouTube link, upload + optional caption URL, or the demo sample. **Your projects** lists packs. Channel watch is collapsed under **Optional: automate new uploads**.
+
+### Content pack (`/jobs/[id]`)
+
+Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack). View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Clip cards, four draft teasers, MP4 downloads. **How this was chosen** and the source transcript sit below.
+
+Edited and approved clips are **Ready**. Needs-review clips are not copied without a warning.
 
 ### Compare (`/jobs/compare`)
 
-Earlier job left, later job right. Teaching reviews from the left job plus hook/caption/window diffs.
+Earlier pack left, later pack right. Hook / caption / window diffs.
 
-### Voice Memory (`/voice`)
+### Style (`/voice`)
 
-Standing rules, score, and **later jobs steered by each decision**.
+Keep doing / stop doing from desk reviews. History, score, and JSON export are behind details.
 
-### Mind desk (`/mind`)
+### Mind (`/mind`)
 
-Live conversation alias `main`, tenets, Telegram status, circle, Bazaar skills.
+Connected / offline card. Conversation, rules, Telegram, and skills are behind details.
 
 ---
 
 ## API
 
-All endpoints are served by the backend on `:4000`. The frontend proxies `/api/*` via Next.js rewrites.
+Backend on `:4000`. The frontend proxies `/api/*`.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/health` | System status (db, ffmpeg, minds) |
-| `GET` | `/api/jobs` | List all jobs with clip counts |
-| `POST` | `/api/jobs` | Create job (JSON or multipart with video) |
-| `GET` | `/api/jobs/:id` | Job detail, clips, voice applied, lineage |
-| `GET` | `/api/jobs/compare?a=&b=` | Side-by-side two jobs |
+| `GET` | `/api/health` | db, ffmpeg, minds |
+| `GET` | `/api/jobs` | List packs with clip counts |
+| `POST` | `/api/jobs` | Create (JSON or multipart with video) |
+| `GET` | `/api/jobs/:id` | Detail, clips, drafts, lineage |
+| `GET` | `/api/jobs/compare?a=&b=` | Side-by-side |
+| `POST` | `/api/jobs/:id` | Retry a failed pack |
+| `POST` | `/api/clips/:id/review` | `{ action, caption?, hook?, note? }` |
+| `GET` | `/api/voice` | Style memory + review history |
 | `GET` | `/api/mind` | Mind profile, circle, skills |
 | `GET` | `/api/mind/history` | Conversation transcript |
-| `POST` | `/api/mind/tenets` | Seed standing tenets into the conversation |
-| `GET` | `/api/watch` | YouTube channel watch config |
-| `POST` | `/api/jobs/:id` | Retry a failed job |
-| `GET` | `/api/clips/:id` | Single clip detail |
-| `POST` | `/api/clips/:id/review` | Review clip: `{ action, caption?, hook?, note? }` |
-| `GET` | `/api/voice` | Voice memory + edit history |
-| `GET` | `/api/media/:kind/:file` | Serve video files |
+| `POST` | `/api/mind/tenets` | Seed standing rules |
+| `GET` | `/api/watch` | Channel watch config |
+| `GET` | `/api/media/:kind/:file` | Source / clip MP4s (supports Range) |
 
-### Create a Job
+### Create a pack
 
 ```bash
-# From YouTube URL
 curl -X POST http://localhost:4000/api/jobs \
   -H "Content-Type: application/json" \
   -d '{"youtubeUrl": "https://www.youtube.com/watch?v=..."}'
 
-# Demo fixture
 curl -X POST http://localhost:4000/api/jobs \
   -H "Content-Type: application/json" \
   -d '{"fixture": true}'
 ```
 
-Response: `202` with `{ job }`. Processing happens in the background.
+`202` with `{ job }`. Work continues in the background.
 
-Job status transitions: `queued → fetching_source → analyzing → clipping → ready | failed`
+Status: `queued → fetching_source → analyzing → clipping → ready | failed`
 
-### Review a Clip
+### Review a clip
 
 ```bash
 curl -X POST http://localhost:4000/api/clips/{id}/review \
@@ -276,58 +281,55 @@ curl -X POST http://localhost:4000/api/clips/{id}/review \
   -d '{"action": "edit", "caption": "New caption", "hook": "New hook", "note": "shorter please"}'
 ```
 
-Actions: `approve`, `reject`, `edit`. Each review is stored in `voice_edits` and fed back to the Mind on the next job.
+Actions: `approve`, `reject`, `edit`. Each review is stored and sent to the Mind for the next pack.
 
 ---
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 15 (App Router), TypeScript, Tailwind CSS v4 |
-| **Backend** | Node.js (raw `http.createServer`), JavaScript |
-| **AI Agent** | [Minds Platform](https://hellominds.ai) via `@animocabrands/minds-client-lib` |
-| **Database** | SQLite via `@libsql/client` |
-| **Video** | `ffmpeg-static` for clip cutting (9:16 crop) |
-| **YouTube** | `youtubei.js` for metadata + transcript + download |
-| **Package Manager** | pnpm |
+| Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS v4 |
+| Backend | Node.js (`http.createServer`), JavaScript |
+| Agent | [Minds](https://hellominds.ai) via `@animocabrands/minds-client-lib` |
+| Database | SQLite via `@libsql/client` |
+| Video | `ffmpeg-static` (9:16) |
+| YouTube | `youtubei.js` (meta, captions, download) |
+| Package manager | pnpm |
 
 ---
 
-## Repository Structure
+## Repository
 
 ```
 RepostAI/
-├── backend/               # Node.js API server (:4000)
-│   ├── server.js          # HTTP server + routing
-│   ├── http/              # Route handlers (8 endpoints)
+├── backend/               # API (:4000)
+│   ├── server.js
+│   ├── http/              # Route handlers
 │   ├── pipeline/          # YouTube, Minds, ffmpeg, recipes, voice
-│   ├── db/                # SQLite schema + CRUD operations
-│   └── lib/               # Constants, paths, ports, helpers
-├── frontend/              # Next.js UI (:3000)
+│   ├── db/                # SQLite
+│   └── lib/
+├── frontend/              # UI (:3000)
 │   ├── app/               # /, /desk, /jobs/[id], /jobs/compare, /voice, /mind
-│   ├── components/        # UI components (11 files)
-│   ├── lib/               # API client, constants, formatters
-│   └── styles/            # CSS
-├── data/                  # Runtime data (gitignored)
-│   ├── repostai.db        # SQLite database
-│   ├── sources/           # Downloaded source videos
-│   ├── clips/             # Generated clip files
-│   └── uploads/           # User-uploaded videos
-├── .env.example           # Environment variable template
-├── package.json           # Monorepo scripts
-└── LICENSE                # MIT License
+│   ├── components/
+│   ├── lib/               # API client, content-pack copy helpers
+│   └── styles/
+├── docs/screenshots/      # Product shots in this README
+├── data/                  # Runtime (gitignored)
+├── .env.example
+├── package.json
+└── LICENSE
 ```
 
 ---
 
-## Platform Limits
+## Platform limits
 
-| Platform | Max Duration | Aspect Ratio | Caption Limit |
+| Platform | Max duration | Aspect | Caption |
 |---|---|---|---|
 | TikTok | 60s | 9:16 | 2200 chars |
 | Instagram | 90s | 9:16 | 2200 chars |
-| X (Twitter) | 140s | 9:16 | 280 chars |
+| X | 140s | 9:16 | 280 chars |
 
 ---
 
