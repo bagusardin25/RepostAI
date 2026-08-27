@@ -292,7 +292,7 @@ Actions: `approve`, `reject`, `edit`. Each review is stored and sent to the Mind
 | Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS v4 |
 | Backend | Node.js (`http.createServer`), JavaScript |
 | Agent | [Minds](https://hellominds.ai) via `@animocabrands/minds-client-lib` |
-| Database | SQLite via `@libsql/client` |
+| Database | SQLite via `@libsql/client` (file locally, Railway volume in production) |
 | Video | `ffmpeg-static` (9:16) |
 | YouTube | `youtubei.js` (meta, captions, download) |
 | Package manager | pnpm |
@@ -332,6 +332,60 @@ RepostAI/
 | X | 140s | 9:16 | 280 chars |
 
 ---
+
+## Production deploy (Vercel + Railway)
+
+Frontend on **Vercel**. Backend (ffmpeg, YouTube, SQLite, MP4s) on **Railway**. That split is required: Vercel is serverless and cannot run the cutter.
+
+### Do we need PostgreSQL?
+
+**No.** Keep SQLite. This API is one process that writes local MP4s; Postgres would not store those files and would not let you run multiple replicas anyway. Production needs a **Railway volume** at `/data` so `repostai.db`, sources, and clips survive deploys.
+
+Do not set `DATABASE_URL` to a Postgres URL — the client is `@libsql/client`.
+
+### 1. Railway (API)
+
+1. Create a project and deploy this repo (Dockerfile + `railway.toml`).
+2. Attach a **volume** mounted at `/data`.
+3. Generate a public domain.
+4. Set variables:
+
+```env
+FRONTEND_ORIGIN=https://your-app.vercel.app
+MINDS_BUILDER_API_KEY=...
+MINDS_MIND_ID=...
+MINDS_CONVERSATION_ALIAS=main
+```
+
+`PORT` and `RAILWAY_VOLUME_MOUNT_PATH` are injected. Keep **one replica**.
+
+Health check: `GET /api/health`.
+
+### 2. Vercel (UI)
+
+Import the GitHub repo.
+
+| Setting | Value |
+|---|---|
+| Framework | Next.js |
+| Install | `pnpm install` |
+| Build | `pnpm build` (`next build frontend`) |
+| Root Directory | repository root (leave default) |
+
+Environment variables (use the Railway domain from step 1):
+
+```env
+NEXT_PUBLIC_BACKEND_ORIGIN=https://your-api.up.railway.app
+BACKEND_ORIGIN=https://your-api.up.railway.app
+```
+
+JSON and uploads go to Railway (avoids Vercel body limits). Relative `/api/media/...` URLs still rewrite through Vercel for same-origin playback.
+
+After the Vercel URL exists, set `FRONTEND_ORIGIN` on Railway to that URL and redeploy the API if needed.
+
+### 3. Order
+
+Railway first (domain) → Vercel env + deploy → put the Vercel origin on Railway CORS → confirm `/api/health` from the live UI.
 
 ## License
 

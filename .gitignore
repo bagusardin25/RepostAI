@@ -34,6 +34,7 @@ tsconfig.tsbuildinfo
 *.tsbuildinfo
 .turbo
 .vercel
+.railway
 
 # Testing & Coverage
 coverage

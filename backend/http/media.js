@@ -1,4 +1,5 @@
-import fs from "node:fs";
+import fs, { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import { clipsDir, safeJoin, sourcesDir, uploadsDir } from "../lib/paths.js";
 import { corsHeaders, json } from "../lib/http.js";
 
@@ -39,27 +40,27 @@ export async function GET(request, params) {
         },
       });
     }
-    const chunk = fs.readFileSync(filePath).subarray(start, end + 1);
-    return new Response(new Uint8Array(chunk), {
+    const stream = createReadStream(filePath, { start, end });
+    return new Response(Readable.toWeb(stream), {
       status: 206,
       headers: {
         ...corsHeaders(),
         "Content-Type": "video/mp4",
         "Accept-Ranges": "bytes",
         "Content-Range": `bytes ${start}-${end}/${stat.size}`,
-        "Content-Length": String(chunk.length),
+        "Content-Length": String(end - start + 1),
         "Cache-Control": "private, max-age=3600",
       },
     });
   }
 
-  const data = fs.readFileSync(filePath);
-  return new Response(new Uint8Array(data), {
+  const stream = createReadStream(filePath);
+  return new Response(Readable.toWeb(stream), {
     headers: {
       ...corsHeaders(),
       "Content-Type": "video/mp4",
       "Accept-Ranges": "bytes",
-      "Content-Length": String(data.length),
+      "Content-Length": String(stat.size),
       "Cache-Control": "private, max-age=3600",
     },
   });

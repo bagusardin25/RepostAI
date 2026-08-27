@@ -17,8 +17,8 @@ import { corsHeaders, json } from "./lib/http.js";
 import {
   assertDistinctPorts,
   BACKEND_PORT,
-  backendOrigin,
   FRONTEND_PORT,
+  HOST,
   frontendOrigin,
 } from "./lib/ports.js";
 
@@ -44,15 +44,16 @@ server.on("error", (error) => {
   throw error;
 });
 
-server.listen(BACKEND_PORT, "127.0.0.1", () => {
-  console.log(`backend  ${backendOrigin()}`);
-  console.log(`frontend  ${frontendOrigin()}  (expected)`);
+server.listen(BACKEND_PORT, HOST, () => {
+  console.log(`backend  http://${HOST}:${BACKEND_PORT}`);
+  console.log(`frontend  ${frontendOrigin()}  (CORS)`);
   startWatchLoop();
 });
 
 async function handle(req, res) {
+  const origin = typeof req.headers.origin === "string" ? req.headers.origin : "";
   if (req.method === "OPTIONS") {
-    res.writeHead(204, corsHeaders());
+    res.writeHead(204, corsHeaders(origin));
     res.end();
     return;
   }
@@ -60,13 +61,16 @@ async function handle(req, res) {
   const request = await toWebRequest(req);
   const url = new URL(request.url);
   const response = (await route(request, url)) ?? json({ error: "Not found" }, 404);
-  await writeResponse(res, response);
+  await writeResponse(res, response, origin);
 }
 
 async function route(request, url) {
   const method = request.method;
   const pathname = url.pathname.replace(/\/$/, "") || "/";
 
+  if (pathname === "/" && method === "GET") {
+    return json({ ok: true, service: "repostai-backend" });
+  }
   if (pathname === "/api/health" && method === "GET") return getHealth();
   if (pathname === "/api/jobs" && method === "GET") return listJobs();
   if (pathname === "/api/jobs" && method === "POST") return createJob(request);
@@ -119,13 +123,19 @@ async function toWebRequest(req) {
   return new Request(url, init);
 }
 
-async function writeResponse(res, response) {
+async function writeResponse(res, response, origin = "") {
   res.statusCode = response.status;
   response.headers.forEach((value, key) => {
     res.setHeader(key, value);
   });
-  const buffer = Buffer.from(await response.arrayBuffer());
-  res.end(buffer);
+  for (const [key, value] of Object.entries(corsHeaders(origin))) {
+    res.setHeader(key, value);
+  }
+  if (!response.body) {
+    res.end();
+    return;
+  }
+  Readable.fromWeb(response.body).pipe(res);
 }
 
 function loadEnvFiles() {

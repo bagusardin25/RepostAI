@@ -14,6 +14,8 @@ function repoRoot() {
 }
 
 export function dataRoot() {
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH) return process.env.RAILWAY_VOLUME_MOUNT_PATH;
   return path.join(repoRoot(), "data");
 }
 

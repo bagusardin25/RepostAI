@@ -164,6 +164,11 @@ export type VoicePayload = {
   }>;
 };
 
+function apiUrl(path: string) {
+  const base = (process.env.NEXT_PUBLIC_BACKEND_ORIGIN || "").replace(/\/$/, "");
+  return `${base}${path}`;
+}
+
 async function parse<T>(res: Promise<Response> | Response): Promise<T> {
   const resolved = await res;
   const data = (await resolved.json()) as T & { error?: string };
@@ -178,7 +183,7 @@ export function createJob(body: { youtubeUrl?: string; fixture?: boolean; file?:
     if (body.fixture) form.set("fixture", "true");
     form.set("file", body.file);
     return parse<{ job: JobSummary }>(
-      fetch("/api/jobs", {
+      fetch(apiUrl("/api/jobs"), {
         method: "POST",
         body: form,
       }),
@@ -186,7 +191,7 @@ export function createJob(body: { youtubeUrl?: string; fixture?: boolean; file?:
   }
 
   return parse<{ job: JobSummary }>(
-    fetch("/api/jobs", {
+    fetch(apiUrl("/api/jobs"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -198,7 +203,7 @@ export function createJob(body: { youtubeUrl?: string; fixture?: boolean; file?:
 }
 
 export function listJobs() {
-  return parse<{ jobs: JobSummary[] }>(fetch("/api/jobs"));
+  return parse<{ jobs: JobSummary[] }>(fetch(apiUrl("/api/jobs")));
 }
 
 export function getJob(id: string) {
@@ -210,7 +215,7 @@ export function getJob(id: string) {
     voiceApplied?: VoiceApplied | null;
     voiceSteered?: boolean;
     lineage?: JobLineage;
-  }>(fetch(`/api/jobs/${id}`));
+  }>(fetch(apiUrl(`/api/jobs/${id}`)));
 }
 
 export type CompareSideClip = {
@@ -245,11 +250,13 @@ export type JobComparePayload = {
 };
 
 export function getJobCompare(a: string, b: string) {
-  return parse<JobComparePayload>(fetch(`/api/jobs/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`));
+  return parse<JobComparePayload>(
+    fetch(apiUrl(`/api/jobs/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`)),
+  );
 }
 
 export function retryJob(id: string) {
-  return parse<{ ok: boolean }>(fetch(`/api/jobs/${id}`, { method: "POST" }));
+  return parse<{ ok: boolean }>(fetch(apiUrl(`/api/jobs/${id}`), { method: "POST" }));
 }
 
 export function reviewClip(
@@ -257,7 +264,7 @@ export function reviewClip(
   body: { action: "approve" | "reject" | "edit"; caption?: string; hook?: string; note?: string },
 ) {
   return parse<{ clip: ClipPackage }>(
-    fetch(`/api/clips/${id}/review`, {
+    fetch(apiUrl(`/api/clips/${id}/review`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -266,24 +273,26 @@ export function reviewClip(
 }
 
 export function getVoice() {
-  return parse<VoicePayload>(fetch("/api/voice"));
+  return parse<VoicePayload>(fetch(apiUrl("/api/voice")));
 }
 
 export function getMindDesk() {
-  return parse<MindDesk>(fetch("/api/mind"));
+  return parse<MindDesk>(fetch(apiUrl("/api/mind")));
 }
 
 export function getMindHistory(limit = 40) {
-  return parse<{ alias: string; messages: MindMessage[] }>(fetch(`/api/mind/history?limit=${limit}`));
+  return parse<{ alias: string; messages: MindMessage[] }>(
+    fetch(apiUrl(`/api/mind/history?limit=${limit}`)),
+  );
 }
 
 export function seedMindTenets() {
-  return parse<{ ok: boolean; alias: string }>(fetch("/api/mind/tenets", { method: "POST" }));
+  return parse<{ ok: boolean; alias: string }>(fetch(apiUrl("/api/mind/tenets"), { method: "POST" }));
 }
 
 export function sendMindMessage(text: string) {
   return parse<{ ok: boolean; alias: string }>(
-    fetch("/api/mind/messages", {
+    fetch(apiUrl("/api/mind/messages"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
@@ -293,7 +302,7 @@ export function sendMindMessage(text: string) {
 
 export function equipMindSkill(skillId: string) {
   return parse<{ ok: boolean }>(
-    fetch("/api/mind/skills", {
+    fetch(apiUrl("/api/mind/skills"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ skillId }),
@@ -302,12 +311,12 @@ export function equipMindSkill(skillId: string) {
 }
 
 export function getWatch() {
-  return parse<{ watch: WatchState }>(fetch("/api/watch"));
+  return parse<{ watch: WatchState }>(fetch(apiUrl("/api/watch")));
 }
 
 export function saveWatch(body: { channelUrl: string; enabled: boolean }) {
   return parse<{ watch: WatchState }>(
-    fetch("/api/watch", {
+    fetch(apiUrl("/api/watch"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -317,7 +326,7 @@ export function saveWatch(body: { channelUrl: string; enabled: boolean }) {
 
 export function pollWatch() {
   return parse<{ watch: WatchState }>(
-    fetch("/api/watch/poll", {
+    fetch(apiUrl("/api/watch/poll"), {
       method: "POST",
     }),
   );
@@ -335,7 +344,7 @@ export function getHealth() {
       hasTelegram?: boolean;
       cognition?: number | null;
     };
-  }>(fetch("/api/health"));
+  }>(fetch(apiUrl("/api/health")));
 }
 
 export function formatTimecode(sec: number) {

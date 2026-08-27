@@ -2,6 +2,9 @@
   "name": "repostai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "predev": "node scripts/free-dev-ports.mjs",
     "dev": "concurrently -k -n backend,frontend -c yellow,cyan \"pnpm dev:backend\" \"pnpm dev:frontend\"",

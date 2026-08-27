@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import { promisify } from "node:util";
@@ -7,13 +7,34 @@ const require = createRequire(import.meta.url);
 const ffmpegStatic = require("ffmpeg-static");
 const execFileAsync = promisify(execFile);
 
+let resolved = undefined;
+
+function systemFfmpeg() {
+  try {
+    execFileSync("ffmpeg", ["-version"], { stdio: "ignore", windowsHide: true, timeout: 5000 });
+    return "ffmpeg";
+  } catch {
+    return null;
+  }
+}
+
 export function ffmpegPath() {
-  return ffmpegStatic ?? null;
+  if (resolved !== undefined) return resolved;
+  const fromEnv = process.env.FFMPEG_PATH;
+  if (fromEnv && fs.existsSync(fromEnv)) {
+    resolved = fromEnv;
+    return resolved;
+  }
+  if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
+    resolved = ffmpegStatic;
+    return resolved;
+  }
+  resolved = systemFfmpeg();
+  return resolved;
 }
 
 export function ffmpegAvailable() {
-  const bin = ffmpegPath();
-  return Boolean(bin && fs.existsSync(bin));
+  return Boolean(ffmpegPath());
 }
 
 function cropFilter(aspect) {

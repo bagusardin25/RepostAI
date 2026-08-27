@@ -4,9 +4,20 @@ import { dbFile, ensureDataDirs } from "../lib/paths.js";
 
 let ready = null;
 
+function sqliteUrl() {
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url) return pathToFileURL(dbFile()).href;
+  if (/^postgres(ql)?:\/\//i.test(url)) {
+    throw new Error(
+      "DATABASE_URL is a Postgres URL, but RepostAI uses SQLite via @libsql/client. Leave DATABASE_URL unset and attach a Railway volume at /data.",
+    );
+  }
+  return url;
+}
+
 async function connect() {
   ensureDataDirs();
-  const client = createClient({ url: pathToFileURL(dbFile()).href });
+  const client = createClient({ url: sqliteUrl() });
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS jobs (
       id TEXT PRIMARY KEY,
