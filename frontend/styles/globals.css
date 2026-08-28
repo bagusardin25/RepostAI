@@ -829,9 +829,6 @@ textarea.field {
 }
 
 .review-bar {
-  position: sticky;
-  top: calc(var(--header-h) - 1px);
-  z-index: 30;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
