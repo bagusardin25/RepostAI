@@ -30,7 +30,7 @@ function resolveOrigin(requestOrigin = "") {
 export function corsHeaders(requestOrigin = "") {
   return {
     "Access-Control-Allow-Origin": resolveOrigin(requestOrigin),
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Range",
     "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length",
     "Access-Control-Max-Age": "86400",
