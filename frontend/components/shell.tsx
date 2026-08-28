@@ -64,8 +64,8 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         <div className="site-wrap flex min-h-[var(--header-h)] items-center gap-2 sm:gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
             <BrandMark
-              href="/desk"
-              current={pathname === "/desk" || pathname.startsWith("/jobs")}
+              href="/"
+              current={pathname === "/"}
             />
 
             <nav aria-label="Primary" className="flex min-w-0 items-center gap-1 overflow-x-auto">
