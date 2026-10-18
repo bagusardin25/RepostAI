@@ -8,7 +8,7 @@ import {
   listClipsForJob,
   updateJob,
 } from "../db/client.js";
-import { cutClip, ffmpegAvailable, probeDurationSec, writeFixtureVideo } from "./ffmpeg.js";
+import { copyFixtureVideo, cutClip, ffmpegAvailable, probeDurationSec } from "./ffmpeg.js";
 import { FIXTURE_DURATION_SEC, FIXTURE_TITLE, FIXTURE_TRANSCRIPT } from "./fixture.js";
 import { mindsConfigured, proposeClipsWithMinds, requestAutonomousFollowUp } from "./minds.js";
 import { clipsDir, ensureDataDirs, sourcesDir, uploadsDir } from "../lib/paths.js";
@@ -108,7 +108,7 @@ async function resolveSource(jobId) {
   if (job.sourceType === "fixture") {
     if (!sourceVideoPath && ffmpegAvailable()) {
       const dest = path.join(sourcesDir(), `${job.id}.mp4`);
-      await writeFixtureVideo(dest, FIXTURE_DURATION_SEC);
+      await copyFixtureVideo(dest, FIXTURE_DURATION_SEC, sourcesDir());
       sourceVideoPath = dest;
     }
   }
