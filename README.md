@@ -34,14 +34,14 @@ Nothing posts. MP4s download one at a time.
 Pick a source  →  Wait  →  Review what is left  →  Take the pack
 ```
 
-1. **Start** on `/desk` — paste a YouTube link, drop a video file plus its YouTube link for captions, or **Try the sample**.
-2. **Wait** — reading source, finding moments, preparing clips. The page updates by itself.
+1. **Start** on `/desk` — paste a YouTube link, drop a video file plus its YouTube link for captions, or **Run the sample**.
+2. **Wait** — getting the video, picking moments, cutting clips. The page updates by itself.
 3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**.
 4. **Take** — **Copy pack** copies ready clips plus all four drafts. Download each MP4 separately.
 
 Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (`/mind`) is the agent status. You do not need either page to finish a pack.
 
-**Start** on the desk — one box takes everything. Paste a YouTube link (anywhere on the page works) to see its title and thumbnail, drag a video in and the box grows into a drop zone, or try the sample.
+**Start** on the desk — one box takes everything. Paste a YouTube link (anywhere on the page works) to see its title and thumbnail, drag a video in and the box grows into a drop zone, or run the sample.
 
 <p align="center">
   <img src="docs/screenshots/desk.png" alt="Desk — one box for a YouTube link, a dropped video file, or the sample" width="920" />
@@ -63,11 +63,11 @@ Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (
 
 ## Why the Mind matters
 
-Fallback recipes exist if the agent is offline — the desk labels that **Alt process**, never as Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
+Fallback recipes exist if the agent is offline. The pack then says **Picked by the built-in picker**, never Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
 
 ### Prove persistence (pack 1 → pack 2)
 
-1. Open [`/desk`](http://localhost:3000/desk), run **Try the sample** or paste a **public YouTube URL with captions**.
+1. Open [`/desk`](http://localhost:3000/desk), click **Run the sample** or paste a **public YouTube URL with captions**.
 2. Reject one clip with a note (for example `skip cold intros`) and/or save a shorter caption.
 3. Open **Style** — keep/stop rules. Open **Mind** → Conversation if you want the transcript.
 4. Run a second pack.
@@ -200,7 +200,7 @@ YouTube jobs need **captions**. Upload-only has no speech-to-text, so after you 
 
 ### Demo sample
 
-On the desk, click **Try the sample**. It runs one built-in demo source: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
+On the desk, click **Run the sample**. It runs one built-in demo source: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
 
 ### Other commands
 
@@ -221,11 +221,11 @@ One source → 3 clips + 4 drafts. You stay the publisher.
 
 ### Desk (`/desk`)
 
-YouTube link, upload + optional caption URL, or the demo sample. **Your projects** lists packs. Channel watch is collapsed under **Optional: automate new uploads**.
+YouTube link, upload + optional caption URL, or the demo sample. **Projects** lists packs, with To review, Running and Reviewed tabs. Channel watch sits in a collapsed **Watch a channel** row.
 
 ### Content pack (`/jobs/[id]`)
 
-Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack). View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Clip cards, four draft teasers, MP4 downloads. **How this was chosen** and the source transcript sit below.
+Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack). View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Clip cards, four draft teasers, MP4 downloads. **Why these moments** and the source transcript sit below.
 
 Edited and approved clips are **Ready**. Needs-review clips are not copied without a warning.
 
