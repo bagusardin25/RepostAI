@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "One source. Platform packages. Nothing ships without you.",
+  title: { absolute: "RepostAI: clips for TikTok, Reels and X from one YouTube video" },
   description:
-    "RepostAI turns a YouTube video into 9:16 clips plus script, carousel, thread, and LinkedIn drafts. A persistent Minds agent learns from every review. Nothing publishes.",
+    "Cut a YouTube video into TikTok, Reels and X clips, plus a script, carousel, thread and LinkedIn post. You review everything before you post it.",
 };
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {

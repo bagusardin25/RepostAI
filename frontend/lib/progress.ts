@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { JobProgress } from "@frontend/lib/api";
-import { platformLabel } from "@frontend/lib/format";
+import { isPlatform } from "@frontend/lib/format";
+
+// Clips are named by where they go: the Instagram clip is a Reel.
+const CLIP_PLATFORM: Record<string, string> = { tiktok: "TikTok", instagram: "Reels", x: "X" };
+
+export function clipPlatformLabel(value: string) {
+  return isPlatform(value) ? CLIP_PLATFORM[value] : value;
+}
 
 /** Share of the whole bar each backend stage owns. */
 const SPANS: Record<string, [number, number]> = {
@@ -96,24 +103,24 @@ export function stepHeadline(status: string, progress: JobProgress | null | unde
   const p = progress?.stage === status ? progress : null;
   switch (status) {
     case "queued":
-      return "Getting your pack in line…";
+      return "Waiting to start…";
     case "fetching_source":
       if (p?.step === "download") {
         const mb = (p.bytes ?? 0) / (1024 * 1024);
-        return mb >= 1 ? `Downloading the source · ${mb.toFixed(0)} MB` : "Downloading the source…";
+        return mb >= 1 ? `Downloading the video · ${mb.toFixed(0)} MB` : "Downloading the video…";
       }
-      return "Reading the video and its captions…";
+      return "Reading the captions…";
     case "analyzing":
-      return p?.step === "mind" ? "The Mind is picking the strongest moments…" : "Picking the strongest moments…";
+      return p?.step === "mind" ? "The Mind is choosing three moments…" : "Choosing three moments…";
     case "clipping":
       if (p?.total) {
         const done = p.done ?? 0;
-        if (done >= p.total) return "Finishing your drafts…";
-        return `Cutting clip ${done + 1} of ${p.total}${p.platform ? ` · ${platformLabel(p.platform)}` : ""}`;
+        if (done >= p.total) return "Writing the text drafts…";
+        return `Cutting clip ${done + 1} of ${p.total}${p.platform ? ` for ${clipPlatformLabel(p.platform)}` : ""}`;
       }
-      return "Cutting 9:16 clips…";
+      return "Cutting the clips…";
     case "ready":
-      return "Your pack is ready for review";
+      return "Ready to review";
     default:
       return "Working…";
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { JobDetail } from "@frontend/lib/api";
-import { formatElapsed, JOB_STAGES } from "@frontend/lib/format";
+import { formatDuration, formatElapsed, JOB_STAGES } from "@frontend/lib/format";
 import { CLIP_SPAN, snapshotFrom, stageIndex, stepHeadline, useSmoothProgress } from "@frontend/lib/progress";
 import { extractYoutubeId, youtubeThumbnail } from "@frontend/lib/youtube";
 import { FootageArt, type FootageCrop } from "@frontend/components/footage";
@@ -14,16 +14,28 @@ const CUTS: Array<{ platform: string; label: string; crop: FootageCrop; position
   { platform: "x", label: "X", crop: "x", position: "70% 50%" },
 ];
 
-// Illustrative windows on the source timeline, one per cut.
+// Illustrative windows on the source timeline, one per cut, and where the
+// 9:16 crop sits on the source frame while that cut is made.
 const WINDOWS = [
-  { left: "8%", width: "16%", crop: "8%" },
-  { left: "39%", width: "18%", crop: "36%" },
-  { left: "71%", width: "13%", crop: "64%" },
+  { left: "7.3%", width: "18.8%", crop: "8%" },
+  { left: "37.5%", width: "22.9%", crop: "36%" },
+  { left: "71.9%", width: "16.7%", crop: "64%" },
 ];
 
-const WAVE = [
-  30, 48, 36, 62, 44, 70, 54, 34, 58, 76, 50, 40, 66, 82, 56, 38, 52, 70, 46, 32, 60, 78, 54, 42, 64, 48, 36, 56, 72,
-  44, 30, 54, 66, 40, 58, 46, 62, 50, 38, 68,
+// Caption segments on the timeline: one block per transcript line.
+const SEGMENTS: Array<[number, number]> = [
+  [1, 7],
+  [9, 7.5],
+  [17.5, 5.5],
+  [24, 9],
+  [34, 7],
+  [42, 7.5],
+  [50.5, 7.5],
+  [59, 7.5],
+  [67.5, 9],
+  [77.5, 7],
+  [85.5, 7],
+  [93.5, 5.5],
 ];
 
 function clamp01(value: number) {
@@ -75,8 +87,7 @@ export function ProcessingStage({ job, leaving = false }: { job: JobDetail; leav
 
   const current = done ? 3 : stageIndex(status);
   const headline = stepHeadline(status, job.progress);
-  const stageLabel = done ? "Ready for review" : status === "queued" ? "Queued" : JOB_STAGES[current].label;
-  const elapsedSec = Math.max(0, Math.floor(now / 1000) - job.createdAt);
+  const stageLabel = done ? "Ready to review" : status === "queued" ? "Queued" : JOB_STAGES[current].label;
   const stageElapsedSec =
     job.progress?.stageStartedAt && job.progress.serverNow
       ? Math.max(0, (job.progress.serverNow - job.progress.stageStartedAt) / 1000)
@@ -84,74 +95,77 @@ export function ProcessingStage({ job, leaving = false }: { job: JobDetail; leav
   const ytId = job.sourceUrl ? extractYoutubeId(job.sourceUrl) : null;
   const still = ytId ? youtubeThumbnail(ytId) : null;
   const activeCut = cutStates.findIndex((state) => state === "active");
+  const nextCut = status === "clipping" ? cutStates.findIndex((state) => state === "waiting") : -1;
   const showWindows = status === "clipping" || status === "analyzing" || done;
+  const loading = status === "fetching_source" || status === "queued";
 
   return (
     <section
-      className="proc p-5 sm:p-8 space-y-7"
+      className="proc p-5 sm:p-8"
       data-leaving={leaving ? "true" : "false"}
       aria-label="Pack progress"
       aria-busy={done ? "false" : "true"}
     >
-      <div className="flex items-start justify-between gap-6">
-        <div className="min-w-0 space-y-2">
-          <p className="kicker kicker-tally">
-            {done ? "Done" : `Step ${current + 1} of 4`} · {stageLabel}
+      <div className="flex items-end justify-between gap-6">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <p className="flex justify-between gap-3 text-[0.8125rem] font-semibold text-[var(--fg-subtle)]">
+            <span>{done ? "Done" : `Step ${current + 1} of 4`}</span>
+            <span className="timecode text-[var(--fg-bright)] sm:hidden" aria-hidden="true">
+              {percent}%
+            </span>
           </p>
           <div className="proc-label" aria-live="polite">
-            <h2 key={headline} className="page-title text-[1.5rem] sm:text-[1.9rem]">
+            <h2 key={headline} className="page-title text-[1.375rem] sm:text-[1.75rem]">
               {headline}
             </h2>
           </div>
-          <p className="text-sm text-[var(--fg-muted)]">
+          <p className="text-sm sm:text-[0.9375rem] text-[var(--fg-muted)]">
             {done
               ? "Opening your clips…"
               : stageElapsedSec > 45
-                ? "Taking longer than usual. You can leave this page; the pack keeps going."
-                : `Working for ${formatElapsed(job.createdAt, now)}. This page updates by itself.`}
+                ? "Taking longer than usual. It keeps going if you leave this page."
+                : `Started ${formatElapsed(job.createdAt, now)} ago. It keeps going if you leave this page.`}
           </p>
         </div>
         <p
-          className="font-display shrink-0 text-[2.6rem] sm:text-[3.4rem] font-bold leading-none tracking-tight tabular-nums text-[var(--fg-bright)]"
+          className="hidden shrink-0 font-display text-[2.5rem] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--fg-bright)] sm:block"
           aria-hidden="true"
         >
           {percent}
-          <span className="text-[1.1rem] sm:text-[1.4rem] text-[var(--fg-muted)]">%</span>
+          <span className="text-xl text-[var(--fg-subtle)]">%</span>
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div
-          className="proc-bar"
-          role="progressbar"
-          aria-label="Pack progress"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={percent}
-          aria-valuetext={`${percent}% · ${stageLabel}`}
-        >
-          <span ref={fillRef} className="proc-fill" data-done={done ? "true" : "false"} style={{ transform: "scaleX(0)" }}>
-            {!done ? <span className="proc-sheen" /> : null}
-          </span>
-        </div>
-        <ol className="proc-steps">
-          {JOB_STAGES.map((stage, index) => {
-            const state = done || index < current ? "done" : index === current ? "active" : "todo";
-            return (
-              <li key={stage.key} className="proc-step" data-state={state}>
-                <span className="proc-node" aria-hidden="true">
-                  {state === "done" ? <IconCheck className="h-3 w-3 animate-pop" /> : null}
-                </span>
-                <span>{stage.label}</span>
-                <span className="sr-only">{state === "done" ? "(done)" : state === "active" ? "(in progress)" : ""}</span>
-              </li>
-            );
-          })}
-        </ol>
+      <div
+        className="proc-bar mt-5 sm:mt-6"
+        role="progressbar"
+        aria-label="Pack progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={`${percent}%, ${stageLabel}`}
+      >
+        <span ref={fillRef} className="proc-fill" data-done={done ? "true" : "false"} style={{ transform: "scaleX(0)" }}>
+          {!done ? <span className="proc-sheen" /> : null}
+        </span>
       </div>
+      <ol className="proc-steps mt-3.5">
+        {JOB_STAGES.map((stage, index) => {
+          const state = done || index < current ? "done" : index === current ? "active" : "todo";
+          return (
+            <li key={stage.key} className="proc-step" data-state={state}>
+              <span className="proc-node" aria-hidden="true">
+                {state === "done" ? <IconCheck className="h-[11px] w-[11px] animate-pop" /> : null}
+              </span>
+              <span>{stage.label}</span>
+              <span className="sr-only">{state === "done" ? "(done)" : state === "active" ? "(in progress)" : ""}</span>
+            </li>
+          );
+        })}
+      </ol>
 
-      <div className="proc-visual" aria-hidden="true">
-        <div>
+      <div className="proc-visual mt-6 sm:mt-8" aria-hidden="true">
+        <div className="space-y-3">
           <div className="proc-source" data-stage={status}>
             {still ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -159,24 +173,28 @@ export function ProcessingStage({ job, leaving = false }: { job: JobDetail; leav
             ) : (
               <FootageArt crop="wide" />
             )}
-            {status === "fetching_source" || status === "queued" ? <span className="proc-loading" /> : null}
+            {loading ? <span className="proc-loading" /> : null}
             {status === "clipping" && activeCut >= 0 ? (
               <span className="proc-crop" style={{ left: WINDOWS[activeCut].crop }} />
             ) : null}
           </div>
           <div className="proc-track">
-            <div className="proc-wave">
-              {WAVE.map((h, i) => (
-                <i key={i} style={{ height: `${h}%`, animationDelay: `${i * 18}ms` }} />
-              ))}
-            </div>
+            {SEGMENTS.map(([left, width]) => (
+              <i key={left} className="proc-seg" style={{ left: `${left}%`, width: `${width}%` }} />
+            ))}
             {showWindows
               ? WINDOWS.map((win, index) => (
                   <span
                     key={win.left}
                     className="proc-win"
                     data-state={
-                      status === "analyzing" ? "pending" : cutStates[index] === "done" ? "done" : cutStates[index] === "active" ? "active" : "idle"
+                      status === "analyzing"
+                        ? "pending"
+                        : cutStates[index] === "done"
+                          ? "done"
+                          : cutStates[index] === "active"
+                            ? "active"
+                            : "idle"
                     }
                     style={{ left: win.left, width: win.width, animationDelay: `${index * 160}ms` }}
                   />
@@ -184,12 +202,11 @@ export function ProcessingStage({ job, leaving = false }: { job: JobDetail; leav
               : null}
             {status === "analyzing" ? <span className="proc-scan" /> : null}
           </div>
-          <p className="timecode mt-2 text-[11px] text-[var(--fg-subtle)]">
-            {status === "fetching_source" || status === "queued"
-              ? "Source · loading"
-              : status === "analyzing"
-                ? "Source · scanning the transcript"
-                : "Source · three windows picked"}
+          <p className="flex justify-between gap-3 text-xs text-[var(--fg-subtle)]">
+            <span>
+              {loading ? "Loading the video" : status === "analyzing" ? "Reading the transcript" : "Transcript · 3 moments picked"}
+            </span>
+            {job.durationSec ? <span className="timecode">{formatDuration(job.durationSec)}</span> : null}
           </p>
         </div>
 
@@ -205,7 +222,12 @@ export function ProcessingStage({ job, leaving = false }: { job: JobDetail; leav
               >
                 {still ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={still} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: cut.position }} />
+                  <img
+                    src={still}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ objectPosition: cut.position }}
+                  />
                 ) : (
                   <FootageArt crop={cut.crop} />
                 )}
@@ -220,9 +242,10 @@ export function ProcessingStage({ job, leaving = false }: { job: JobDetail; leav
               <span className="proc-cut-tag">{cut.label}</span>
               {cutStates[index] === "done" ? (
                 <span className="proc-cut-check">
-                  <IconCheck className="h-4 w-4" />
+                  <IconCheck className="h-3 w-3" />
                 </span>
               ) : null}
+              {index === nextCut ? <span className="proc-cut-next">Next</span> : null}
             </div>
           ))}
         </div>

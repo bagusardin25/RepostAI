@@ -100,18 +100,17 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="btn btn-quiet btn-sm gap-1.5 px-2.5 text-[var(--fg-muted)]"
+      className="icon-btn h-10 w-10"
       title={`Theme: ${theme} (${resolvedTheme}). Click to switch.`}
       aria-label={`Theme: ${theme}. Switch theme`}
     >
       {theme === "light" ? (
-        <IconSun className="h-3.5 w-3.5 text-[var(--tally-fg)]" />
+        <IconSun className="h-[18px] w-[18px]" aria-hidden="true" />
       ) : theme === "dark" ? (
-        <IconMoon className="h-3.5 w-3.5 text-[var(--fg)]" />
+        <IconMoon className="h-[18px] w-[18px]" aria-hidden="true" />
       ) : (
-        <IconMonitor className="h-3.5 w-3.5 text-[var(--fg-muted)]" />
+        <IconMonitor className="h-[18px] w-[18px]" aria-hidden="true" />
       )}
-      <span className="capitalize hidden sm:inline">{theme}</span>
     </button>
   );
 }

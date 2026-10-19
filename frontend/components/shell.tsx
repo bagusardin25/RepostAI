@@ -88,7 +88,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setShowHealthModal(true)}
-              className="glass-chip hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+              className="hidden sm:flex h-8 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-2.5 text-[0.8125rem] text-[var(--fg-muted)] hover:text-[var(--fg-bright)] transition-colors"
             >
               <SystemStatus health={health} />
             </button>
@@ -101,26 +101,24 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="border-t border-[var(--border)] py-8 mt-auto text-xs text-[var(--fg-muted)]">
+      <footer className="border-t border-[var(--border)] py-6 mt-auto text-[0.8125rem] text-[var(--fg-subtle)]">
         <div className="site-wrap flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Link href="/" className="font-medium text-[var(--fg)] hover:opacity-80 transition-opacity">
+            <Link href="/" className="text-[var(--fg-muted)] hover:text-[var(--fg-bright)] transition-colors">
               RepostAI
             </Link>
-            <span>—</span>
+            <span aria-hidden="true">·</span>
             <span>Creative Minds Jam #1</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>TikTok / Reels / X</span>
-            <span>·</span>
+          <div className="flex items-center gap-4">
             <a
               href="https://hellominds.ai"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[var(--fg)] transition-colors"
+              className="text-[var(--fg-muted)] hover:text-[var(--fg-bright)] transition-colors"
             >
-              Powered by Minds Agent
+              Built on Minds
             </a>
           </div>
         </div>
@@ -139,7 +137,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <h3 className="font-semibold text-sm text-[var(--fg)]">System status</h3>
+              <h3 className="font-semibold text-sm text-[var(--fg)]">Status</h3>
               <button
                 type="button"
                 onClick={() => setShowHealthModal(false)}
@@ -160,13 +158,13 @@ function ShellContent({ children }: { children: React.ReactNode }) {
                 <StatusBadge ok={health?.mind} />
               </div>
               <div className="flex items-center justify-between p-2.5 cell hover:border-[var(--border-strong)] transition-colors">
-                <span className="text-[var(--fg)]">Saved projects</span>
+                <span className="text-[var(--fg)]">Projects</span>
                 <StatusBadge ok={health?.desk} />
               </div>
             </div>
 
             <div className="pt-2 flex justify-between items-center text-[11px] text-[var(--fg-muted)] border-t border-[var(--border)]">
-              <span>If something is offline, retry or refresh</span>
+              <span>If a part is offline, wait a moment and check again.</span>
               <button
                 type="button"
                 onClick={() => {
@@ -184,7 +182,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
                 className="btn btn-ghost btn-xs"
               >
                 <IconRefresh className="h-3 w-3" />
-                <span>Check</span>
+                <span>Check again</span>
               </button>
             </div>
           </div>
@@ -221,15 +219,15 @@ function SystemStatus({ health }: { health: Health | null }) {
   const label = !health
     ? "Checking…"
     : allOk
-      ? "System ready"
+      ? "Ready"
       : processingOk
-        ? "Processing available"
-        : "Check system";
-  const tone = !health ? "bg-[var(--warn)]" : allOk || processingOk ? "bg-[var(--ok)] shadow-[0_0_6px_rgba(4,120,87,0.5)]" : knownBad ? "bg-[var(--bad)]" : "bg-[var(--warn)]";
+        ? "Ready, Mind off"
+        : "Something's offline";
+  const tone = !health ? "bg-[var(--warn)]" : allOk || processingOk ? "bg-[var(--ok)]" : knownBad ? "bg-[var(--bad)]" : "bg-[var(--warn)]";
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${tone}`} aria-hidden />
+      <span className={`h-[7px] w-[7px] rounded-full transition-all duration-300 ${tone}`} aria-hidden />
       <span>{label}</span>
     </span>
   );

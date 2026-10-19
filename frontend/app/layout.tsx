@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     default: "RepostAI",
     template: "%s · RepostAI",
   },
-  description: "One video in. Platform-ready clips out. Review before anything ships.",
+  description: "Cut a YouTube video into vertical clips and text drafts you review before posting.",
 };
 
 export const viewport: Viewport = {

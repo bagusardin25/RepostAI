@@ -22,15 +22,7 @@ import {
   type YoutubePreview,
 } from "@frontend/lib/youtube";
 import { useToast } from "@frontend/components/toast";
-import {
-  IconAlertCircle,
-  IconArrowRight,
-  IconCheck,
-  IconLink,
-  IconUpload,
-  IconVideo,
-  IconXMark,
-} from "@frontend/components/icons";
+import { IconLink, IconUpload, IconXMark } from "@frontend/components/icons";
 
 const MAX_BYTES = 500 * 1024 * 1024;
 const VIDEO_EXT = /\.(mp4|webm|mov|mkv|m4v)$/i;
@@ -58,7 +50,7 @@ function prefersReducedMotion() {
 
 /**
  * The desk's one entry point. It adapts to what it is given:
- * empty → paste or type a link; valid YouTube link → preview card;
+ * empty → paste or type a link; valid YouTube link → preview row;
  * a video dragged anywhere on the page → the box grows into a drop target;
  * a dropped file → thumbnail chip plus the captions link uploads need;
  * uploading → real byte progress.
@@ -101,7 +93,7 @@ export function IngestForm() {
   const acceptFile = useCallback(
     (next: File) => {
       if (!isVideoFile(next)) {
-        setError("That file isn't a video. Drop an MP4, WebM or MOV.");
+        setError("That file isn't a video. Use an MP4, WebM or MOV.");
         return;
       }
       if (next.size > MAX_BYTES) {
@@ -151,7 +143,7 @@ export function IngestForm() {
       void fetchYoutubePreview(ytId, controller.signal).then((data) => {
         if (controller.signal.aborted) return;
         setPreview({ id: ytId, data, loading: false });
-        if (phase !== "file") setAnnounce(data ? `YouTube video: ${data.title}` : "YouTube link looks good");
+        if (phase !== "file") setAnnounce(data ? `YouTube video: ${data.title}` : "YouTube link added");
       });
     }, 220);
     return () => {
@@ -318,7 +310,7 @@ export function IngestForm() {
         if (!file) throw new Error("Choose a video file first.");
         if (!ytId) {
           captionsInputRef.current?.focus();
-          throw new Error("Add the YouTube link for this video so we can read its captions.");
+          throw new Error("Add this video's YouTube link. The cuts are timed from its captions.");
         }
         setBusy("file");
         setUpload({ loaded: 0, total: file.size });
@@ -327,7 +319,7 @@ export function IngestForm() {
           { file, youtubeUrl: url.trim() },
           { onUploadProgress: (loaded, total) => setUpload({ loaded, total }) },
         );
-        setAnnounce("Upload done. Starting your pack.");
+        setAnnounce("Uploaded. Starting the pack.");
         router.push(`/jobs/${job.id}`);
         return;
       }
@@ -376,9 +368,12 @@ export function IngestForm() {
     setError(null);
   }
 
+
   const uploadPct = upload && upload.total > 0 ? Math.min(100, Math.round((upload.loaded / upload.total) * 100)) : 0;
   const linkInvalidMessage = "That isn't a YouTube link. Paste a youtube.com or youtu.be link, or drop the video file.";
   const portrait = fileMeta ? fileMeta.height > fileMeta.width : false;
+  const helpId = `${inputId}-help`;
+  const submitLabel = busy === "url" ? "Starting…" : "Cut this video";
 
   return (
     <section
@@ -414,7 +409,7 @@ export function IngestForm() {
         aria-hidden={dragging ? "true" : undefined}
       >
         {phase !== "file" ? (
-          <form onSubmit={onLinkSubmit} className="space-y-5" noValidate>
+          <form onSubmit={onLinkSubmit} noValidate>
             <div
               className={`grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                 phase === "empty" ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
@@ -422,151 +417,132 @@ export function IngestForm() {
               aria-hidden={phase === "empty" ? undefined : "true"}
             >
               <div className="overflow-hidden">
-                <div className="flex flex-col items-center text-center gap-4 pb-2">
-                  <div className="flex gap-2" aria-hidden="true">
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--tally-bg)] text-[var(--tally-fg)]">
-                      <IconLink className="h-5 w-5" />
-                    </span>
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--bg-sunken)] text-[var(--fg-muted)]">
-                      <IconVideo className="h-5 w-5" />
-                    </span>
-                  </div>
-                  <h1 id={`${inputId}-title`} className="page-title text-center max-w-xl">
-                    Paste a YouTube link or drop a video
+                <div className="pb-6">
+                  <h1 id={`${inputId}-title`} className="page-title">
+                    Paste a YouTube link
                   </h1>
-                  <p className="page-lede text-center max-w-md">
-                    You get 3 vertical clips and 4 text drafts to review. Captions set the timestamps, so speech is
-                    never invented.
+                  <p id={helpId} className="mt-2 text-[0.9375rem] leading-normal text-[var(--fg-muted)]">
+                    The video needs captions. You can also drop a video file anywhere on this page.
                   </p>
                 </div>
               </div>
             </div>
 
-            {phase === "link" ? (
-              <p className="kicker" aria-hidden="true">
-                YouTube link
+            <label
+              htmlFor={inputId}
+              className={phase === "link" ? "mb-2.5 block text-sm font-semibold text-[var(--fg)]" : "sr-only"}
+            >
+              YouTube link
+            </label>
+            <div className="source-input-row" data-invalid={urlInvalid ? "true" : "false"}>
+              <IconLink className="ml-2 h-[18px] w-[18px] shrink-0 text-[var(--fg-subtle)]" aria-hidden="true" />
+              <input
+                id={inputId}
+                ref={linkInputRef}
+                className="source-input"
+                value={url}
+                onChange={(event) => {
+                  setUrl(event.target.value);
+                  setError(null);
+                }}
+                onBlur={() => hasUrl && setTouched(true)}
+                onPaste={onInputPaste}
+                placeholder="youtube.com/watch?v=…"
+                inputMode="url"
+                autoComplete="url"
+                spellCheck={false}
+                autoFocus
+                disabled={busy !== null}
+                aria-invalid={urlInvalid ? "true" : undefined}
+                aria-describedby={urlInvalid ? hintId : phase === "empty" ? helpId : undefined}
+              />
+              {hasUrl ? (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => {
+                    setUrl("");
+                    setTouched(false);
+                    setError(null);
+                    linkInputRef.current?.focus();
+                  }}
+                  aria-label="Clear link"
+                  disabled={busy !== null}
+                >
+                  <IconXMark className="h-4 w-4" aria-hidden="true" />
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                className="btn btn-primary min-h-11 shrink-0 hidden sm:inline-flex"
+                disabled={busy !== null || !ytId}
+              >
+                {submitLabel}
+              </button>
+            </div>
+            {urlInvalid ? (
+              <p id={hintId} className="mt-2 text-sm text-bad">
+                {linkInvalidMessage}
               </p>
             ) : null}
-
-            <div>
-              <label htmlFor={inputId} className="sr-only">
-                YouTube link
-              </label>
-              <div className="source-input-row" data-invalid={urlInvalid ? "true" : "false"}>
-                <IconLink className="ml-2.5 h-4 w-4 shrink-0 text-[var(--fg-subtle)]" aria-hidden="true" />
-                <input
-                  id={inputId}
-                  ref={linkInputRef}
-                  className="source-input"
-                  value={url}
-                  onChange={(event) => {
-                    setUrl(event.target.value);
-                    setError(null);
-                  }}
-                  onBlur={() => hasUrl && setTouched(true)}
-                  onPaste={onInputPaste}
-                  placeholder="youtube.com/watch?v=…"
-                  inputMode="url"
-                  autoComplete="url"
-                  spellCheck={false}
-                  autoFocus
-                  disabled={busy !== null}
-                  aria-invalid={urlInvalid ? "true" : undefined}
-                  aria-describedby={hintId}
-                />
-                {hasUrl ? (
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={() => {
-                      setUrl("");
-                      setTouched(false);
-                      setError(null);
-                      linkInputRef.current?.focus();
-                    }}
-                    aria-label="Clear link"
-                    disabled={busy !== null}
-                  >
-                    <IconXMark className="h-4 w-4" />
-                  </button>
-                ) : null}
-                <button
-                  type="submit"
-                  className="btn btn-primary shrink-0 hidden sm:inline-flex"
-                  disabled={busy !== null || !ytId}
-                >
-                  {busy === "url" ? "Starting…" : "Create content pack"}
-                </button>
-              </div>
-              <p id={hintId} className={`mt-2 text-xs ${urlInvalid ? "text-bad" : "text-[var(--fg-subtle)]"}`}>
-                {urlInvalid
-                  ? linkInvalidMessage
-                  : phase === "link"
-                    ? "Public videos with captions work best."
-                    : "Tip: paste anywhere on this page, or drag a video in. MP4, WebM or MOV, up to 500 MB."}
-              </p>
-            </div>
+            <button type="submit" className="btn btn-primary btn-lg mt-3 w-full sm:hidden" disabled={busy !== null || !ytId}>
+              {submitLabel}
+            </button>
 
             {phase === "link" && ytId ? (
-              <div className="space-y-4 source-swap">
-                <div className="source-preview">
-                  <div className="source-thumb w-36 sm:w-48 aspect-video">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={youtubeThumbnail(ytId)} alt="" loading="lazy" />
-                    <span className="source-badge">YouTube</span>
-                  </div>
-                  <div className="min-w-0 space-y-1.5">
-                    {preview?.loading ? (
-                      <>
-                        <span className="skel block h-4 w-48 max-w-full" />
-                        <span className="skel block h-3 w-28" />
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm sm:text-[0.9375rem] font-semibold leading-snug text-[var(--fg-bright)] line-clamp-2">
-                          {preview?.data?.title ?? "YouTube video"}
-                        </p>
-                        <p className="text-xs text-[var(--fg-muted)] truncate">
-                          {preview?.data?.author ? `${preview.data.author} · ` : ""}
-                          <span className="timecode">{ytId}</span>
-                        </p>
-                      </>
-                    )}
-                    <p className="inline-flex items-center gap-1.5 text-xs text-ok">
-                      <IconCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                      Link looks good. We read its captions next.
-                    </p>
-                  </div>
+              <div className="source-preview source-swap mt-5">
+                <div className="source-thumb w-32 sm:w-[10.5rem] aspect-video">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={youtubeThumbnail(ytId)} alt="" loading="lazy" />
                 </div>
-                <button type="submit" className="btn btn-primary btn-lg w-full sm:hidden" disabled={busy !== null}>
-                  {busy === "url" ? "Starting…" : "Create content pack"}
-                  <IconArrowRight className="h-4 w-4" aria-hidden="true" />
-                </button>
+                <div className="min-w-0 space-y-1">
+                  {preview?.loading ? (
+                    <>
+                      <span className="skel block h-4 w-48 max-w-full" />
+                      <span className="skel block h-3 w-28" />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[0.9375rem] font-semibold leading-snug text-[var(--fg-bright)] line-clamp-2">
+                        {preview?.data?.title ?? "YouTube video"}
+                      </p>
+                      {preview?.data?.author ? (
+                        <p className="text-[0.8125rem] text-[var(--fg-muted)] truncate">{preview.data.author}</p>
+                      ) : null}
+                    </>
+                  )}
+                  <p className="pt-1 text-[0.8125rem] text-[var(--fg-subtle)]">Captions are checked when the pack starts.</p>
+                </div>
               </div>
             ) : null}
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-x-3 gap-y-2 text-sm text-[var(--fg-muted)]">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={busy !== null}
-              >
-                <IconUpload className="h-4 w-4" aria-hidden="true" />
-                Choose video file
-              </button>
-              <span className="hidden sm:inline" aria-hidden="true">
-                or
-              </span>
-              <button
-                type="button"
-                className="btn btn-quiet text-[var(--tally-fg)] font-semibold"
-                onClick={() => void submit("fixture")}
-                disabled={busy !== null}
-              >
-                {busy === "fixture" ? "Starting sample…" : "Try the sample"}
-              </button>
-            </div>
+            {phase === "empty" ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-[var(--border)] pt-1 text-sm text-[var(--fg-muted)] sm:justify-start sm:border-0 sm:pt-0">
+                <button
+                  type="button"
+                  className="btn source-file-btn min-h-11"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={busy !== null}
+                >
+                  <IconUpload className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+                  Choose a file
+                </button>
+                <span className="hidden sm:inline" aria-hidden="true">
+                  or
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-quiet min-h-11 px-1 font-semibold text-[var(--tally-fg)] hover:!text-[var(--tally-fg)]"
+                  onClick={() => void submit("fixture")}
+                  disabled={busy !== null}
+                >
+                  {busy === "fixture" ? "Starting the sample…" : "Run the sample"}
+                </button>
+                <span className="w-full text-[0.8125rem] text-[var(--fg-subtle)] sm:ml-auto sm:w-auto">
+                  MP4, WebM or MOV · up to 500 MB
+                </span>
+              </div>
+            ) : null}
           </form>
         ) : (
           <form onSubmit={onLinkSubmit} className="space-y-5 source-swap" noValidate>
@@ -575,7 +551,7 @@ export function IngestForm() {
             </h1>
             <div className="flex items-center gap-4">
               <div
-                className={`source-thumb ${portrait ? "w-20 sm:w-24 aspect-[9/16]" : "w-36 sm:w-44 aspect-video"}`}
+                className={`source-thumb ${portrait ? "w-20 sm:w-[5.5rem] aspect-[9/16]" : "w-32 sm:w-[8.75rem] aspect-video"}`}
                 onMouseEnter={(event) => void event.currentTarget.querySelector("video")?.play().catch(() => {})}
                 onMouseLeave={(event) => event.currentTarget.querySelector("video")?.pause()}
               >
@@ -599,45 +575,43 @@ export function IngestForm() {
                 ) : null}
                 {fileMeta?.duration ? <span className="source-badge">{formatDuration(fileMeta.duration)}</span> : null}
               </div>
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <p className="kicker">Video file</p>
-                <p className="text-sm sm:text-[0.9375rem] font-semibold text-[var(--fg-bright)] truncate">{file?.name}</p>
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-[0.9375rem] font-semibold text-[var(--fg-bright)] truncate">{file?.name}</p>
                 <p className="timecode text-xs text-[var(--fg-muted)]">
                   {file ? formatBytes(file.size) : ""}
                   {fileMeta?.duration ? ` · ${formatDuration(fileMeta.duration)}` : ""}
                   {fileMeta?.width ? ` · ${fileMeta.width}×${fileMeta.height}` : ""}
                 </p>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={busy !== null}
-                  >
-                    Replace file
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-quiet btn-xs btn-danger-quiet"
-                    onClick={removeFile}
-                    disabled={busy !== null}
-                    aria-label="Remove video"
-                  >
-                    <IconXMark className="h-3.5 w-3.5" aria-hidden="true" />
-                    Remove
-                  </button>
-                </div>
+                {busy === "file" ? null : (
+                  <div className="flex gap-1.5 pt-1.5">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={busy !== null}
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-quiet btn-xs btn-danger-quiet"
+                      onClick={removeFile}
+                      disabled={busy !== null}
+                      aria-label="Remove video"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
             {busy === "file" && upload ? (
-              <div className="cell p-4 space-y-2.5 source-swap" role="status">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="truncate">
-                    {uploadPct >= 100 ? "Upload done. Starting your pack…" : `Uploading ${file?.name}`}
-                  </span>
-                  <span className="timecode tabular-nums">{uploadPct}%</span>
-                </div>
+              <div className="space-y-2.5 border-t border-[var(--border)] pt-[1.125rem] source-swap" role="status">
+                <p className="flex items-center justify-between gap-3 text-sm text-[var(--fg)]">
+                  <span>{uploadPct >= 100 ? "Uploaded. Starting the pack…" : "Uploading"}</span>
+                  <span className="timecode tabular-nums text-[0.8125rem]">{uploadPct}%</span>
+                </p>
                 <div
                   className="upload-bar"
                   role="progressbar"
@@ -648,20 +622,20 @@ export function IngestForm() {
                 >
                   <span style={{ transform: `scaleX(${uploadPct / 100})` }} />
                 </div>
-                <p className="timecode text-[11px] text-[var(--fg-subtle)]">
+                <p className="timecode text-xs text-[var(--fg-subtle)]">
                   {formatBytes(upload.loaded)} of {formatBytes(upload.total)}
                 </p>
               </div>
             ) : (
               <>
                 <div className="space-y-1.5">
-                  <label htmlFor={captionsId} className="text-sm font-semibold text-[var(--fg-bright)]">
-                    Captions link
+                  <label htmlFor={captionsId} className="block text-sm font-semibold text-[var(--fg)]">
+                    YouTube link for this video
                   </label>
                   <input
                     id={captionsId}
                     ref={captionsInputRef}
-                    className="field min-h-11 text-[0.9375rem]"
+                    className="field min-h-12 text-[0.9375rem]"
                     value={url}
                     onChange={(event) => {
                       setUrl(event.target.value);
@@ -669,28 +643,30 @@ export function IngestForm() {
                     }}
                     onBlur={() => hasUrl && setTouched(true)}
                     onPaste={onInputPaste}
-                    placeholder="youtube.com/watch?v=… for this same video"
+                    placeholder="youtube.com/watch?v=…"
                     inputMode="url"
                     autoComplete="url"
                     spellCheck={false}
                     aria-invalid={urlInvalid ? "true" : undefined}
                     aria-describedby={`${captionsId}-hint`}
                   />
-                  <p id={`${captionsId}-hint`} className={`text-xs ${urlInvalid ? "text-bad" : "text-[var(--fg-subtle)]"}`}>
+                  <p
+                    id={`${captionsId}-hint`}
+                    className={`text-[0.8125rem] leading-normal ${urlInvalid ? "text-bad" : "text-[var(--fg-muted)]"}`}
+                  >
                     {urlInvalid
                       ? "That isn't a YouTube link. Paste the youtube.com or youtu.be link for this video."
                       : ytId
-                        ? "Got it. We cut your file and read timestamps from this link's captions."
-                        : "Uploads need this video's YouTube captions for timestamps. Speech-to-text isn't supported yet."}
+                        ? "Captions will come from this link."
+                        : "The cuts come from your file. Their timing comes from this video's YouTube captions."}
                   </p>
                 </div>
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <button type="button" className="btn btn-quiet" onClick={removeFile}>
-                    Use a YouTube link instead
+                  <button type="button" className="btn btn-quiet min-h-11" onClick={removeFile}>
+                    Use a link instead
                   </button>
                   <button type="submit" className="btn btn-primary btn-lg" disabled={busy !== null || !ytId}>
-                    Create content pack
-                    <IconArrowRight className="h-4 w-4" aria-hidden="true" />
+                    Upload and cut
                   </button>
                 </div>
               </>
@@ -700,22 +676,23 @@ export function IngestForm() {
 
         {error ? (
           <div role="alert" className="alert alert-bad mt-5 source-swap">
-            <IconAlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <span>{error}</span>
           </div>
         ) : null}
       </div>
 
       {dragging ? (
-        <div className="absolute inset-3 sm:inset-4 source-drop animate-scale-in" aria-hidden="true">
-          <span className="source-drop-icon">
-            {dragKind === "link" ? <IconLink className="h-8 w-8" /> : <IconUpload className="h-8 w-8" />}
-          </span>
-          <p className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--fg-bright)]">
-            {dragKind === "link" ? "Drop the link" : over ? "Let go to add it" : "Drop your video"}
+        <div className="source-drop animate-scale-in" aria-hidden="true">
+          {dragKind === "link" ? (
+            <IconLink className="h-8 w-8 text-[var(--tally-fg)]" />
+          ) : (
+            <IconUpload className="h-8 w-8 text-[var(--tally-fg)]" />
+          )}
+          <p className="font-display text-[1.75rem] font-semibold tracking-[-0.02em] text-[var(--fg-bright)]">
+            {dragKind === "link" ? "Drop the link here" : over ? "Let go to add it" : "Drop the video here"}
           </p>
           <p className="text-sm text-[var(--fg-muted)]">
-            {dragKind === "link" ? "We'll check it's a YouTube video." : "MP4, WebM or MOV, up to 500 MB"}
+            {dragKind === "link" ? "It needs to be a YouTube link." : "MP4, WebM or MOV, up to 500 MB"}
           </p>
         </div>
       ) : null}
