@@ -100,9 +100,9 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="glass-chip flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-      title={`Current: ${theme} (${resolvedTheme}). Click to switch theme.`}
-      aria-label="Toggle Light / Dark / System theme"
+      className="btn btn-quiet btn-sm gap-1.5 px-2.5 text-[var(--fg-muted)]"
+      title={`Theme: ${theme} (${resolvedTheme}). Click to switch.`}
+      aria-label={`Theme: ${theme}. Switch theme`}
     >
       {theme === "light" ? (
         <IconSun className="h-3.5 w-3.5 text-[var(--tally-fg)]" />

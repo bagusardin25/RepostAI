@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { listJobs, deleteJob, type JobSummary } from "@frontend/lib/api";
 import { formatDuration, formatRelative, sourceTypeLabel } from "@frontend/lib/format";
+import { snapshotFrom, stepHeadline, useSmoothProgress } from "@frontend/lib/progress";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
 import {
@@ -133,7 +134,7 @@ export function JobList() {
     <div className="space-y-3">
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="seg flex-wrap">
+        <div className="seg flex-nowrap overflow-x-auto self-start max-w-full [&>button]:shrink-0">
           <button
             type="button"
             onClick={() => setFilter("all")}
@@ -164,8 +165,8 @@ export function JobList() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
             <input
               type="search"
@@ -173,20 +174,21 @@ export function JobList() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search projects…"
               aria-label="Search projects"
-              className="field field-icon h-8 text-xs w-48 sm:w-56"
+              className="field field-icon min-h-9 h-9 text-xs w-full sm:w-56"
             />
           </div>
           <button
             type="button"
             onClick={() => void load()}
             disabled={isRefreshing}
-            className="btn btn-ghost h-8 px-2 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+            className="btn btn-ghost btn-sm px-2.5"
             title="Refresh"
+            aria-label="Refresh projects"
           >
             <IconRefresh className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
           </button>
           {jobs.length >= 2 && (
-            <Link href="/jobs/compare" className="btn btn-ghost h-8 px-2.5 text-[11px]">
+            <Link href="/jobs/compare" className="btn btn-ghost btn-sm">
               Compare
             </Link>
           )}
@@ -195,10 +197,10 @@ export function JobList() {
 
       {/* Jobs List */}
       {filteredJobs.length === 0 ? (
-        <div className="panel p-8 text-center text-xs text-[var(--fg-muted)] space-y-2 animate-fade-in-up">
+        <div className="panel-dashed p-8 text-center text-sm text-[var(--fg-muted)] space-y-2 animate-fade-in-up">
           <p>
             {jobs.length === 0
-              ? "No projects yet. Paste a captioned YouTube link or try the demo sample."
+              ? "No projects yet. Paste a captioned YouTube link above, drop a video, or try the sample."
               : "No projects match this filter."}
           </p>
         </div>
@@ -206,6 +208,7 @@ export function JobList() {
         <div key={filter} className="panel divide-y divide-[var(--border)] rounded-xl overflow-hidden animate-fade-in-up">
           {filteredJobs.map((job) => {
             const pending = job.pendingReview ?? 0;
+            const active = ACTIVE.has(job.status);
 
             return (
               <Link
@@ -222,13 +225,14 @@ export function JobList() {
                     <span>·</span>
                     <span>{formatDuration(job.durationSec)}</span>
                     <span>·</span>
-                    <span>{job.clipCount ?? 0} clips</span>
+                    <span>{active ? stepHeadline(job.status, job.progress) : `${job.clipCount ?? 0} clips`}</span>
                     <span>·</span>
                     <span>{formatRelative(job.createdAt)}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 self-end sm:self-center">
+                  {active ? <LiveBar job={job} /> : null}
                   {pending > 0 && (
                     <span className="timecode text-[10px] text-tally font-medium">
                       {pending} awaiting review
@@ -244,7 +248,7 @@ export function JobList() {
                     type="button"
                     onClick={(e) => void handleDelete(e, job.id, job.sourceTitle)}
                     disabled={deletingId === job.id}
-                    className="p-1 rounded text-[var(--fg-subtle)] hover:text-[var(--bad)] hover:bg-[var(--bg-panel)] opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-all duration-150"
+                    className="icon-btn h-8 w-8 hover:!text-[var(--bad)] hover:!bg-[var(--bad-bg)] opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                     title="Delete project"
                     aria-label={`Delete project ${job.sourceTitle}`}
                   >
@@ -259,5 +263,22 @@ export function JobList() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Slim bar for packs still processing; eased like the workspace stage. */
+function LiveBar({ job }: { job: JobSummary }) {
+  const fill = useRef<HTMLSpanElement>(null);
+  const snap = useMemo(
+    () => snapshotFrom(job.status, job.progress, job.updatedAt),
+    [job.status, job.progress, job.updatedAt],
+  );
+  useSmoothProgress(snap, (value) => {
+    if (fill.current) fill.current.style.transform = `scaleX(${value})`;
+  });
+  return (
+    <span className="live-bar hidden sm:block" aria-hidden="true">
+      <span ref={fill} style={{ transform: "scaleX(0)" }} />
+    </span>
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { IngestForm } from "@frontend/components/ingest-form";
 import { JobList } from "@frontend/components/job-list";
-import { PageHeader } from "@frontend/components/page-header";
 import { WatchCard } from "@frontend/components/watch-card";
 
 export const metadata: Metadata = {
@@ -11,51 +10,39 @@ export const metadata: Metadata = {
 
 export default function DeskPage() {
   return (
-    <div className="space-y-10 max-w-4xl mx-auto min-w-0">
-      <PageHeader
-        kicker="Desk"
-        title={
-          <>
-            Turn one video into{" "}
-            <span className="block sm:inline">ready-to-use content.</span>
-          </>
-        }
-        lede="Get 3 vertical cuts and 4 text drafts. Review everything before you post."
-      />
-
-      <section>
+    <div className="space-y-12 max-w-4xl mx-auto min-w-0">
+      <section aria-label="Start a content pack" className="pt-2 sm:pt-6">
         <IngestForm />
       </section>
 
-      <section className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <h2 className="section-title">Your projects</h2>
-        </div>
-        <JobList />
-      </section>
+      <div className="page-dim space-y-12">
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="space-y-1">
+              <p className="kicker">Desk</p>
+              <h2 className="section-title text-lg">Your projects</h2>
+            </div>
+          </div>
+          <JobList />
+        </section>
 
-      <WatchCard />
+        <WatchCard />
 
-      <section className="pt-8 border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-[var(--fg-muted)]">
-        <div className="space-y-1">
-          <p className="font-semibold text-tally timecode">01 / Start</p>
-          <p className="leading-relaxed">
-            Paste a YouTube link with captions, or try the demo sample.
-          </p>
-        </div>
-        <div className="space-y-1">
-          <p className="font-semibold text-tally timecode">02 / Cut</p>
-          <p className="leading-relaxed">
-            Three 9:16 windows, one per platform, plus four text drafts.
-          </p>
-        </div>
-        <div className="space-y-1">
-          <p className="font-semibold text-tally timecode">03 / Review</p>
-          <p className="leading-relaxed">
-            Approve, rewrite, or skip. Then copy and download. Nothing publishes.
-          </p>
-        </div>
-      </section>
+        <section className="pt-8 border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm text-[var(--fg-muted)]">
+          <div className="space-y-1.5">
+            <p className="timecode text-xs font-medium text-tally">01 · Start</p>
+            <p className="leading-relaxed">Paste a YouTube link with captions, drop a video, or try the sample.</p>
+          </div>
+          <div className="space-y-1.5">
+            <p className="timecode text-xs font-medium text-tally">02 · Cut</p>
+            <p className="leading-relaxed">Three 9:16 windows, one per platform, plus four text drafts.</p>
+          </div>
+          <div className="space-y-1.5">
+            <p className="timecode text-xs font-medium text-tally">03 · Review</p>
+            <p className="leading-relaxed">Approve, rewrite or skip. Then copy and download. Nothing publishes.</p>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

@@ -1,117 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { BrandMark } from "@frontend/components/brand-mark";
 import {
   IconArrowRight,
   IconBrain,
-  IconCheck,
-  IconChevronRight,
   IconInstagram,
   IconMessageCircle,
-  IconScissors,
   IconShield,
   IconSparkles,
   IconTikTok,
   IconX,
   IconYoutube,
 } from "@frontend/components/icons";
+import { Showcase } from "@frontend/components/showcase";
 import { ThemeToggle } from "@frontend/components/theme-provider";
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(media.matches);
-    const onChange = () => setReduced(media.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
-}
-
-function PipelineDemo() {
-  const reduced = useReducedMotion();
-  const [step, setStep] = useState(reduced ? 3 : 0);
-  const steps = [
-    { label: "Source", icon: IconYoutube },
-    { label: "Mind", icon: IconBrain },
-    { label: "Cut", icon: IconScissors },
-    { label: "Review", icon: IconCheck },
-  ];
-
-  useEffect(() => {
-    if (reduced) {
-      setStep(3);
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setStep((current) => (current + 1) % steps.length);
-    }, 2200);
-    return () => window.clearInterval(interval);
-  }, [reduced, steps.length]);
-
-  return (
-    <ol className="flex items-start gap-2 sm:gap-4 overflow-x-auto pb-1 max-w-full">
-      {steps.map((item, index) => {
-        const Icon = item.icon;
-        const active = index <= step;
-        return (
-          <li key={item.label} className="flex items-center gap-2 sm:gap-4">
-            <div className={`flex flex-col items-center gap-2 min-w-[4.5rem] ${active ? "opacity-100" : "opacity-40"}`}>
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-lg border ${
-                  active
-                    ? "glass-chip border-[var(--glass-border)]"
-                    : "border-[var(--border)] bg-transparent"
-                }`}
-              >
-                <Icon className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <span className="timecode text-[11px] text-[var(--fg-muted)]">{item.label}</span>
-            </div>
-            {index < steps.length - 1 ? (
-              <IconChevronRight
-                className={`h-4 w-4 mt-4 shrink-0 ${index < step ? "text-[var(--fg)]" : "text-[var(--fg-subtle)]"}`}
-                aria-hidden="true"
-              />
-            ) : null}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function PackageStrip() {
-  const frames = [
-    { platform: "TikTok", hook: "Stop copying the same clip.", time: "00:08–00:26" },
-    { platform: "Reels", hook: "The first three seconds decide it.", time: "00:32–00:54" },
-    { platform: "X", hook: "One takeaway. Under 280.", time: "01:04–01:20" },
-  ];
-
-  return (
-    <figure className="glass w-full min-w-0 overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-2.5">
-        <figcaption className="timecode text-[11px] text-[var(--fg-muted)]">What you walk away with</figcaption>
-        <span className="timecode text-[11px] text-[var(--fg-muted)]">9:16</span>
-      </div>
-      <div className="grid grid-cols-3 gap-2 p-3 min-w-0">
-        {frames.map((frame) => (
-          <article key={frame.platform} className="cell min-w-0 p-2 sm:p-3 min-h-[11rem] flex flex-col">
-            <p className="timecode text-[10px] text-[var(--fg-muted)]">{frame.platform}</p>
-            <p className="mt-3 text-xs font-medium leading-relaxed text-[var(--fg)] break-words">{frame.hook}</p>
-            <p className="timecode mt-auto pt-4 text-[10px] text-[var(--fg-subtle)]">{frame.time}</p>
-          </article>
-        ))}
-      </div>
-      <p className="px-4 py-2.5 text-[11px] text-[var(--fg-muted)] border-t border-[var(--border)]">
-        Also drafted: TikTok script · IG carousel · X thread · LinkedIn post
-      </p>
-    </figure>
-  );
-}
 
 export function LandingContent() {
   return (
@@ -126,7 +29,7 @@ export function LandingContent() {
       <header className="site-header sticky top-0 z-50">
         <div className="site-wrap flex min-h-[var(--header-h)] items-center justify-between gap-2 sm:gap-3">
           <BrandMark href="/" current />
-          <nav aria-label="Landing" className="hidden sm:flex min-w-0 flex-1 items-center justify-center gap-1 text-xs text-[var(--fg-muted)]">
+          <nav aria-label="Landing" className="hidden md:flex min-w-0 flex-1 items-center justify-center gap-1">
             <a href="#how" className="chip">
               How it works
             </a>
@@ -148,150 +51,158 @@ export function LandingContent() {
       </header>
 
       <main id="content" className="relative z-10">
-        <section className="site-wrap pt-14 pb-16 sm:pt-20 sm:pb-24">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
-            <div className="space-y-6">
-              <p className="kicker">One long video. A week of posts.</p>
-              <h1 className="display-title">
-                One source.
-                <br />
-                Three vertical cuts.
-                <br />
-                Four text drafts.
+        <section className="hero overflow-x-clip" aria-labelledby="hero-title">
+          <div className="hero-glow" aria-hidden="true" />
+          <div className="site-wrap relative flex flex-col gap-12 pt-14 pb-16 sm:pt-20 lg:min-h-[calc(100svh-var(--header-h))] lg:flex-row lg:items-center lg:py-20">
+            <div className="hero-fade" aria-hidden="true" />
+            <div className="relative max-w-[35rem] space-y-7 animate-fade-in-up">
+              <p className="kicker kicker-tally">One long video. A week of posts.</p>
+              <h1 id="hero-title" className="display-title hero-title">
+                <span>One source.</span>
+                <span>Three vertical cuts.</span>
+                <span>Four text drafts.</span>
               </h1>
-              <p className="page-lede text-sm sm:text-base">
-                Paste a YouTube link. Review 3 vertical clips and 4 drafts in minutes, not the afternoon recut.
-                You stay the publisher — nothing posts without you.
+              <p className="page-lede text-base sm:text-[1.0625rem] lg:max-w-[30rem]">
+                Paste a YouTube link. Review 3 vertical clips and 4 text drafts in minutes, not an afternoon of
+                recutting. Nothing posts until you say so.
               </p>
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <Link href="/desk" className="btn btn-primary px-5">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/desk" className="btn btn-primary btn-lg">
                   Start with a video
+                  <IconArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 <a
                   href="https://github.com/bagusardin25/RepostAI"
                   target="_blank"
                   rel="noreferrer"
-                  className="btn btn-ghost px-5"
+                  className="btn btn-ghost btn-lg"
                 >
                   View source
                 </a>
               </div>
-              <dl className="grid grid-cols-3 gap-2 pt-2 max-w-md min-w-0">
-                <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
-                  <dt className="text-[11px] text-[var(--fg-muted)]">Recut time</dt>
-                  <dd className="text-sm sm:text-lg font-semibold leading-tight">Minutes</dd>
-                </div>
-                <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
-                  <dt className="text-[11px] text-[var(--fg-muted)]">You walk away with</dt>
-                  <dd className="text-sm sm:text-lg font-semibold leading-tight">3 + 4</dd>
-                </div>
-                <div className="glass-chip min-w-0 rounded-lg px-2.5 py-2 sm:px-3">
-                  <dt className="text-[11px] text-[var(--fg-muted)]">Auto-post</dt>
-                  <dd className="text-sm sm:text-lg font-semibold leading-tight">Never</dd>
-                </div>
+              <dl className="grid grid-cols-3 gap-4 pt-2 max-w-md">
+                <Stat label="Recut time" value="Minutes" />
+                <Stat label="You get" value="3 + 4" />
+                <Stat label="Auto-post" value="Never" />
               </dl>
             </div>
-            <PackageStrip />
+            <div className="showcase-slot">
+              <Showcase />
+            </div>
           </div>
         </section>
 
-        <section id="how" className="border-y border-[var(--border)]">
-          <div className="site-wrap py-14 sm:py-20 grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div className="space-y-3">
+        <section id="how" className="border-t border-[var(--border)]">
+          <div className="site-wrap py-16 sm:py-24 space-y-10">
+            <div className="space-y-3 max-w-2xl">
               <p className="kicker">How it works</p>
-              <h2 className="page-title">
-                We cut. You decide what ships.
-              </h2>
-              <p className="text-sm text-[var(--fg-muted)] leading-relaxed max-w-lg">
-                Captions become the transcript. If a video has no captions, we stop — speech is never invented.
+              <h2 className="page-title">We cut. You decide what ships.</h2>
+              <p className="page-lede">
+                Captions become the transcript. If a video has no captions, we stop. Speech is never invented.
               </p>
             </div>
-            <PipelineDemo />
-          </div>
-          <div className="site-wrap pb-16 grid gap-6 sm:grid-cols-3">
-            <Step number="01" title="Start" body="Paste a public YouTube link with captions, upload a file plus a caption link, or try the demo sample." />
-            <Step number="02" title="Cut" body="Three 9:16 windows, one per platform, plus four text drafts — script, carousel, thread, and LinkedIn." />
-            <Step number="03" title="Review" body="Approve, rewrite, or skip. Then copy and download. Nothing publishes." />
+            <ol className="grid gap-4 sm:grid-cols-3">
+              <Step
+                number="01"
+                title="Paste a link or drop a file"
+                body="A public YouTube link with captions, an upload with its captions link, or the demo sample."
+              />
+              <Step
+                number="02"
+                title="Three windows, one per platform"
+                body="9:16 clips for TikTok, Reels and X, plus a script, carousel, thread and LinkedIn post."
+              />
+              <Step number="03" title="Approve, rewrite or skip" body="Copy the pack and download each MP4. Nothing publishes." />
+            </ol>
           </div>
         </section>
 
-        <section id="packages" className="site-wrap py-16 sm:py-24">
-          <div className="max-w-2xl space-y-3 mb-10">
-            <p className="kicker">What you get</p>
-            <h2 className="page-title">
-              Clips to post and copy to paste
-            </h2>
+        <section id="packages" className="border-t border-[var(--border)]">
+          <div className="site-wrap py-16 sm:py-24">
+            <div className="max-w-2xl space-y-3 mb-10">
+              <p className="kicker">What you get</p>
+              <h2 className="page-title">Clips to post and copy to paste</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <PlatformCard
+                icon={<IconTikTok className="h-5 w-5" />}
+                name="TikTok"
+                spec="9:16 · up to 60s"
+                note="Vertical cut plus a spoken script."
+              />
+              <PlatformCard
+                icon={<IconInstagram className="h-5 w-5" />}
+                name="Instagram Reels"
+                spec="9:16 · up to 90s"
+                note="Reels cut plus carousel slides."
+              />
+              <PlatformCard
+                icon={<IconX className="h-5 w-5" />}
+                name="X"
+                spec="9:16 · up to 140s"
+                note="Short takeaway clip plus a thread."
+              />
+            </div>
+            <div className="mt-4 grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <DraftChip name="TikTok script" note="Line-by-line spoken draft" />
+              <DraftChip name="IG carousel" note="Slide titles and body" />
+              <DraftChip name="X thread" note="Post-sized beats" />
+              <DraftChip name="LinkedIn" note="Text draft only, no video" />
+            </div>
+            <p className="mt-6 text-xs text-[var(--fg-muted)]">Copy and download locally. RepostAI never posts.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <PlatformCard icon={<IconTikTok className="h-5 w-5" />} name="TikTok" spec="9:16 · ≤ 60s" note="Vertical cut plus a spoken script." />
-            <PlatformCard icon={<IconInstagram className="h-5 w-5" />} name="Instagram" spec="9:16 · ≤ 90s" note="Reels cut plus carousel slides." />
-            <PlatformCard icon={<IconX className="h-5 w-5" />} name="X" spec="9:16 · ≤ 140s" note="Short takeaway clip plus a thread." />
-          </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <DraftChip name="TikTok script" note="Line-by-line spoken draft" />
-            <DraftChip name="IG carousel" note="Slide titles and body" />
-            <DraftChip name="X thread" note="Post-sized beats" />
-            <DraftChip name="LinkedIn" note="Text draft only — no video" />
-          </div>
-          <p className="mt-6 text-xs text-[var(--fg-muted)]">
-            Copy and download locally — RepostAI never posts.
-          </p>
         </section>
 
         <section id="mind" className="border-t border-[var(--border)]">
           <div className="site-wrap py-16 sm:py-24 grid gap-10 lg:grid-cols-2">
             <div className="space-y-4">
               <p className="kicker">It learns what you keep</p>
-              <h2 className="page-title">
-                The next pack follows your taste
-              </h2>
-              <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
-                Approve, rewrite, or skip. Those choices shape the next hooks and captions. You still review every pack.
+              <h2 className="page-title">The next pack follows your taste</h2>
+              <p className="page-lede">
+                Approve, rewrite or skip. Those choices shape the next hooks and captions. You still review every pack.
               </p>
-              <ul className="space-y-3 text-sm">
-                <MindPoint icon={<IconBrain className="h-4 w-4" />} title="Memory" body="Voice notes, preferred hooks, and reject patterns go back to the Mind." />
-                <MindPoint icon={<IconSparkles className="h-4 w-4" />} title="Follow-up" body="When a job is ready, the Mind writes the next move without another prompt." />
-                <MindPoint icon={<IconYoutube className="h-4 w-4" />} title="Channel watch" body="Point at a public channel. New uploads can enqueue themselves." />
-                <MindPoint icon={<IconMessageCircle className="h-4 w-4" />} title="Optional chat" body="You can talk to the Mind in the app. Telegram is extra, once connected." />
-                <MindPoint icon={<IconShield className="h-4 w-4" />} title="Tenet" body="Never publish. The steward stays on the gate." />
+              <ul className="space-y-3 text-sm pt-1">
+                <MindPoint icon={<IconBrain className="h-4 w-4" />} title="Memory" body="Voice notes, preferred hooks and reject patterns go back to the Mind." />
+                <MindPoint icon={<IconSparkles className="h-4 w-4" />} title="Follow-up" body="When a pack is ready, the Mind suggests the next move without another prompt." />
+                <MindPoint icon={<IconYoutube className="h-4 w-4" />} title="Channel watch" body="Point at a public channel. New uploads can start a pack by themselves." />
+                <MindPoint icon={<IconMessageCircle className="h-4 w-4" />} title="Optional chat" body="Talk to the Mind in the app. Telegram works too, once connected." />
+                <MindPoint icon={<IconShield className="h-4 w-4" />} title="Tenet" body="Never publish. You stay on the gate." />
               </ul>
               <Link href="/mind" className="btn btn-ghost btn-sm mt-2">
                 See the Mind
                 <IconArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
-            <div className="glass p-5 sm:p-6 space-y-4">
-              <p className="timecode text-[11px] text-[var(--fg-muted)]">Voice loop</p>
-              <ol className="space-y-3">
-                <LoopRow n="1" title="Job proposes" body="Default or learned style, grounded in the transcript window." />
+            <div className="glass p-5 sm:p-7 space-y-5 self-start">
+              <p className="kicker">Voice loop</p>
+              <ol className="space-y-4">
+                <LoopRow n="1" title="Pack proposes" body="Default or learned style, grounded in the transcript window." />
                 <LoopRow n="2" title="You decide" body="Approve, edit the hook, or reject with a note." />
-                <LoopRow n="3" title="Mind records" body="The decision is sent on the same conversation as the proposal." />
-                <LoopRow n="4" title="Next job adapts" body="No cold intros if you said so. Shorter captions if you rewrote them." />
+                <LoopRow n="3" title="Mind records" body="The decision goes back on the same conversation as the proposal." />
+                <LoopRow n="4" title="Next pack adapts" body="No cold intros if you said so. Shorter captions if you rewrote them." />
               </ol>
-              <p className="text-xs text-[var(--fg-muted)]">
-                Style is taught from what you keep, rewrite, or skip.
-              </p>
-              <Link href="/voice" className="text-xs underline underline-offset-4 text-[var(--fg-muted)] hover:text-[var(--fg)]">
-                What the Mind remembers
+              <Link
+                href="/voice"
+                className="inline-flex text-xs underline underline-offset-4 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+              >
+                See what the Mind remembers
               </Link>
             </div>
           </div>
         </section>
 
         <section className="border-t border-[var(--border)]">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 py-20 sm:py-24 text-center space-y-5">
-            <p className="kicker">Start</p>
-            <h2 className="display-title">
-              Chop once. Review forever.
-            </h2>
-            <p className="text-sm text-[var(--fg-muted)] max-w-lg mx-auto">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 py-20 sm:py-28 text-center space-y-6">
+            <h2 className="display-title">Chop once. Review forever.</h2>
+            <p className="page-lede mx-auto">
               Paste a captioned YouTube link, review the pack, and keep the publish button in your own hands.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
-              <Link href="/desk" className="btn btn-primary px-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/desk" className="btn btn-primary btn-lg">
                 Start with a video
+                <IconArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
-              <a href="https://hellominds.ai" target="_blank" rel="noreferrer" className="btn btn-ghost px-6">
+              <a href="https://hellominds.ai" target="_blank" rel="noreferrer" className="btn btn-ghost btn-lg">
                 Minds platform
               </a>
             </div>
@@ -305,7 +216,7 @@ export function LandingContent() {
             <span className="font-medium text-[var(--fg)]">RepostAI</span>
             <span> · Creative Minds Jam #1 · MIT</span>
           </p>
-          <p className="flex flex-wrap items-center gap-3 text-[11px]">
+          <p className="flex flex-wrap items-center justify-center gap-3 text-[11px]">
             <span>TikTok / Reels / X / LinkedIn draft</span>
             <a href="https://hellominds.ai" target="_blank" rel="noreferrer" className="hover:text-[var(--fg)]">
               Powered by Minds
@@ -317,20 +228,29 @@ export function LandingContent() {
   );
 }
 
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] text-[var(--fg-subtle)]">{label}</dt>
+      <dd className="mt-1 text-base sm:text-lg font-semibold leading-tight text-[var(--fg-bright)]">{value}</dd>
+    </div>
+  );
+}
+
 function Step({ number, title, body }: { number: string; title: string; body: string }) {
   return (
-    <article className="space-y-2">
-      <p className="timecode text-tally">{number}</p>
-      <h3 className="text-sm font-semibold text-[var(--fg)]">{title}</h3>
-      <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{body}</p>
-    </article>
+    <li className="glass p-6 space-y-2.5">
+      <p className="timecode text-xs text-tally">{number}</p>
+      <h3 className="text-base font-semibold">{title}</h3>
+      <p className="text-sm text-[var(--fg-muted)] leading-relaxed">{body}</p>
+    </li>
   );
 }
 
 function DraftChip({ name, note }: { name: string; note: string }) {
   return (
-    <article className="cell p-3 space-y-1">
-      <h3 className="text-xs font-semibold text-[var(--fg)]">{name}</h3>
+    <article className="cell p-3.5 space-y-1">
+      <h3 className="text-xs font-semibold text-[var(--fg-bright)]">{name}</h3>
       <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">{note}</p>
     </article>
   );
@@ -348,33 +268,30 @@ function PlatformCard({
   note: string;
 }) {
   return (
-    <article className="panel p-5 space-y-3">
-      <div className="flex items-center gap-2">
-        <span aria-hidden="true">{icon}</span>
+    <article className="panel-card p-5 space-y-3">
+      <div className="flex items-center gap-2.5">
+        <span
+          className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--tally-bg)] text-[var(--tally-fg)]"
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
         <h3 className="text-sm font-semibold">{name}</h3>
       </div>
-      <p className="timecode text-[11px] text-[var(--fg-muted)]">{spec}</p>
-      <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{note}</p>
+      <p className="timecode text-[11px] text-[var(--fg-subtle)]">{spec}</p>
+      <p className="text-sm text-[var(--fg-muted)] leading-relaxed">{note}</p>
     </article>
   );
 }
 
-function MindPoint({
-  icon,
-  title,
-  body,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}) {
+function MindPoint({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
     <li className="flex gap-3">
-      <span className="mt-0.5 text-[var(--fg-muted)]" aria-hidden="true">
+      <span className="mt-0.5 text-[var(--tally-fg)]" aria-hidden="true">
         {icon}
       </span>
       <span>
-        <span className="font-medium text-[var(--fg)]">{title}. </span>
+        <span className="font-medium text-[var(--fg-bright)]">{title}. </span>
         <span className="text-[var(--fg-muted)]">{body}</span>
       </span>
     </li>
@@ -383,10 +300,12 @@ function MindPoint({
 
 function LoopRow({ n, title, body }: { n: string; title: string; body: string }) {
   return (
-    <li className="flex gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
-      <span className="timecode text-[11px] text-tally w-4">{n}</span>
+    <li className="flex gap-3 border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
+      <span className="timecode grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--tally-bg)] text-[11px] text-tally">
+        {n}
+      </span>
       <span>
-        <span className="block text-xs font-semibold text-[var(--fg)]">{title}</span>
+        <span className="block text-sm font-semibold text-[var(--fg-bright)]">{title}</span>
         <span className="block text-xs text-[var(--fg-muted)] leading-relaxed">{body}</span>
       </span>
     </li>

@@ -17,30 +17,20 @@ import {
 } from "@frontend/lib/api";
 
 import { formatContentPack, isClipReady, summarizeClipDecisions } from "@frontend/lib/content-pack";
-import {
-  analyzerLabel,
-  formatDuration,
-  formatElapsed,
-  JOB_STATUS_COPY,
-  sourceTypeLabel,
-} from "@frontend/lib/format";
+import { analyzerLabel, formatDuration, sourceTypeLabel } from "@frontend/lib/format";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
-import { Pipeline } from "@frontend/components/pipeline";
+import { ProcessingStage } from "@frontend/components/processing-stage";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
 import {
   IconChevronRight,
   IconCopy,
   IconExternalLink,
-  IconInstagram,
   IconRefresh,
-  IconScissors,
   IconSearch,
-  IconTikTok,
   IconTrash,
-  IconX,
 } from "@frontend/components/icons";
 
 
@@ -66,6 +56,30 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [sourceTab, setSourceTab] = useState<"video" | "transcript">("video");
   const [transcriptSearch, setTranscriptSearch] = useState("");
   const [packView, setPackView] = useState<PackView>("all");
+  const [stageVisible, setStageVisible] = useState(false);
+  const [stageLeaving, setStageLeaving] = useState(false);
+  const status = job?.status;
+
+  // Keep the progress stage on screen briefly after "ready" so it can finish
+  // at 100% and fade out instead of vanishing when the clips arrive.
+  useEffect(() => {
+    if (!status) return;
+    if (ACTIVE.has(status)) {
+      setStageVisible(true);
+      setStageLeaving(false);
+      return;
+    }
+    if (status !== "ready") {
+      setStageVisible(false);
+      return;
+    }
+    const leave = window.setTimeout(() => setStageLeaving(true), 900);
+    const hide = window.setTimeout(() => setStageVisible(false), 1400);
+    return () => {
+      window.clearTimeout(leave);
+      window.clearTimeout(hide);
+    };
+  }, [status]);
 
   async function handleDeleteJob() {
     if (!job) return;
@@ -191,7 +205,6 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
   const { readyCount, waitingCount, rejectedCount } = summarizeClipDecisions(clips);
   const draftCount = artifacts ? 4 : 0;
-  const processing = ACTIVE.has(job.status);
   const analyzer = analyzerLabel(job.analyzer);
 
   return (
@@ -269,7 +282,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
             <button
               type="button"
-              className="btn btn-ghost btn-xs text-[var(--fg-muted)] hover:text-bad hover:bg-bad/10"
+              className="btn btn-quiet btn-xs btn-danger-quiet"
               disabled={deleting}
               onClick={() => void handleDeleteJob()}
               title="Delete this project"
@@ -281,7 +294,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         </div>
       </header>
 
-      {processing && <Pipeline status={job.status} />}
+      {stageVisible ? <ProcessingStage job={job} leaving={stageLeaving} /> : null}
 
       {job.status === "failed" && job.error && (
         <div role="alert" className="alert alert-bad flex items-start justify-between gap-3">
@@ -291,7 +304,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           </div>
           <button
             type="button"
-            className="btn btn-ghost btn-xs text-bad hover:bg-bad/20 whitespace-nowrap self-start"
+            className="btn btn-danger btn-xs whitespace-nowrap self-start"
             disabled={deleting}
             onClick={() => void handleDeleteJob()}
           >
@@ -368,10 +381,6 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       ) : null}
 
       {clips.length > 0 && packView !== "copy" ? <ClipGrid clips={clips} lineage={lineage} onChange={setClips} /> : null}
-
-      {clips.length === 0 && processing ? (
-        <ProcessingBay status={job.status} startedAt={job.createdAt} />
-      ) : null}
 
       {artifacts && packView !== "video" ? <ArtifactsPanel artifacts={artifacts} /> : null}
 
@@ -579,76 +588,6 @@ function ClipGrid({
                 onChange((current) => current.map((item) => (item.id === next.id ? next : item)))
               }
             />
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-const PROCESSING_FRAMES = [
-  { name: "TikTok", Icon: IconTikTok },
-  { name: "Reels", Icon: IconInstagram },
-  { name: "X", Icon: IconX },
-] as const;
-
-function ProcessingBay({ status, startedAt }: { status: string; startedAt: number }) {
-  const copy = JOB_STATUS_COPY[status];
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const elapsed = formatElapsed(startedAt, now);
-  const elapsedSec = Math.max(0, Math.floor(now / 1000) - startedAt);
-
-  return (
-    <section
-      className="panel p-6 sm:p-8 space-y-6 animate-scale-in"
-      aria-busy="true"
-      aria-live="polite"
-      aria-label="Processing clips"
-    >
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="cut-ring" aria-hidden="true">
-          <IconScissors className="h-5 w-5 text-[var(--tally-fg)]" />
-        </div>
-        <div className="space-y-1 max-w-md">
-          <p className="kicker">{copy?.label ?? "Working"}</p>
-          <h2 className="section-title">{copy?.detail ?? "Preparing your clips and drafts…"}</h2>
-          <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
-            Working for {elapsed}. This page updates automatically.
-          </p>
-          {elapsedSec >= 20 && (
-            <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
-              Still working. If this stalls, use Retry in the header or start a new source.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="cut-bar"
-        role="progressbar"
-        aria-label="Job in progress"
-        aria-valuetext={copy?.label ?? "Working"}
-      />
-
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto">
-        {PROCESSING_FRAMES.map((frame, index) => {
-          const Icon = frame.Icon;
-          return (
-            <article
-              key={frame.name}
-              className="cut-frame"
-              style={{ animationDelay: `${index * 0.2}s` }}
-            >
-              <span className="cut-frame-scan" aria-hidden="true" />
-              <Icon className="h-4 w-4 text-[var(--fg-muted)] relative z-[1]" />
-              <p className="timecode text-[10px] text-[var(--fg-subtle)] relative z-[1] mt-1">{frame.name}</p>
-            </article>
           );
         })}
       </div>
