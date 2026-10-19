@@ -34,17 +34,23 @@ Nothing posts. MP4s download one at a time.
 Pick a source  →  Wait  →  Review what is left  →  Take the pack
 ```
 
-1. **Start** on `/desk` — YouTube link, upload + optional caption URL, or the labeled **Demo data** sample.
+1. **Start** on `/desk` — paste a YouTube link, drop a video file plus its YouTube link for captions, or **Try the sample**.
 2. **Wait** — reading source, finding moments, preparing clips. The page updates by itself.
 3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**.
 4. **Take** — **Copy pack** copies ready clips plus all four drafts. Download each MP4 separately.
 
 Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (`/mind`) is the agent status. You do not need either page to finish a pack.
 
-**Start** on the desk — paste a YouTube link, upload, or try the sample.
+**Start** on the desk — one box takes everything. Paste a YouTube link (anywhere on the page works) to see its title and thumbnail, drag a video in and the box grows into a drop zone, or try the sample.
 
 <p align="center">
-  <img src="docs/screenshots/desk.png" alt="Desk — paste a YouTube link or run the demo sample" width="920" />
+  <img src="docs/screenshots/desk.png" alt="Desk — one box for a YouTube link, a dropped video file, or the sample" width="920" />
+</p>
+
+**Watch** it work — the bar follows the backend's real stage, download size and clip count, and the three 9:16 frames fill in as each cut finishes.
+
+<p align="center">
+  <img src="docs/screenshots/processing.png" alt="Processing — cutting clip 2 of 3, with live progress and the 9:16 frames filling in" width="920" />
 </p>
 
 **Review** the pack — three 9:16 clips, hooks, captions, and Copy pack. Nothing publishes.
@@ -61,7 +67,7 @@ Fallback recipes exist if the agent is offline — the desk labels that **Alt pr
 
 ### Prove persistence (pack 1 → pack 2)
 
-1. Open [`/desk`](http://localhost:3000/desk), run **Try sample** or a **public YouTube URL with captions**.
+1. Open [`/desk`](http://localhost:3000/desk), run **Try the sample** or paste a **public YouTube URL with captions**.
 2. Reject one clip with a note (for example `skip cold intros`) and/or save a shorter caption.
 3. Open **Style** — keep/stop rules. Open **Mind** → Conversation if you want the transcript.
 4. Run a second pack.
@@ -190,11 +196,11 @@ pnpm dev
 | [http://localhost:3000/mind](http://localhost:3000/mind) | Mind status |
 | [http://localhost:3000/jobs/compare](http://localhost:3000/jobs/compare) | Compare two packs |
 
-YouTube jobs need **captions**. Upload-only has no speech-to-text unless you also paste a captioned YouTube URL on the upload tab.
+YouTube jobs need **captions**. Upload-only has no speech-to-text, so after you drop a file the desk asks for that video's captioned YouTube link.
 
 ### Demo sample
 
-On the desk, open **Try sample**. There is one **Demo data** clip: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
+On the desk, click **Try the sample**. It runs one built-in demo source: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
 
 ### Other commands
 
