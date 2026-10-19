@@ -41,6 +41,8 @@ export function Showcase() {
       ref={ref}
       className="showcase"
       data-paused={paused ? "true" : "false"}
+      // One labelled image for screen readers; the looping captions inside are decoration.
+      role="img"
       aria-label="Demo: one YouTube video becomes three vertical clips and four text drafts"
     >
       <div className="sc-source">
