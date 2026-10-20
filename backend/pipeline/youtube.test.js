@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { after, describe, it } from "node:test";
 import {
   cuesToTranscript,
   extractYoutubeId,
   parseJson3Captions,
   parseXmlCaptions,
   pickCaptionTrack,
+  withTimeout,
+  writeDownloadStream,
 } from "./youtube.js";
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "repostai-yt-"));
+after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 
 describe("extractYoutubeId", () => {
   it("reads watch, short, and bare ids", () => {
@@ -63,5 +71,43 @@ describe("caption parsers", () => {
     ]);
     assert.match(text, /\[00:00:01\] Hello/);
     assert.match(text, /\[00:01:05\] World/);
+  });
+});
+
+describe("YouTube time limits", () => {
+  it("passes through a result that arrives in time", async () => {
+    assert.equal(await withTimeout(Promise.resolve("ok"), 50, "late"), "ok");
+  });
+
+  it("rejects a request that never settles", async () => {
+    await assert.rejects(withTimeout(new Promise(() => {}), 20, "late"), { message: "late" });
+  });
+
+  it("writes a download that keeps sending data", async () => {
+    const dest = path.join(tmpDir, "full.mp4");
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+        controller.enqueue(new Uint8Array([4, 5]));
+        controller.close();
+      },
+    });
+    await writeDownloadStream(stream, dest, 50);
+    assert.deepEqual([...fs.readFileSync(dest)], [1, 2, 3, 4, 5]);
+  });
+
+  it("gives up and cancels a download that stops sending data", async () => {
+    const dest = path.join(tmpDir, "stalled.mp4");
+    let cancelled = false;
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    await assert.rejects(writeDownloadStream(stream, dest, 20), { message: "YouTube download stalled" });
+    assert.equal(cancelled, true);
   });
 });

@@ -23,7 +23,9 @@ import {
   HOST,
   frontendOrigin,
 } from "./lib/ports.js";
+import { installCrashGuard } from "./lib/process-guard.js";
 
+installCrashGuard();
 loadEnvFiles();
 assertDistinctPorts();
 
