@@ -8,7 +8,14 @@ import {
   listClipsForJob,
   updateJob,
 } from "../db/client.js";
-import { copyFixtureVideo, cutClip, ffmpegAvailable, probeDurationSec } from "./ffmpeg.js";
+import {
+  copyCachedClip,
+  copyFixtureVideo,
+  cutClip,
+  ffmpegAvailable,
+  fixtureClipCacheKey,
+  probeDurationSec,
+} from "./ffmpeg.js";
 import { FIXTURE_DURATION_SEC, FIXTURE_TITLE, FIXTURE_TRANSCRIPT } from "./fixture.js";
 import { mindsConfigured, proposeClipsWithMinds, requestAutonomousFollowUp } from "./minds.js";
 import { clipsDir, ensureDataDirs, sourcesDir, uploadsDir } from "../lib/paths.js";
@@ -89,7 +96,9 @@ export async function processJob(jobId) {
     }
 
     await updateJob(jobId, { analyzer, artifacts, voiceApplied, status: "clipping" });
-    await materializeClips(jobId, source.sourceVideoPath, recipes);
+    await materializeClips(jobId, source.sourceVideoPath, recipes, {
+      reuseCuts: job.sourceType === "fixture",
+    });
     await updateJob(jobId, { status: "ready" });
     await writeFollowUp(jobId, source.title, recipes, job.sourceType === "fixture");
   } catch (error) {
@@ -148,7 +157,7 @@ async function resolveSource(jobId) {
   return { title, transcript, durationSec: durationSec ?? null, sourceVideoPath };
 }
 
-async function materializeClips(jobId, sourceVideoPath, recipes) {
+async function materializeClips(jobId, sourceVideoPath, recipes, { reuseCuts = false } = {}) {
   const existing = await listClipsForJob(jobId);
   if (existing.length > 0) return;
 
@@ -158,14 +167,20 @@ async function materializeClips(jobId, sourceVideoPath, recipes) {
     let videoPath = null;
     if (sourceVideoPath && fs.existsSync(sourceVideoPath) && ffmpegAvailable()) {
       const dest = path.join(clipsDir(), `${id}.mp4`);
+      const cut = {
+        sourcePath: sourceVideoPath,
+        startSec: recipe.startSec,
+        endSec: recipe.endSec,
+        aspectRatio: recipe.aspectRatio,
+      };
       try {
-        await cutClip({
-          sourcePath: sourceVideoPath,
-          outputPath: dest,
-          startSec: recipe.startSec,
-          endSec: recipe.endSec,
-          aspectRatio: recipe.aspectRatio,
-        });
+        if (reuseCuts) {
+          await copyCachedClip(dest, fixtureClipCacheKey(recipe), sourcesDir(), (tmp) =>
+            cutClip({ ...cut, outputPath: tmp }),
+          );
+        } else {
+          await cutClip({ ...cut, outputPath: dest });
+        }
         videoPath = dest;
       } catch (error) {
         console.warn(`Clip cut failed for ${recipe.platform}`, error);
