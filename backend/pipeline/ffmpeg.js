@@ -1,11 +1,58 @@
 import { execFile, execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import fs from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
 
 const require = createRequire(import.meta.url);
 const ffmpegStatic = require("ffmpeg-static");
 const execFileAsync = promisify(execFile);
+
+// By default every ffmpeg run starts threads per visible CPU core. The Railway container
+// sees many host cores but allows few threads, so a handful of packs processed at once
+// failed with "pthread_create failed: Resource temporarily unavailable". Cap both the
+// threads per run and how many runs execute at the same time.
+const FFMPEG_THREADS = String(positiveInt(process.env.FFMPEG_THREADS, 2));
+const FFMPEG_MAX_PARALLEL = positiveInt(process.env.FFMPEG_MAX_PARALLEL, 2);
+
+function positiveInt(value, fallback) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** Runs at most `max` tasks at once; the rest wait in arrival order. */
+export function createLimiter(max) {
+  let active = 0;
+  const waiting = [];
+
+  function next() {
+    if (active >= max || waiting.length === 0) return;
+    active += 1;
+    const { task, resolve, reject } = waiting.shift();
+    Promise.resolve()
+      .then(task)
+      .then(resolve, reject)
+      .finally(() => {
+        active -= 1;
+        next();
+      });
+  }
+
+  return function limit(task) {
+    return new Promise((resolve, reject) => {
+      waiting.push({ task, resolve, reject });
+      next();
+    });
+  };
+}
+
+const limitFfmpeg = createLimiter(FFMPEG_MAX_PARALLEL);
+
+function runFfmpeg(args, timeout) {
+  const bin = ffmpegPath();
+  if (!bin) throw new Error("ffmpeg binary is not available");
+  return limitFfmpeg(() => execFileAsync(bin, args, { windowsHide: true, timeout }));
+}
 
 let resolved = undefined;
 
@@ -48,13 +95,13 @@ function cropFilter(aspect) {
 }
 
 export async function cutClip(input) {
-  const bin = ffmpegPath();
-  if (!bin) throw new Error("ffmpeg binary is not available");
-
-  await execFileAsync(
-    bin,
+  await runFfmpeg(
     [
       "-y",
+      "-filter_threads",
+      FFMPEG_THREADS,
+      "-threads",
+      FFMPEG_THREADS,
       "-ss",
       String(input.startSec),
       "-to",
@@ -73,9 +120,11 @@ export async function cutClip(input) {
       "aac",
       "-movflags",
       "+faststart",
+      "-threads",
+      FFMPEG_THREADS,
       input.outputPath,
     ],
-    { windowsHide: true, timeout: 120_000 },
+    120_000,
   );
 }
 
@@ -99,12 +148,11 @@ export async function probeDurationSec(sourcePath) {
 }
 
 export async function writeFixtureVideo(outputPath, durationSec = 48) {
-  const bin = ffmpegPath();
-  if (!bin) throw new Error("ffmpeg binary is not available");
-  await execFileAsync(
-    bin,
+  await runFfmpeg(
     [
       "-y",
+      "-filter_threads",
+      FFMPEG_THREADS,
       "-f",
       "lavfi",
       "-i",
@@ -115,13 +163,43 @@ export async function writeFixtureVideo(outputPath, durationSec = 48) {
       `sine=frequency=440:duration=${durationSec}`,
       "-c:v",
       "libx264",
+      "-preset",
+      "ultrafast",
       "-pix_fmt",
       "yuv420p",
       "-c:a",
       "aac",
       "-shortest",
+      "-threads",
+      FFMPEG_THREADS,
       outputPath,
     ],
-    { windowsHide: true, timeout: 60_000 },
+    120_000,
   );
+}
+
+const fixtureRenders = new Map();
+
+/**
+ * The demo sample's test-pattern video depends only on its length, so it is rendered once
+ * into `cacheDir` and copied for each new pack. Packs started together share one render.
+ * Each pack gets its own copy because deleting a pack deletes its source file.
+ */
+export async function copyFixtureVideo(outputPath, durationSec, cacheDir, render = writeFixtureVideo) {
+  const cached = path.join(cacheDir, `fixture-${durationSec}s.mp4`);
+  if (!fs.existsSync(cached)) {
+    if (!fixtureRenders.has(cached)) {
+      const tmp = `${cached}.tmp.mp4`;
+      const pending = render(tmp, durationSec)
+        .then(() => fs.renameSync(tmp, cached))
+        .catch((error) => {
+          fs.rmSync(tmp, { force: true });
+          throw error;
+        })
+        .finally(() => fixtureRenders.delete(cached));
+      fixtureRenders.set(cached, pending);
+    }
+    await fixtureRenders.get(cached);
+  }
+  fs.copyFileSync(cached, outputPath);
 }
