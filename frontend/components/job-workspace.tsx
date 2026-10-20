@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, type Dispatch, type SetStateAction } from "react";
 import {
+  ApiUnreachableError,
   getJob,
   retryJob,
   deleteJob,
@@ -60,6 +61,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [voiceSteered, setVoiceSteered] = useState(false);
   const [lineage, setLineage] = useState<JobLineage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -99,12 +101,20 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         setVoiceSteered(Boolean(data.voiceSteered));
         setLineage(data.lineage ?? null);
         setError(null);
+        setReconnecting(false);
         const waitingFollowup = data.job.status === "ready" && !(data.followup ?? data.job.followup);
         if (ACTIVE.has(data.job.status) || waitingFollowup) {
           timer = setTimeout(() => void load(), 1500);
         }
       } catch (err) {
         if (cancelled) return;
+        // A dropped connection or an API restart is not the pack's fault: keep the page and
+        // keep asking until the API answers again, instead of stopping on "Failed to fetch".
+        if (err instanceof ApiUnreachableError) {
+          setReconnecting(true);
+          timer = setTimeout(() => void load(), 3000);
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load job workspace");
       }
     }
@@ -179,6 +189,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   if (!job) {
     return (
       <div className="space-y-6" aria-busy="true">
+        {reconnecting && (
+          <p className="text-xs text-[var(--fg-muted)] text-center" role="status">
+            Can&apos;t reach the server. Retrying…
+          </p>
+        )}
         <div className="skel h-20 rounded-xl" />
         <div className="skel h-24 rounded-xl" />
         <div className="grid gap-4 lg:grid-cols-3">
@@ -207,6 +222,12 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
             {job.sourceTitle || "Content pack"}
           </span>
         </nav>
+        {reconnecting && (
+          <span className="inline-flex items-center gap-1.5" role="status">
+            <IconRefresh className="h-3 w-3 animate-spin" aria-hidden="true" />
+            Connection lost. Retrying…
+          </span>
+        )}
       </div>
 
       <header className="panel p-5 sm:p-6 space-y-3">
