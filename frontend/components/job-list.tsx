@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { listJobs, deleteJob, type JobSummary } from "@frontend/lib/api";
-import { formatDuration, formatRelative, sourceTypeLabel } from "@frontend/lib/format";
+import { formatDuration, formatRelative, packStatus, sourceTypeLabel } from "@frontend/lib/format";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
 import {
@@ -239,7 +239,7 @@ export function JobList() {
                   ) : job.analyzer === "fallback" ? (
                     <span className="timecode text-[10px] text-[var(--fg-subtle)]">Alt process</span>
                   ) : null}
-                  <StatusPill value={job.status} />
+                  <StatusPill value={packStatus(job.status, job.pendingReview ?? 0, job.clipCount ?? 0)} />
                   <button
                     type="button"
                     onClick={(e) => void handleDelete(e, job.id, job.sourceTitle)}
