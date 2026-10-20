@@ -73,9 +73,10 @@ export async function processJob(jobId) {
           transcript: source.transcript,
           durationSec: source.durationSec,
           voice,
+          reuseSavedAnswer: job.sourceType === "fixture",
         });
         recipes = result.recipes;
-        analyzer = "minds";
+        analyzer = result.savedAnswer ? "minds_saved" : "minds";
         if (result.artifacts) artifacts = result.artifacts;
       } catch (error) {
         console.warn("Minds clip proposal failed, using fallback", error);
@@ -90,7 +91,7 @@ export async function processJob(jobId) {
     await updateJob(jobId, { analyzer, artifacts, voiceApplied, status: "clipping" });
     await materializeClips(jobId, source.sourceVideoPath, recipes);
     await updateJob(jobId, { status: "ready" });
-    await writeFollowUp(jobId, source.title, recipes);
+    await writeFollowUp(jobId, source.title, recipes, job.sourceType === "fixture");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Pipeline failed";
     await updateJob(jobId, { status: "failed", error: message });
@@ -193,11 +194,12 @@ async function materializeClips(jobId, sourceVideoPath, recipes) {
   await insertClips(records);
 }
 
-async function writeFollowUp(jobId, title, recipes) {
+async function writeFollowUp(jobId, title, recipes, reuseSavedAnswer) {
   try {
     const followup = await requestAutonomousFollowUp({
       title,
       platforms: recipes.map((recipe) => recipe.platform),
+      reuseSavedAnswer,
     });
     await updateJob(jobId, { followup });
   } catch (error) {

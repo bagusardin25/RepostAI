@@ -236,6 +236,8 @@ export function JobList() {
                   )}
                   {job.analyzer === "minds" ? (
                     <span className="timecode text-[10px] text-[var(--fg)]">Mind</span>
+                  ) : job.analyzer === "minds_saved" ? (
+                    <span className="timecode text-[10px] text-[var(--fg)]">Mind (saved)</span>
                   ) : job.analyzer === "fallback" ? (
                     <span className="timecode text-[10px] text-[var(--fg-subtle)]">Alt process</span>
                   ) : null}

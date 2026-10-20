@@ -1,13 +1,30 @@
 import { createMindsClient, parseHumanIdFromBuilderApiKey } from "@animocabrands/minds-client-lib";
+import { getSetting, setSetting } from "../db/client.js";
 import { PLATFORM_SPECS } from "../lib/constants.js";
 import { tenetsSeedMessage } from "../lib/tenets.js";
 import { extractJsonObject } from "../lib/json.js";
 import { mindPlainText } from "../lib/mind-text.js";
 import { parseMindArtifacts } from "./artifacts.js";
+import { HIGH, LOW, conversationTurn, createAsker, createTurnQueue } from "./mind-turns.js";
 import { parseMindClipRecipes } from "./recipes.js";
 import { voiceMemoryPrompt } from "./voice.js";
 
 const ALIAS = process.env.MINDS_CONVERSATION_ALIAS || "main";
+
+// Every request shares one conversation, and waitForReply() takes the first Mind message
+// after ours, so packs processed together stole each other's replies and timed out into
+// the fallback. All turns now go through one queue, with clip proposals first.
+const ask = createAsker({
+  enqueue: createTurnQueue(),
+  turn: async (prompt, options) => {
+    const { mindsClient } = await ensureAlias();
+    return conversationTurn(mindsClient, ALIAS, prompt, options);
+  },
+  store: {
+    get: (key) => getSetting(`mind.answer.${key}`),
+    set: (key, text) => setSetting(`mind.answer.${key}`, text),
+  },
+});
 
 export function mindsConfigured() {
   return Boolean(process.env.MINDS_BUILDER_API_KEY);
@@ -95,52 +112,45 @@ export async function mindsHealth() {
   }
 }
 
+/**
+ * `reuseSavedAnswer` (demo samples): a prompt identical to one the Mind already answered,
+ * same sample and same learned style, gets that saved answer back instead of a new turn.
+ */
 export async function proposeClipsWithMinds(input) {
-  const { mindsClient } = await ensureAlias();
-  const before = await mindsClient.getLatestHistoryFingerprint(ALIAS);
-  const messageText = buildPrompt(input);
-
-  await mindsClient.sendMessage({ alias: ALIAS, messageText });
-  const outcome = await mindsClient.waitForReply({
-    alias: ALIAS,
+  const answer = await ask(buildPrompt(input), {
+    priority: HIGH,
     timeoutMs: 180_000,
-    afterFingerprint: before,
-    sentMessageText: messageText,
+    reuseSaved: Boolean(input.reuseSavedAnswer),
+    accept: (text) => hasClipRecipes(text, input.durationSec),
   });
-
-  if (outcome.timedOut) {
+  if (!answer) {
     throw new Error("Mind did not reply with clip packages in time");
   }
-
-  const raw = mindPlainText(outcome.reply.messageText ?? "");
-  const recipes = parseMindClipRecipes(raw, input.durationSec);
-  if (recipes.length === 0) {
-    throw new Error("Mind reply parsed but contained no valid clip packages");
-  }
   return {
-    recipes,
-    raw,
-    artifacts: parseMindArtifacts(raw, input.transcript),
+    recipes: parseMindClipRecipes(answer.text, input.durationSec),
+    raw: answer.text,
+    artifacts: parseMindArtifacts(answer.text, input.transcript),
+    savedAnswer: answer.saved,
   };
+}
+
+function hasClipRecipes(text, durationSec) {
+  try {
+    return parseMindClipRecipes(text, durationSec).length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function rememberCreatorDecision(input) {
   if (!mindsConfigured()) return { sent: false };
-  const { mindsClient } = await ensureAlias();
-  await mindsClient.sendMessage({
-    alias: ALIAS,
-    messageText: buildReviewMemoryMessage(input),
-  });
+  await ask(buildReviewMemoryMessage(input), { priority: LOW, timeoutMs: 45_000 });
   return { sent: true };
 }
 
 export async function rememberReviewSession(input) {
   if (!mindsConfigured()) return { sent: false };
-  const { mindsClient } = await ensureAlias();
-  await mindsClient.sendMessage({
-    alias: ALIAS,
-    messageText: buildSessionRecapMessage(input),
-  });
+  await ask(buildSessionRecapMessage(input), { priority: LOW, timeoutMs: 45_000 });
   return { sent: true };
 }
 
@@ -149,30 +159,37 @@ export async function requestAutonomousFollowUp(input) {
   if (!mindsConfigured()) return fallback;
 
   try {
-    const { mindsClient } = await ensureAlias();
-    const before = await mindsClient.getLatestHistoryFingerprint(ALIAS);
-    const messageText = buildFollowUpPrompt(input);
-    await mindsClient.sendMessage({ alias: ALIAS, messageText });
-    const outcome = await mindsClient.waitForReply({
-      alias: ALIAS,
+    const answer = await ask(buildFollowUpPrompt(input), {
+      priority: LOW,
       timeoutMs: 60_000,
-      afterFingerprint: before,
-      sentMessageText: messageText,
+      reuseSaved: Boolean(input.reuseSavedAnswer),
+      accept: looksLikeFollowUp,
     });
-    if (outcome.timedOut) return fallback;
-    return parseFollowUp(mindPlainText(outcome.reply.messageText ?? ""), fallback);
+    return answer ? parseFollowUp(answer.text, fallback) : fallback;
   } catch (error) {
     console.warn("Autonomous follow-up failed", error);
     return fallback;
   }
 }
 
+function looksLikeFollowUp(text) {
+  try {
+    const root = extractJsonObject(text);
+    return Boolean(root.reminder || root.nextMove || root.next_move);
+  } catch {
+    return false;
+  }
+}
+
 export async function sendMindMessage(text) {
   const trimmed = String(text ?? "").trim();
   if (!trimmed) throw new Error("Message is empty");
-  const { mindsClient } = await ensureAlias();
-  await mindsClient.sendMessage({ alias: ALIAS, messageText: trimmed });
-  return { ok: true, alias: ALIAS };
+  if (!mindsConfigured()) throw new Error("MINDS_BUILDER_API_KEY is not set");
+  // Waits behind any pack that is talking to the Mind; the reply lands in the conversation.
+  ask(trimmed, { priority: LOW, timeoutMs: 60_000 }).catch((error) => {
+    console.warn("Mind message failed", error);
+  });
+  return { ok: true, alias: ALIAS, queued: true };
 }
 
 export async function seedMindTenets() {

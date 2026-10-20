@@ -247,6 +247,20 @@ export async function deleteJob(id) {
   await db.execute({ sql: "DELETE FROM jobs WHERE id = ?", args: [id] });
 }
 
+/**
+ * Jobs run inside the server process, so a restart or redeploy drops whatever was in
+ * flight. Without this they stayed "Preparing clips" forever; now they can be retried.
+ */
+export async function failInterruptedJobs(message) {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: `UPDATE jobs SET status = 'failed', error = ?, updated_at = ?
+          WHERE status IN ('queued', 'fetching_source', 'analyzing', 'clipping')`,
+    args: [message, now()],
+  });
+  return result.rowsAffected ?? 0;
+}
+
 
 export async function insertClips(records) {
   if (records.length === 0) return;

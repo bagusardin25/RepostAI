@@ -6,7 +6,7 @@ export type JobSummary = {
   durationSec: number | null;
   status: string;
   error: string | null;
-  analyzer: "minds" | "fallback" | null;
+  analyzer: "minds" | "minds_saved" | "fallback" | null;
   createdAt: number;
   updatedAt?: number;
   hasTranscript: boolean;

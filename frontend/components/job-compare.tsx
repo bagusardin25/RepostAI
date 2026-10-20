@@ -10,7 +10,7 @@ import {
   type JobComparePayload,
   type JobSummary,
 } from "@frontend/lib/api";
-import { formatDuration, platformLabel } from "@frontend/lib/format";
+import { analyzerLabel, formatDuration, platformLabel } from "@frontend/lib/format";
 import { PageHeader } from "@frontend/components/page-header";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -242,7 +242,7 @@ function JobMeta({
         {job.sourceTitle}
       </Link>
       <p className="text-xs text-[var(--fg-muted)]">
-        {job.analyzer === "minds" ? "Mind" : job.analyzer === "fallback" ? "Fallback" : "Job"} · {formatDuration(job.durationSec)}
+        {analyzerLabel(job.analyzer) ?? "Job"} · {formatDuration(job.durationSec)}
       </p>
     </div>
   );
