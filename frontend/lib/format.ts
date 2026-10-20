@@ -50,6 +50,7 @@ export const STATUS_LABEL: Record<string, string> = {
   analyzing: "Finding moments",
   clipping: "Preparing clips",
   ready: "Ready for review",
+  completed: "Completed",
   failed: "Failed",
   needs_review: "Needs review",
   approved: "Ready",
@@ -113,6 +114,11 @@ export function sourceTypeLabel(value: string) {
 
 export function statusLabel(value: string) {
   return STATUS_LABEL[value] ?? value.replaceAll("_", " ");
+}
+
+/** A ready pack with no clip left to review reads "Completed", not "Ready for review". */
+export function packStatus(status: string, pendingReview: number, clipCount: number) {
+  return status === "ready" && clipCount > 0 && pendingReview === 0 ? "completed" : status;
 }
 
 export function analyzerLabel(value: string | null | undefined) {

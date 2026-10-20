@@ -22,6 +22,7 @@ import {
   formatDuration,
   formatElapsed,
   JOB_STATUS_COPY,
+  packStatus,
   sourceTypeLabel,
 } from "@frontend/lib/format";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
@@ -244,7 +245,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           </div>
 
           <div className="flex items-center gap-2 sm:self-start">
-            <StatusPill value={job.status} />
+            <StatusPill value={packStatus(job.status, waitingCount, clips.length)} />
 
             {job.status === "failed" && (
               <button
