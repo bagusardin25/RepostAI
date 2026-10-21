@@ -20,7 +20,7 @@ export function StatusPill({ value, className = "" }: StatusPillProps) {
       tone = "pill pill-live";
       dot = <span className="radar-dot" />;
       break;
-    case "ready":
+    case "completed":
     case "approved":
     case "edited":
       tone = "pill pill-ok";
@@ -33,6 +33,7 @@ export function StatusPill({ value, className = "" }: StatusPillProps) {
         dot = <span className="h-1.5 w-1.5 rounded-full bg-[var(--bad)]" />;
       }
       break;
+    case "ready":
     case "needs_review":
       tone = "pill pill-tally";
       dot = <span className="h-1.5 w-1.5 rounded-full bg-[var(--tally)]" />;

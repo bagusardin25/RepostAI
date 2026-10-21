@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listJobs, deleteJob, type JobSummary } from "@frontend/lib/api";
-import { formatDuration, formatRelative, sourceTypeLabel } from "@frontend/lib/format";
+import { formatDuration, formatRelative, packStatus, sourceTypeLabel } from "@frontend/lib/format";
 import { snapshotFrom, stepHeadline, useSmoothProgress } from "@frontend/lib/progress";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
@@ -216,10 +216,8 @@ export function JobList({ titleId }: { titleId?: string }) {
                   {pending > 0 ? (
                     <span className="text-[0.8125rem] font-semibold text-[var(--live-fg)]">{pending} to review</span>
                   ) : null}
-                  {pending > 0 ? null : job.status === "ready" ? (
-                    <span className="text-[0.8125rem] text-[var(--fg-muted)]">Reviewed</span>
-                  ) : (
-                    <StatusPill value={job.status} />
+                  {pending > 0 ? null : (
+                    <StatusPill value={packStatus(job.status, job.pendingReview ?? 0, job.clipCount ?? 0)} />
                   )}
                   <button
                     type="button"

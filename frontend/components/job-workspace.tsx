@@ -17,7 +17,7 @@ import {
 } from "@frontend/lib/api";
 
 import { formatContentPack, isClipReady, summarizeClipDecisions } from "@frontend/lib/content-pack";
-import { analyzerLabel, formatDuration, sourceTypeLabel } from "@frontend/lib/format";
+import { analyzerLabel, formatDuration, packStatus, sourceTypeLabel } from "@frontend/lib/format";
 import { clipPlatformLabel } from "@frontend/lib/progress";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
@@ -230,7 +230,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               {sourceTypeLabel(job.sourceType)} · <span className="timecode text-[0.8125rem]">{formatDuration(job.durationSec)}</span>
               {clips.length > 0 ? ` · ${clips.length} clips${draftCount ? ` + ${draftCount} drafts` : ""}` : ""}
             </span>
-            <StatusPill value={job.status} />
+            <StatusPill value={packStatus(job.status, waitingCount, clips.length)} />
             {job.sourceUrl && (
               <a
                 href={job.sourceUrl}
