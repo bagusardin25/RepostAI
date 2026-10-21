@@ -96,7 +96,7 @@ export default function VoicePage() {
         <section className="panel p-8 sm:p-10 text-center space-y-3">
           <h2 className="section-title">Nothing learned yet</h2>
           <p className="text-xs text-[var(--fg-muted)] max-w-sm mx-auto leading-relaxed">
-            Review a content pack — approve, rewrite, or skip. Those choices show up here and steer the next clips.
+            Approve, rewrite or reject clips in a pack. Those choices show up here and steer the next pack.
           </p>
           <Link href="/desk" className="btn btn-primary btn-sm">
             Review a pack
@@ -170,112 +170,114 @@ export default function VoicePage() {
         </section>
       )}
 
-      {data.edits.length > 0 && (
-        <details className="disclosure panel">
-          <summary className="px-5 py-4">
-            <span className="flex items-center gap-2 min-w-0">
-              <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
-              <span>
-                <span className="section-title block">Review history</span>
-                <span className="text-xs text-[var(--fg-muted)]">{data.edits.length} decisions from the desk</span>
+      <div className="empty:hidden">
+        {data.edits.length > 0 && (
+          <details className="disclosure panel">
+            <summary className="px-1 py-[1.125rem]">
+              <span className="flex items-center gap-2 min-w-0">
+                <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
+                <span>
+                  <span className="section-title block">Review history</span>
+                  <span className="text-xs text-[var(--fg-muted)]">{data.edits.length} decisions from the desk</span>
+                </span>
               </span>
-            </span>
-          </summary>
-          <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)] pt-3">
-            <div className="seg">
-              {(["all", "approve", "edit", "reject"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActionFilter(key)}
-                  className={`seg-item ${actionFilter === key ? "is-active" : ""}`}
-                >
-                  {key === "all" ? "All" : key === "approve" ? "Approved" : key === "edit" ? "Edited" : "Rejected"}
-                </button>
-              ))}
-            </div>
-
-            <div className="divide-y divide-[var(--border)] rounded-xl overflow-hidden cell">
-              {filteredEdits.length === 0 ? (
-                <p className="p-6 text-center text-xs text-[var(--fg-muted)]">No decisions match this filter.</p>
-              ) : (
-                filteredEdits.map((edit) => (
-                  <div key={edit.id} className="p-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-[var(--fg-muted)] timecode">
-                        <PlatformMark platform={edit.platform} compact />
-                        <span>·</span>
-                        <span>{formatRelative(edit.createdAt)}</span>
-                      </div>
-                      <StatusPill
-                        value={
-                          edit.action === "edit" ? "edited" : edit.action === "approve" ? "approved" : "rejected"
-                        }
-                      />
-                    </div>
-                    {edit.note && (
-                      <p className="text-[var(--fg)]">
-                        <span className="text-[var(--fg-muted)]">Note: </span>
-                        {edit.note}
-                      </p>
-                    )}
-                    {edit.editedCaption ? (
-                      <p className="leading-relaxed text-[var(--fg)]">{edit.editedCaption}</p>
-                    ) : (
-                      <p className="text-[var(--fg-muted)] leading-relaxed">{edit.originalCaption}</p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-3">
-                      {edit.jobId && (
-                        <Link
-                          href={`/jobs/${edit.jobId}`}
-                          className="inline-flex items-center gap-1 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] underline underline-offset-4"
-                        >
-                          <span>Open pack</span>
-                          <IconExternalLink className="h-3 w-3" />
-                        </Link>
-                      )}
-                      <LaterJobs jobs={edit.laterJobs} />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </details>
-      )}
-
-      {(score || !isEmpty) && (
-        <details className="disclosure panel">
-          <summary className="px-5 py-4">
-            <span className="flex items-center gap-2 min-w-0">
-              <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
-              <span>
-                <span className="section-title block">How this is measured</span>
-                <span className="text-xs text-[var(--fg-muted)]">Score and export — not needed to review clips</span>
-              </span>
-            </span>
-          </summary>
-          <div className="px-5 pb-5 space-y-3 border-t border-[var(--border)] pt-4">
-            {score && (
-              <div className="space-y-2">
-                <p className="text-sm text-[var(--fg)]">
-                  {score.label}
-                  {score.score != null ? ` · ${score.score.toFixed(1)} / ${score.max}` : ""}
-                </p>
-                <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{score.detail}</p>
-                <p className="text-xs text-[var(--fg-muted)]">
-                  Approved {Math.round(score.approveRate * 100)}% · Edited {Math.round(score.editRate * 100)}% ·
-                  Rejected {Math.round(score.rejectRate * 100)}%
-                </p>
+            </summary>
+            <div className="px-1 pb-6 space-y-3 border-t border-[var(--border)] pt-5">
+              <div className="seg">
+                {(["all", "approve", "edit", "reject"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActionFilter(key)}
+                    className={`seg-item ${actionFilter === key ? "is-active" : ""}`}
+                  >
+                    {key === "all" ? "All" : key === "approve" ? "Approved" : key === "edit" ? "Edited" : "Rejected"}
+                  </button>
+                ))}
               </div>
-            )}
-            <button type="button" onClick={exportMemoryJson} className="btn btn-ghost btn-xs">
-              <IconDownload className="h-3 w-3" />
-              <span>Export JSON</span>
-            </button>
-          </div>
-        </details>
-      )}
+
+              <div className="divide-y divide-[var(--border)] rounded-xl overflow-hidden cell">
+                {filteredEdits.length === 0 ? (
+                  <p className="p-6 text-center text-xs text-[var(--fg-muted)]">No decisions match this filter.</p>
+                ) : (
+                  filteredEdits.map((edit) => (
+                    <div key={edit.id} className="p-4 space-y-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-[var(--fg-muted)] timecode">
+                          <PlatformMark platform={edit.platform} compact />
+                          <span>·</span>
+                          <span>{formatRelative(edit.createdAt)}</span>
+                        </div>
+                        <StatusPill
+                          value={
+                            edit.action === "edit" ? "edited" : edit.action === "approve" ? "approved" : "rejected"
+                          }
+                        />
+                      </div>
+                      {edit.note && (
+                        <p className="text-[var(--fg)]">
+                          <span className="text-[var(--fg-muted)]">Note: </span>
+                          {edit.note}
+                        </p>
+                      )}
+                      {edit.editedCaption ? (
+                        <p className="leading-relaxed text-[var(--fg)]">{edit.editedCaption}</p>
+                      ) : (
+                        <p className="text-[var(--fg-muted)] leading-relaxed">{edit.originalCaption}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {edit.jobId && (
+                          <Link
+                            href={`/jobs/${edit.jobId}`}
+                            className="inline-flex items-center gap-1 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] underline underline-offset-4"
+                          >
+                            <span>Open pack</span>
+                            <IconExternalLink className="h-3 w-3" />
+                          </Link>
+                        )}
+                        <LaterJobs jobs={edit.laterJobs} />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </details>
+        )}
+
+        {(score || !isEmpty) && (
+          <details className="disclosure panel">
+            <summary className="px-1 py-[1.125rem]">
+              <span className="flex items-center gap-2 min-w-0">
+                <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
+                <span>
+                  <span className="section-title block">How this is measured</span>
+                  <span className="text-xs text-[var(--fg-muted)]">Score and export. You don't need this to review clips.</span>
+                </span>
+              </span>
+            </summary>
+            <div className="px-1 pb-6 space-y-3 border-t border-[var(--border)] pt-5">
+              {score && (
+                <div className="space-y-2">
+                  <p className="text-sm text-[var(--fg)]">
+                    {score.label}
+                    {score.score != null ? ` · ${score.score.toFixed(1)} / ${score.max}` : ""}
+                  </p>
+                  <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{score.detail}</p>
+                  <p className="text-xs text-[var(--fg-muted)]">
+                    Approved {Math.round(score.approveRate * 100)}% · Edited {Math.round(score.editRate * 100)}% ·
+                    Rejected {Math.round(score.rejectRate * 100)}%
+                  </p>
+                </div>
+              )}
+              <button type="button" onClick={exportMemoryJson} className="btn btn-ghost btn-xs">
+                <IconDownload className="h-3 w-3" />
+                <span>Export JSON</span>
+              </button>
+            </div>
+          </details>
+        )}
+      </div>
     </div>
   );
 }

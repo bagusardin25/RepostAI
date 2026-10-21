@@ -11,12 +11,10 @@ export function BrandMark({
     <Link
       href={href}
       aria-current={current ? "page" : undefined}
-      className="flex items-center gap-2"
+      className="flex min-h-11 items-center gap-2"
     >
       <span className="brand-dot" aria-hidden="true" />
-      <span className="text-sm font-semibold tracking-tight text-[var(--fg)]">
-        Repost<span className="text-[var(--fg-muted)]">AI</span>
-      </span>
+      <span className="text-[0.9375rem] font-semibold tracking-tight text-[var(--fg-bright)]">RepostAI</span>
     </Link>
   );
 }

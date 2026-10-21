@@ -35,7 +35,7 @@ export function ArtifactsPanel({ artifacts }: { artifacts: ContentArtifacts }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <div>
           <h2 className="section-title">4 text drafts</h2>
-          <p className="text-xs text-[var(--fg-muted)]">Script, carousel, thread, and LinkedIn — same source as the clips.</p>
+          <p className="text-xs text-[var(--fg-muted)]">Written from the same transcript as the clips.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className="btn btn-ghost btn-xs active:scale-95 transition-transform" onClick={copyTab}>

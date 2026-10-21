@@ -1,24 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { listJobs, deleteJob, type JobSummary } from "@frontend/lib/api";
 import { formatDuration, formatRelative, packStatus, sourceTypeLabel } from "@frontend/lib/format";
+import { snapshotFrom, stepHeadline, useSmoothProgress } from "@frontend/lib/progress";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
-import {
-  IconSearch,
-  IconRefresh,
-  IconArrowRight,
-  IconTrash,
-} from "@frontend/components/icons";
-
+import { IconChevronRight, IconRefresh, IconSearch, IconTrash } from "@frontend/components/icons";
 
 const ACTIVE = new Set(["queued", "fetching_source", "analyzing", "clipping"]);
 
 type FilterTab = "all" | "active" | "review" | "done";
 
-export function JobList() {
+const TABS: Array<{ key: FilterTab; label: string }> = [
+  { key: "all", label: "All" },
+  { key: "review", label: "To review" },
+  { key: "active", label: "Running" },
+  { key: "done", label: "Reviewed" },
+];
+
+const LOAD_ERROR = "Couldn't load projects. Check the connection and retry.";
+
+export function JobList({ titleId }: { titleId?: string }) {
   const toast = useToast();
   const [jobs, setJobs] = useState<JobSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,19 +34,18 @@ export function JobList() {
   async function handleDelete(e: React.MouseEvent, jobId: string, title: string) {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm(`Delete "${title}"?`)) return;
+    if (!window.confirm(`Delete "${title}"? Its clips and drafts go too.`)) return;
     setDeletingId(jobId);
     try {
       await deleteJob(jobId);
       setJobs((prev) => (prev ? prev.filter((j) => j.id !== jobId) : null));
       toast.success(`Deleted "${title}"`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete project");
+    } catch {
+      toast.error("Couldn't delete this project. Try again.");
     } finally {
       setDeletingId(null);
     }
   }
-
 
   async function load(quiet = false) {
     if (!quiet) setIsRefreshing(true);
@@ -50,8 +53,8 @@ export function JobList() {
       const data = await listJobs();
       setJobs(data.jobs);
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load jobs");
+    } catch {
+      setError(LOAD_ERROR);
     } finally {
       if (!quiet) setIsRefreshing(false);
     }
@@ -70,9 +73,9 @@ export function JobList() {
         if (data.jobs.some((job) => ACTIVE.has(job.status))) {
           timer = setTimeout(() => void poll(), 2000);
         }
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to poll jobs");
+        setError(LOAD_ERROR);
       }
     }
 
@@ -83,7 +86,7 @@ export function JobList() {
     };
   }, []);
 
-  const counts = useMemo(() => {
+  const counts = useMemo<Record<FilterTab, number>>(() => {
     if (!jobs) return { all: 0, active: 0, review: 0, done: 0 };
     return {
       all: jobs.length,
@@ -108,156 +111,151 @@ export function JobList() {
     });
   }, [jobs, filter, search]);
 
-  if (error) {
-    return (
-      <div className="panel p-6 text-center space-y-3">
-        <p className="text-xs text-bad" role="alert">{error}</p>
-        <button type="button" className="btn btn-ghost btn-xs" onClick={() => void load()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (!jobs) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div key={index} className="skel h-16 rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      {/* Filter Tabs & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="seg flex-wrap">
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            className={`seg-item ${filter === "all" ? "is-active" : ""}`}
-          >
-            All ({counts.all})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("review")}
-            className={`seg-item ${filter === "review" ? "is-active" : ""}`}
-          >
-            Needs Review ({counts.review})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("active")}
-            className={`seg-item ${filter === "active" ? "is-active" : ""}`}
-          >
-            In Progress ({counts.active})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("done")}
-            className={`seg-item ${filter === "done" ? "is-active" : ""}`}
-          >
-            Completed ({counts.done})
-          </button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 id={titleId} className="font-display text-[1.375rem] font-semibold tracking-[-0.015em]">
+          Projects
+        </h2>
+        {jobs && jobs.length > 0 ? (
+          <div className="seg flex-nowrap overflow-x-auto max-w-full [&>button]:shrink-0" aria-label="Filter projects">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setFilter(tab.key)}
+                aria-pressed={filter === tab.key}
+                className={`seg-item gap-1.5 ${filter === tab.key ? "is-active" : ""}`}
+              >
+                {tab.label}
+                <span className="font-normal text-[var(--fg-subtle)] tabular-nums">{counts[tab.key]}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
+        <div className="flex w-full items-center gap-2 min-w-0 sm:ml-auto sm:w-auto">
+          <div className="relative min-w-0 flex-1 sm:flex-none">
+            <IconSearch
+              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--fg-subtle)]"
+              aria-hidden="true"
+            />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search projects…"
+              placeholder="Search titles"
               aria-label="Search projects"
-              className="field field-icon h-8 text-xs w-48 sm:w-56"
+              className="field field-icon h-10 min-h-10 w-full text-[0.8125rem] sm:w-52"
             />
           </div>
           <button
             type="button"
             onClick={() => void load()}
             disabled={isRefreshing}
-            className="btn btn-ghost h-8 px-2 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+            className="btn btn-ghost h-10 w-10 px-0"
             title="Refresh"
+            aria-label="Refresh projects"
           >
-            <IconRefresh className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
+            <IconRefresh className={`h-[15px] w-[15px] ${isRefreshing ? "animate-spin" : ""}`} aria-hidden="true" />
           </button>
-          {jobs.length >= 2 && (
-            <Link href="/jobs/compare" className="btn btn-ghost h-8 px-2.5 text-[11px]">
+          {jobs && jobs.length >= 2 ? (
+            <Link href="/jobs/compare" className="btn btn-ghost h-10">
               Compare
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Jobs List */}
-      {filteredJobs.length === 0 ? (
-        <div className="panel p-8 text-center text-xs text-[var(--fg-muted)] space-y-2 animate-fade-in-up">
-          <p>
-            {jobs.length === 0
-              ? "No projects yet. Paste a captioned YouTube link or try the demo sample."
-              : "No projects match this filter."}
+      {error ? (
+        <div className="panel p-6 text-center space-y-3">
+          <p className="text-sm text-bad" role="alert">
+            {error}
           </p>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void load()}>
+            Retry
+          </button>
+        </div>
+      ) : !jobs ? (
+        <div className="space-y-2" aria-busy="true" aria-label="Loading projects">
+          {Array.from({ length: 2 }, (_, index) => (
+            <div key={index} className="skel h-[4.5rem] rounded-xl" />
+          ))}
+        </div>
+      ) : filteredJobs.length === 0 ? (
+        <div className="panel-dashed p-8 text-center text-sm text-[var(--fg-muted)] animate-fade-in-up">
+          <p>{jobs.length === 0 ? "No projects yet. Packs you start show up here." : "Nothing in this tab."}</p>
         </div>
       ) : (
-        <div key={filter} className="panel divide-y divide-[var(--border)] rounded-xl overflow-hidden animate-fade-in-up">
+        <div key={filter} className="panel divide-y divide-[var(--border)] overflow-hidden rounded-xl animate-fade-in-up">
           {filteredJobs.map((job) => {
             const pending = job.pendingReview ?? 0;
+            const active = ACTIVE.has(job.status);
 
             return (
               <Link
                 key={job.id}
                 href={`/jobs/${job.id}`}
-                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 hover:bg-[var(--bg-card)] transition-all duration-200"
+                className="group flex flex-col gap-3 px-4 py-4 transition-colors duration-200 hover:bg-[var(--bg-card-hover)] sm:flex-row sm:items-center sm:gap-4 sm:px-5"
               >
-                <div className="min-w-0 space-y-1">
-                  <p className="font-medium text-xs sm:text-sm text-[var(--fg)] truncate group-hover:text-[var(--fg-bright)]">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[0.9375rem] font-medium text-[var(--fg-bright)]">
                     {job.sourceTitle}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--fg-muted)] timecode">
-                    <span>{sourceTypeLabel(job.sourceType)}</span>
-                    <span>·</span>
-                    <span>{formatDuration(job.durationSec)}</span>
-                    <span>·</span>
-                    <span>{job.clipCount ?? 0} clips</span>
-                    <span>·</span>
-                    <span>{formatRelative(job.createdAt)}</span>
-                  </div>
-                </div>
+                  </span>
+                  <span className="mt-0.5 block text-[0.8125rem] text-[var(--fg-muted)]">
+                    {sourceTypeLabel(job.sourceType)} ·{" "}
+                    <span className="timecode text-xs">{formatDuration(job.durationSec)}</span> ·{" "}
+                    {active
+                      ? stepHeadline(job.status, job.progress)
+                      : `${job.clipCount ?? 0} clips · ${formatRelative(job.createdAt)}`}
+                  </span>
+                </span>
 
-                <div className="flex items-center gap-3 self-end sm:self-center">
-                  {pending > 0 && (
-                    <span className="timecode text-[10px] text-tally font-medium">
-                      {pending} awaiting review
-                    </span>
-                  )}
-                  {job.analyzer === "minds" ? (
-                    <span className="timecode text-[10px] text-[var(--fg)]">Mind</span>
-                  ) : job.analyzer === "fallback" ? (
-                    <span className="timecode text-[10px] text-[var(--fg-subtle)]">Alt process</span>
+                <span className="flex items-center gap-3 self-start sm:self-center">
+                  {active ? <LiveBar job={job} /> : null}
+                  {pending > 0 ? (
+                    <span className="text-[0.8125rem] font-semibold text-[var(--live-fg)]">{pending} to review</span>
                   ) : null}
-                  <StatusPill value={packStatus(job.status, job.pendingReview ?? 0, job.clipCount ?? 0)} />
+                  {pending > 0 ? null : (
+                    <StatusPill value={packStatus(job.status, job.pendingReview ?? 0, job.clipCount ?? 0)} />
+                  )}
                   <button
                     type="button"
                     onClick={(e) => void handleDelete(e, job.id, job.sourceTitle)}
                     disabled={deletingId === job.id}
-                    className="p-1 rounded text-[var(--fg-subtle)] hover:text-[var(--bad)] hover:bg-[var(--bg-panel)] opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-all duration-150"
+                    className="icon-btn h-9 w-9 hover:!text-[var(--bad)] hover:!bg-[var(--bad-bg)] opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                     title="Delete project"
                     aria-label={`Delete project ${job.sourceTitle}`}
                   >
-                    <IconTrash className="h-3.5 w-3.5" />
+                    <IconTrash className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
-                  <IconArrowRight className="h-3.5 w-3.5 text-[var(--fg-subtle)] group-hover:text-[var(--fg)] group-hover:translate-x-0.5 transition-all duration-200" />
-                </div>
-
+                  <IconChevronRight
+                    className="hidden h-4 w-4 text-[var(--fg-subtle)] transition-transform duration-200 group-hover:translate-x-0.5 sm:block"
+                    aria-hidden="true"
+                  />
+                </span>
               </Link>
             );
           })}
         </div>
       )}
     </div>
+  );
+}
+
+/** Slim bar for packs still processing; eased like the workspace stage. */
+function LiveBar({ job }: { job: JobSummary }) {
+  const fill = useRef<HTMLSpanElement>(null);
+  const snap = useMemo(
+    () => snapshotFrom(job.status, job.progress, job.updatedAt),
+    [job.status, job.progress, job.updatedAt],
+  );
+  useSmoothProgress(snap, (value) => {
+    if (fill.current) fill.current.style.transform = `scaleX(${value})`;
+  });
+  return (
+    <span className="live-bar hidden sm:block" aria-hidden="true">
+      <span ref={fill} style={{ transform: "scaleX(0)" }} />
+    </span>
   );
 }

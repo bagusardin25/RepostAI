@@ -1,3 +1,5 @@
+import { getProgress } from "../pipeline/progress.js";
+
 function getFilename(filePath) {
   if (!filePath) return null;
   const parts = filePath.split(/[\\/]/);
@@ -13,6 +15,7 @@ export function publicJob(job) {
     hasSourceVideo: Boolean(sourceVideoPath),
     hasArtifacts: Boolean(job.artifacts),
     sourceVideoUrl: filename ? `/api/media/sources/${filename}` : null,
+    progress: getProgress(job.id),
   };
 }
 

@@ -1,3 +1,16 @@
+/** Live step data the backend keeps while a pack is processing (null once done). */
+export type JobProgress = {
+  stage?: string;
+  step?: "captions" | "download" | "mind" | "recipes" | "cutting";
+  stageStartedAt?: number;
+  updatedAt?: number;
+  serverNow?: number;
+  bytes?: number;
+  done?: number;
+  total?: number;
+  platform?: string | null;
+};
+
 export type JobSummary = {
   id: string;
   sourceType: string;
@@ -14,6 +27,7 @@ export type JobSummary = {
   sourceVideoUrl: string | null;
   clipCount?: number;
   pendingReview?: number;
+  progress?: JobProgress | null;
 };
 
 export type FollowUp = {
@@ -171,23 +185,34 @@ function apiUrl(path: string) {
 
 async function parse<T>(res: Promise<Response> | Response): Promise<T> {
   const resolved = await res;
-  const data = (await resolved.json()) as T & { error?: string };
-  if (!resolved.ok) throw new Error(data.error || resolved.statusText);
+  const text = await resolved.text();
+  let data: (T & { error?: string }) | null = null;
+  try {
+    data = text ? (JSON.parse(text) as T & { error?: string }) : null;
+  } catch {
+    // A proxy error page is not JSON; report it below in plain words.
+  }
+  if (!resolved.ok || !data) {
+    throw new Error(
+      data?.error ||
+        (resolved.status >= 500
+          ? "Can't reach the RepostAI server. Check that the backend is running, then retry."
+          : resolved.statusText || "Request failed"),
+    );
+  }
   return data;
 }
 
-export function createJob(body: { youtubeUrl?: string; fixture?: boolean; file?: File }) {
+export function createJob(
+  body: { youtubeUrl?: string; fixture?: boolean; file?: File },
+  options: { onUploadProgress?: (loaded: number, total: number) => void } = {},
+) {
   if (body.file) {
     const form = new FormData();
     if (body.youtubeUrl) form.set("youtubeUrl", body.youtubeUrl);
     if (body.fixture) form.set("fixture", "true");
     form.set("file", body.file);
-    return parse<{ job: JobSummary }>(
-      fetch(apiUrl("/api/jobs"), {
-        method: "POST",
-        body: form,
-      }),
-    );
+    return uploadForm<{ job: JobSummary }>(apiUrl("/api/jobs"), form, options.onUploadProgress);
   }
 
   return parse<{ job: JobSummary }>(
@@ -200,6 +225,33 @@ export function createJob(body: { youtubeUrl?: string; fixture?: boolean; file?:
       }),
     }),
   );
+}
+
+// fetch() cannot report upload progress, so file uploads go through XHR.
+function uploadForm<T>(url: string, form: FormData, onProgress?: (loaded: number, total: number) => void) {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.responseType = "text";
+    if (onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress(event.loaded, event.total);
+      };
+    }
+    xhr.onload = () => {
+      let data: (T & { error?: string }) | null = null;
+      try {
+        data = JSON.parse(xhr.responseText) as T & { error?: string };
+      } catch {
+        // fall through to the status check
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && data) resolve(data);
+      else reject(new Error(data?.error || xhr.statusText || "Upload failed"));
+    };
+    xhr.onerror = () => reject(new Error("Upload failed. Check your connection and try again."));
+    xhr.onabort = () => reject(new Error("Upload cancelled."));
+    xhr.send(form);
+  });
 }
 
 export function listJobs() {

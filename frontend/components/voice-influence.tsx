@@ -90,7 +90,7 @@ export function VoiceInfluence({
                     <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">
                       Last time: {row.previousHook}
                       {row.previousStatus === "rejected" ? " (rejected)" : ""}
-                      {row.previousNote ? ` — ${row.previousNote}` : ""}
+                      {row.previousNote ? `. Note: ${row.previousNote}` : ""}
                     </p>
                     {row.changed ? (
                       <p className="timecode text-[10px] text-tally">Hook changed</p>

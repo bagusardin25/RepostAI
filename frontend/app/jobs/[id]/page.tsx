@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { JobWorkspace } from "@frontend/components/job-workspace";
 
 export const metadata: Metadata = {
-  title: "Content pack",
+  title: "Pack",
 };
 
 export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {

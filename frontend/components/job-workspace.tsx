@@ -17,31 +17,21 @@ import {
 } from "@frontend/lib/api";
 
 import { formatContentPack, isClipReady, summarizeClipDecisions } from "@frontend/lib/content-pack";
-import {
-  analyzerLabel,
-  formatDuration,
-  formatElapsed,
-  JOB_STATUS_COPY,
-  packStatus,
-  sourceTypeLabel,
-} from "@frontend/lib/format";
+import { analyzerLabel, formatDuration, packStatus, sourceTypeLabel } from "@frontend/lib/format";
+import { clipPlatformLabel } from "@frontend/lib/progress";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
-import { Pipeline } from "@frontend/components/pipeline";
+import { ProcessingStage } from "@frontend/components/processing-stage";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
 import {
   IconChevronRight,
   IconCopy,
   IconExternalLink,
-  IconInstagram,
   IconRefresh,
-  IconScissors,
   IconSearch,
-  IconTikTok,
   IconTrash,
-  IconX,
 } from "@frontend/components/icons";
 
 
@@ -67,6 +57,30 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [sourceTab, setSourceTab] = useState<"video" | "transcript">("video");
   const [transcriptSearch, setTranscriptSearch] = useState("");
   const [packView, setPackView] = useState<PackView>("all");
+  const [stageVisible, setStageVisible] = useState(false);
+  const [stageLeaving, setStageLeaving] = useState(false);
+  const status = job?.status;
+
+  // Keep the progress stage on screen briefly after "ready" so it can finish
+  // at 100% and fade out instead of vanishing when the clips arrive.
+  useEffect(() => {
+    if (!status) return;
+    if (ACTIVE.has(status)) {
+      setStageVisible(true);
+      setStageLeaving(false);
+      return;
+    }
+    if (status !== "ready") {
+      setStageVisible(false);
+      return;
+    }
+    const leave = window.setTimeout(() => setStageLeaving(true), 900);
+    const hide = window.setTimeout(() => setStageVisible(false), 1400);
+    return () => {
+      window.clearTimeout(leave);
+      window.clearTimeout(hide);
+    };
+  }, [status]);
 
   async function handleDeleteJob() {
     if (!job) return;
@@ -192,60 +206,46 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
   const { readyCount, waitingCount, rejectedCount } = summarizeClipDecisions(clips);
   const draftCount = artifacts ? 4 : 0;
-  const processing = ACTIVE.has(job.status);
   const analyzer = analyzerLabel(job.analyzer);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between text-xs text-[var(--fg-muted)]">
-        <nav className="flex items-center gap-1.5" aria-label="Breadcrumb">
-          <Link href="/desk" className="hover:text-[var(--fg)] transition-colors">
-            Projects
-          </Link>
-          <span>/</span>
-          <span className="text-[var(--fg)] font-medium truncate max-w-[16rem] sm:max-w-xs">
-            {job.sourceTitle || "Content pack"}
-          </span>
-        </nav>
-      </div>
+      <nav className="flex min-w-0 items-center gap-2 text-[0.8125rem] text-[var(--fg-muted)]" aria-label="Breadcrumb">
+        <Link href="/desk" className="hover:text-[var(--fg-bright)] transition-colors">
+          Projects
+        </Link>
+        <span aria-hidden="true" className="text-[var(--fg-subtle)]">
+          /
+        </span>
+        <span className="truncate text-[var(--fg-bright)]" aria-current="page">
+          {job.sourceTitle || "Pack"}
+        </span>
+      </nav>
 
-      <header className="panel p-5 sm:p-6 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <p className="kicker">Content pack</p>
-            <div className="flex items-center gap-2 text-xs text-[var(--fg-muted)] timecode">
-              <span>{sourceTypeLabel(job.sourceType)}</span>
-              <span>·</span>
-              <span>{formatDuration(job.durationSec)}</span>
-              {clips.length > 0 && (
-                <>
-                  <span>·</span>
-                  <span>
-                    {clips.length} clips{draftCount ? ` + ${draftCount} drafts` : ""}
-                  </span>
-                </>
-              )}
-            </div>
-
-            <h1 className="page-title text-lg sm:text-xl">
-              {job.sourceTitle}
-            </h1>
-
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 space-y-2.5">
+          <h1 className="page-title">{job.sourceTitle}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[var(--fg-muted)]">
+            <span>
+              {sourceTypeLabel(job.sourceType)} · <span className="timecode text-[0.8125rem]">{formatDuration(job.durationSec)}</span>
+              {clips.length > 0 ? ` · ${clips.length} clips${draftCount ? ` + ${draftCount} drafts` : ""}` : ""}
+            </span>
+            <StatusPill value={packStatus(job.status, waitingCount, clips.length)} />
             {job.sourceUrl && (
               <a
                 href={job.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] underline underline-offset-4"
+                className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-[var(--fg-bright)]"
               >
-                <span>Open source link</span>
-                <IconExternalLink className="h-3 w-3" />
+                <span>Open on YouTube</span>
+                <IconExternalLink className="h-3 w-3" aria-hidden="true" />
               </a>
             )}
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 sm:self-start">
-            <StatusPill value={packStatus(job.status, waitingCount, clips.length)} />
+        <div className="flex shrink-0 items-center gap-2">
 
             {job.status === "failed" && (
               <button
@@ -263,26 +263,24 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                     .finally(() => setRetrying(false));
                 }}
               >
-                <IconRefresh className={`h-3 w-3 ${retrying ? "animate-spin" : ""}`} />
+                <IconRefresh className={`h-3 w-3 ${retrying ? "animate-spin" : ""}`} aria-hidden="true" />
                 <span>Retry</span>
               </button>
             )}
 
             <button
               type="button"
-              className="btn btn-ghost btn-xs text-[var(--fg-muted)] hover:text-bad hover:bg-bad/10"
+              className="btn btn-ghost btn-sm btn-danger-quiet"
               disabled={deleting}
               onClick={() => void handleDeleteJob()}
               title="Delete this project"
             >
-              <IconTrash className="h-3 w-3" />
               <span>{deleting ? "Deleting…" : "Delete"}</span>
             </button>
-          </div>
         </div>
       </header>
 
-      {processing && <Pipeline status={job.status} />}
+      {stageVisible ? <ProcessingStage job={job} leaving={stageLeaving} /> : null}
 
       {job.status === "failed" && job.error && (
         <div role="alert" className="alert alert-bad flex items-start justify-between gap-3">
@@ -292,7 +290,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           </div>
           <button
             type="button"
-            className="btn btn-ghost btn-xs text-bad hover:bg-bad/20 whitespace-nowrap self-start"
+            className="btn btn-danger btn-xs whitespace-nowrap self-start"
             disabled={deleting}
             onClick={() => void handleDeleteJob()}
           >
@@ -370,10 +368,6 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
       {clips.length > 0 && packView !== "copy" ? <ClipGrid clips={clips} lineage={lineage} onChange={setClips} /> : null}
 
-      {clips.length === 0 && processing ? (
-        <ProcessingBay status={job.status} startedAt={job.createdAt} />
-      ) : null}
-
       {artifacts && packView !== "video" ? <ArtifactsPanel artifacts={artifacts} /> : null}
 
       {clips.length > 0 && packView === "copy" ? <ClipGrid clips={clips} lineage={lineage} onChange={setClips} /> : null}
@@ -385,7 +379,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
               <span>
                 <span className="section-title block">4 text drafts</span>
-                <span className="text-xs text-[var(--fg-muted)]">Open if you want the script, carousel, thread, or LinkedIn draft</span>
+                <span className="text-[0.8125rem] text-[var(--fg-muted)]">The script, carousel, thread and LinkedIn post</span>
               </span>
             </span>
           </summary>
@@ -398,15 +392,15 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {clips.length > 0 && (
         <section className="panel p-5 space-y-3">
           <div>
-            <h2 className="section-title">Download MP4s</h2>
+            <h2 className="section-title">Downloads</h2>
             <p className="text-xs text-[var(--fg-muted)]">
-              {readyCount} of {clips.length} clips ready. Files download one at a time. Nothing publishes.
+              Approve a clip to mark it ready. Each file downloads on its own.
             </p>
           </div>
           <ul className="grid gap-2 text-xs text-[var(--fg-muted)] sm:grid-cols-3">
             {clips.map((clip) => (
               <li key={clip.id} className="cell p-3 space-y-1">
-                <p className="font-medium text-[var(--fg)]">{clip.platform}</p>
+                <p className="font-medium text-[var(--fg)]">{clipPlatformLabel(clip.platform)}</p>
                 <p>
                   {isClipReady(clip.status)
                     ? "Ready to paste"
@@ -427,131 +421,133 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         </section>
       )}
 
-      <details className="disclosure panel">
-        <summary className="px-5 py-4">
-          <span className="flex items-center gap-2 min-w-0">
-            <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
-            <span>
-              <span className="section-title block">How this was chosen</span>
-              <span className="text-xs text-[var(--fg-muted)]">
-                {analyzer ? `${analyzer} · ` : ""}Why these moments, and the style used here
-              </span>
-            </span>
-          </span>
-        </summary>
-        <div className="px-5 pb-5 space-y-4 border-t border-[var(--border)] pt-4">
-          {followup && (
-            <aside className="cell p-4 space-y-1.5">
-              <p className="timecode text-[11px] text-[var(--fg-muted)]">Next move</p>
-              <p className="text-sm text-[var(--fg)] leading-relaxed">{followup.reminder}</p>
-              <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{followup.nextMove}</p>
-            </aside>
-          )}
-
-          {(job.status === "ready" || job.status === "clipping" || voiceSteered) && (
-            <VoiceInfluence
-              steered={voiceSteered}
-              voiceApplied={voiceApplied}
-              lineage={lineage}
-              currentJobId={job.id}
-            />
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(job.id);
-              toast.info("Copied pack ID");
-            }}
-            className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] timecode"
-          >
-            Copy pack ID
-          </button>
-        </div>
-      </details>
-
-      {(job.sourceVideoUrl || job.transcript) && (
+      <div>
         <details className="disclosure panel">
-          <summary className="px-5 py-4">
+          <summary className="px-1 py-[1.125rem]">
             <span className="flex items-center gap-2 min-w-0">
               <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
               <span>
-                <span className="section-title block">Source video & transcript</span>
-                <span className="text-xs text-[var(--fg-muted)]">Original file and captions used for this pack</span>
+                <span className="section-title block">Why these moments</span>
+                <span className="text-[0.8125rem] text-[var(--fg-muted)]">
+                  {analyzer ?? "How the clips and the style were chosen"}
+                </span>
               </span>
             </span>
           </summary>
-          <div className="border-t border-[var(--border)]">
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <span className="sr-only">Source tabs</span>
-              <div className="seg">
-                {job.sourceVideoUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setSourceTab("video")}
-                    className={`seg-item ${sourceTab === "video" || !job.transcript ? "is-active" : ""}`}
-                  >
-                    Video
-                  </button>
-                )}
-                {job.transcript && (
-                  <button
-                    type="button"
-                    onClick={() => setSourceTab("transcript")}
-                    className={`seg-item ${sourceTab === "transcript" || !job.sourceVideoUrl ? "is-active" : ""}`}
-                  >
-                    Transcript
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {((sourceTab === "video" && job.sourceVideoUrl) || (!job.transcript && job.sourceVideoUrl)) && (
-              <div className="bg-black p-4 flex justify-center">
-                <video
-                  className="max-h-80 w-full max-w-2xl rounded-lg object-contain"
-                  src={job.sourceVideoUrl}
-                  controls
-                  playsInline
-                  preload="metadata"
-                />
-              </div>
+          <div className="px-1 pb-6 space-y-4 border-t border-[var(--border)] pt-5">
+            {followup && (
+              <aside className="cell p-4 space-y-1.5">
+                <p className="timecode text-[11px] text-[var(--fg-muted)]">Next move</p>
+                <p className="text-sm text-[var(--fg)] leading-relaxed">{followup.reminder}</p>
+                <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{followup.nextMove}</p>
+              </aside>
             )}
 
-            {((sourceTab === "transcript" && job.transcript) || (!job.sourceVideoUrl && job.transcript)) && (
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="relative flex-1 max-w-xs">
-                    <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
-                    <input
-                      type="search"
-                      value={transcriptSearch}
-                      onChange={(e) => setTranscriptSearch(e.target.value)}
-                      placeholder="Search transcript…"
-                      className="field field-icon h-8 text-xs"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(job.transcript);
-                      toast.success("Transcript copied");
-                    }}
-                    className="btn btn-ghost btn-xs"
-                  >
-                    <IconCopy className="h-3 w-3" />
-                    <span>Copy</span>
-                  </button>
-                </div>
-
-                <pre className="max-h-64 overflow-y-auto cell p-3.5 text-xs font-mono leading-relaxed text-[var(--fg)] whitespace-pre-wrap">
-                  {filteredTranscript}
-                </pre>
-              </div>
+            {(job.status === "ready" || job.status === "clipping" || voiceSteered) && (
+              <VoiceInfluence
+                steered={voiceSteered}
+                voiceApplied={voiceApplied}
+                lineage={lineage}
+                currentJobId={job.id}
+              />
             )}
+
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(job.id);
+                toast.info("Copied pack ID");
+              }}
+              className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] timecode"
+            >
+              Copy pack ID
+            </button>
           </div>
         </details>
-      )}
+
+        {(job.sourceVideoUrl || job.transcript) && (
+          <details className="disclosure panel">
+            <summary className="px-1 py-[1.125rem]">
+              <span className="flex items-center gap-2 min-w-0">
+                <IconChevronRight className="disclosure-chevron h-3.5 w-3.5 text-[var(--fg-muted)]" aria-hidden="true" />
+                <span>
+                  <span className="section-title block">Source and transcript</span>
+                  <span className="text-[0.8125rem] text-[var(--fg-muted)]">The video and captions this pack came from</span>
+                </span>
+              </span>
+            </summary>
+            <div className="border-t border-[var(--border)]">
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="sr-only">Source tabs</span>
+                <div className="seg">
+                  {job.sourceVideoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setSourceTab("video")}
+                      className={`seg-item ${sourceTab === "video" || !job.transcript ? "is-active" : ""}`}
+                    >
+                      Video
+                    </button>
+                  )}
+                  {job.transcript && (
+                    <button
+                      type="button"
+                      onClick={() => setSourceTab("transcript")}
+                      className={`seg-item ${sourceTab === "transcript" || !job.sourceVideoUrl ? "is-active" : ""}`}
+                    >
+                      Transcript
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {((sourceTab === "video" && job.sourceVideoUrl) || (!job.transcript && job.sourceVideoUrl)) && (
+                <div className="bg-black p-4 flex justify-center">
+                  <video
+                    className="max-h-80 w-full max-w-2xl rounded-lg object-contain"
+                    src={job.sourceVideoUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+              )}
+
+              {((sourceTab === "transcript" && job.transcript) || (!job.sourceVideoUrl && job.transcript)) && (
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="relative flex-1 max-w-xs">
+                      <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-subtle)]" />
+                      <input
+                        type="search"
+                        value={transcriptSearch}
+                        onChange={(e) => setTranscriptSearch(e.target.value)}
+                        placeholder="Search transcript…"
+                        className="field field-icon h-8 text-xs"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(job.transcript);
+                        toast.success("Transcript copied");
+                      }}
+                      className="btn btn-ghost btn-xs"
+                    >
+                      <IconCopy className="h-3 w-3" />
+                      <span>Copy</span>
+                    </button>
+                  </div>
+
+                  <pre className="max-h-64 overflow-y-auto cell p-3.5 text-xs font-mono leading-relaxed text-[var(--fg)] whitespace-pre-wrap">
+                    {filteredTranscript}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </details>
+        )}
+      </div>
     </div>
   );
 }
@@ -580,76 +576,6 @@ function ClipGrid({
                 onChange((current) => current.map((item) => (item.id === next.id ? next : item)))
               }
             />
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-const PROCESSING_FRAMES = [
-  { name: "TikTok", Icon: IconTikTok },
-  { name: "Reels", Icon: IconInstagram },
-  { name: "X", Icon: IconX },
-] as const;
-
-function ProcessingBay({ status, startedAt }: { status: string; startedAt: number }) {
-  const copy = JOB_STATUS_COPY[status];
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const elapsed = formatElapsed(startedAt, now);
-  const elapsedSec = Math.max(0, Math.floor(now / 1000) - startedAt);
-
-  return (
-    <section
-      className="panel p-6 sm:p-8 space-y-6 animate-scale-in"
-      aria-busy="true"
-      aria-live="polite"
-      aria-label="Processing clips"
-    >
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="cut-ring" aria-hidden="true">
-          <IconScissors className="h-5 w-5 text-[var(--tally-fg)]" />
-        </div>
-        <div className="space-y-1 max-w-md">
-          <p className="kicker">{copy?.label ?? "Working"}</p>
-          <h2 className="section-title">{copy?.detail ?? "Preparing your clips and drafts…"}</h2>
-          <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
-            Working for {elapsed}. This page updates automatically.
-          </p>
-          {elapsedSec >= 20 && (
-            <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
-              Still working. If this stalls, use Retry in the header or start a new source.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="cut-bar"
-        role="progressbar"
-        aria-label="Job in progress"
-        aria-valuetext={copy?.label ?? "Working"}
-      />
-
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto">
-        {PROCESSING_FRAMES.map((frame, index) => {
-          const Icon = frame.Icon;
-          return (
-            <article
-              key={frame.name}
-              className="cut-frame"
-              style={{ animationDelay: `${index * 0.2}s` }}
-            >
-              <span className="cut-frame-scan" aria-hidden="true" />
-              <Icon className="h-4 w-4 text-[var(--fg-muted)] relative z-[1]" />
-              <p className="timecode text-[10px] text-[var(--fg-subtle)] relative z-[1] mt-1">{frame.name}</p>
-            </article>
           );
         })}
       </div>

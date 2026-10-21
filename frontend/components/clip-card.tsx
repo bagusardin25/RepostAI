@@ -107,7 +107,7 @@ export function ClipCard({
         setTimeout(() => setJustApproved(false), 1400);
         toast.success(`Approved ${clip.platform}. We'll keep this style.`);
       } else if (action === "reject") {
-        toast.showToast(`Rejected — we'll avoid this pattern next time`, "error");
+        toast.showToast("Rejected. The next pack will avoid this.", "error");
       } else {
         toast.success("Saved your edit");
       }
@@ -203,7 +203,7 @@ export function ClipCard({
         {previousHook && previousHook !== clip.displayHook && (
           <p className="text-[11px] text-[var(--fg-muted)] leading-relaxed">
             Last pack: {previousHook}
-            {previousNote ? ` — ${previousNote}` : ""}
+            {previousNote ? `. Note: ${previousNote}` : ""}
           </p>
         )}
 

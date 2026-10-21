@@ -100,18 +100,17 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="glass-chip flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-      title={`Current: ${theme} (${resolvedTheme}). Click to switch theme.`}
-      aria-label="Toggle Light / Dark / System theme"
+      className="icon-btn h-10 w-10"
+      title={`Theme: ${theme} (${resolvedTheme}). Click to switch.`}
+      aria-label={`Theme: ${theme}. Switch theme`}
     >
       {theme === "light" ? (
-        <IconSun className="h-3.5 w-3.5 text-[var(--tally-fg)]" />
+        <IconSun className="h-[18px] w-[18px]" aria-hidden="true" />
       ) : theme === "dark" ? (
-        <IconMoon className="h-3.5 w-3.5 text-[var(--fg)]" />
+        <IconMoon className="h-[18px] w-[18px]" aria-hidden="true" />
       ) : (
-        <IconMonitor className="h-3.5 w-3.5 text-[var(--fg-muted)]" />
+        <IconMonitor className="h-[18px] w-[18px]" aria-hidden="true" />
       )}
-      <span className="capitalize hidden sm:inline">{theme}</span>
     </button>
   );
 }
