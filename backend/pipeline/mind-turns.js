@@ -50,6 +50,7 @@ export async function conversationTurn(client, alias, messageText, { timeoutMs, 
     if (outcome.timedOut) return null;
     const text = mindPlainText(outcome.reply.messageText ?? "");
     if (accept(text)) return text;
+    console.warn(`Mind reply skipped, this turn does not accept it: ${text.replace(/\s+/g, " ").slice(0, 120)}`);
     const fingerprint = outcome.reply.fingerprint;
     if (!fingerprint || fingerprint === after) return null;
     after = fingerprint;
@@ -61,21 +62,37 @@ export function promptKey(prompt) {
   return createHash("sha256").update(prompt).digest("hex");
 }
 
+// A turn needs time to find the conversation, send, and hear back. With less left than
+// this, it is skipped rather than sending a message nobody is waiting for.
+export const MIN_TURN_MS = 15_000;
+
 /**
  * Asks the Mind through the queue. Identical prompts already in flight share one turn.
  * With `reuseSaved`, a prompt answered before gets its saved answer back without a turn.
+ * With `waitMs`, the caller waits at most that long in total, queue included: its turn only
+ * gets the time left, and is skipped when it would start with less than `minTurnMs`.
  */
-export function createAsker({ enqueue, turn, store }) {
+export function createAsker({ enqueue, turn, store, minTurnMs = MIN_TURN_MS }) {
   const inflight = new Map();
 
-  return async function ask(prompt, { priority = LOW, timeoutMs, accept, reuseSaved = false }) {
+  return async function ask(prompt, { priority = LOW, timeoutMs, accept, reuseSaved = false, waitMs }) {
+    const deadline = waitMs ? Date.now() + waitMs : null;
     const key = promptKey(prompt);
     if (reuseSaved) {
       const saved = await store.get(key);
       if (saved && (!accept || accept(saved))) return { text: saved, saved: true };
     }
     if (!inflight.has(key)) {
-      const pending = enqueue(() => turn(prompt, { timeoutMs, accept }), priority)
+      const runTurn = () => {
+        if (!deadline) return turn(prompt, { timeoutMs, accept });
+        const left = deadline - Date.now();
+        if (left < minTurnMs) {
+          console.warn("Mind turn skipped, its caller stopped waiting in the queue");
+          return null;
+        }
+        return turn(prompt, { timeoutMs: Math.min(timeoutMs ?? left, left), accept });
+      };
+      const pending = enqueue(runTurn, priority)
         .then(async (text) => {
           if (text && reuseSaved) {
             try {
@@ -89,7 +106,17 @@ export function createAsker({ enqueue, turn, store }) {
         .finally(() => inflight.delete(key));
       inflight.set(key, pending);
     }
-    const text = await inflight.get(key);
+    const shared = inflight.get(key);
+    const text = await (deadline ? within(shared, deadline - Date.now()) : shared);
     return text ? { text, saved: false } : null;
   };
+}
+
+/** Settles like `promise`, or resolves null once `ms` have passed. */
+function within(promise, ms) {
+  let timer;
+  const expired = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(null), Math.max(0, ms));
+  });
+  return Promise.race([promise, expired]).finally(() => clearTimeout(timer));
 }

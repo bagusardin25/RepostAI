@@ -112,6 +112,12 @@ export async function mindsHealth() {
   }
 }
 
+// How long a pack waits for the Mind in total, queue included, before it falls back. Each
+// turn may take up to 180s, so without this cap packs queued behind each other waited about
+// three minutes per pack ahead of them, and TestSprite saw fresh packs sit on "Choosing three
+// moments" past its five-minute limit.
+const PROPOSAL_WAIT_MS = 120_000;
+
 /**
  * `reuseSavedAnswer` (demo samples): a prompt identical to one the Mind already answered,
  * same sample and same learned style, gets that saved answer back instead of a new turn.
@@ -120,11 +126,12 @@ export async function proposeClipsWithMinds(input) {
   const answer = await ask(buildPrompt(input), {
     priority: HIGH,
     timeoutMs: 180_000,
+    waitMs: PROPOSAL_WAIT_MS,
     reuseSaved: Boolean(input.reuseSavedAnswer),
     accept: (text) => hasClipRecipes(text, input.durationSec),
   });
   if (!answer) {
-    throw new Error("Mind did not reply with clip packages in time");
+    throw new Error(`Mind did not reply with clip packages within ${PROPOSAL_WAIT_MS / 1000}s`);
   }
   return {
     recipes: parseMindClipRecipes(answer.text, input.durationSec),

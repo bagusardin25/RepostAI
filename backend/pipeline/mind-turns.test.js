@@ -143,4 +143,42 @@ describe("createAsker", () => {
     const ask = createAsker({ enqueue: createTurnQueue(), turn: async () => null, store: memoryStore() });
     assert.equal(await ask("x", { reuseSaved: true }), null);
   });
+
+  it("stops waiting at waitMs, queue included, and never sends the skipped turn", async () => {
+    const sent = [];
+    const ask = createAsker({
+      enqueue: createTurnQueue(),
+      turn: async (prompt) => {
+        sent.push(prompt);
+        await wait(prompt === "pack 1" ? 200 : 1);
+        return `${prompt} clips`;
+      },
+      store: memoryStore(),
+      minTurnMs: 10,
+    });
+
+    const first = ask("pack 1", { priority: HIGH, timeoutMs: 1000 });
+    const started = Date.now();
+    const second = await ask("pack 2", { priority: HIGH, timeoutMs: 1000, waitMs: 30 });
+    assert.equal(second, null);
+    assert.ok(Date.now() - started < 150, "pack 2 did not wait for pack 1's turn");
+
+    assert.deepEqual(await first, { text: "pack 1 clips", saved: false });
+    await wait(5);
+    assert.deepEqual(sent, ["pack 1"]);
+  });
+
+  it("gives a turn only the time its caller has left", async () => {
+    let given = null;
+    const ask = createAsker({
+      enqueue: createTurnQueue(),
+      turn: async (_prompt, { timeoutMs }) => {
+        given = timeoutMs;
+        return "clips";
+      },
+      store: memoryStore(),
+    });
+    await ask("pack", { priority: HIGH, timeoutMs: 180_000, waitMs: 120_000 });
+    assert.ok(given > 119_000 && given <= 120_000, `turn got ${given}ms`);
+  });
 });
