@@ -7,8 +7,12 @@ import path from "node:path";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "repostai-db-"));
 process.env.DATA_DIR = dataDir;
 delete process.env.DATABASE_URL;
+delete process.env.MINDS_BUILDER_API_KEY;
 
-const { createJob, failInterruptedJobs, getJob, getDb, updateJob } = await import("./client.js");
+const { createJob, deleteJob, failInterruptedJobs, getJob, getDb, listClipsForJob, updateJob } =
+  await import("./client.js");
+const { processJob } = await import("../pipeline/process.js");
+const { FIXTURE_DURATION_SEC, FIXTURE_TRANSCRIPT } = await import("../pipeline/fixture.js");
 
 after(async () => {
   (await getDb()).close();
@@ -37,5 +41,27 @@ describe("failInterruptedJobs", () => {
     }
     assert.equal((await getJob("ready")).status, "ready");
     assert.equal((await getJob("failed")).error, null);
+  });
+});
+
+describe("processJob", () => {
+  it("stops quietly when the pack is deleted while it runs", async () => {
+    await createJob({
+      id: "deleted-mid-run",
+      sourceType: "upload",
+      sourceTitle: "Deleted mid-run",
+      transcript: FIXTURE_TRANSCRIPT,
+      durationSec: FIXTURE_DURATION_SEC,
+    });
+
+    const outcome = processJob("deleted-mid-run").then(
+      () => "finished",
+      (error) => error,
+    );
+    await deleteJob("deleted-mid-run");
+
+    assert.equal(await outcome, "finished");
+    assert.equal(await getJob("deleted-mid-run"), null);
+    assert.deepEqual(await listClipsForJob("deleted-mid-run"), []);
   });
 });

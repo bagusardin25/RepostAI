@@ -95,6 +95,8 @@ export async function processJob(jobId) {
       analyzer = "fallback";
     }
 
+    // Deleted while the moments were chosen: don't queue ffmpeg cuts for a pack that is gone.
+    if (!(await getJob(jobId))) return;
     await updateJob(jobId, { analyzer, artifacts, voiceApplied, status: "clipping" });
     await materializeClips(jobId, source.sourceVideoPath, recipes, {
       reuseCuts: job.sourceType === "fixture",
@@ -102,6 +104,9 @@ export async function processJob(jobId) {
     await updateJob(jobId, { status: "ready" });
     await writeFollowUp(jobId, source.title, recipes, job.sourceType === "fixture");
   } catch (error) {
+    // A pack deleted mid-run fails on its own missing row (no job to read, or clips that
+    // break the foreign key). Nothing is left to mark as failed, so stop quietly.
+    if (!(await getJob(jobId))) return;
     const message = error instanceof Error ? error.message : "Pipeline failed";
     await updateJob(jobId, { status: "failed", error: message });
     throw error;
