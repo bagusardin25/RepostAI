@@ -18,6 +18,7 @@ import {
   IconYoutube,
 } from "@frontend/components/icons";
 import { ThemeToggle } from "@frontend/components/theme-provider";
+import { SystemStatusButton } from "@frontend/components/system-status";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -139,6 +140,7 @@ export function LandingContent() {
           </nav>
           <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
+            <SystemStatusButton />
             <Link href="/desk" className="btn btn-primary btn-sm shrink-0">
               Open desk
               <IconArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

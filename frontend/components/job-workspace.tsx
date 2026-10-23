@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, type Dispatch, type SetStateAction } from "react";
 import {
+  ApiUnreachableError,
   getJob,
   retryJob,
   deleteJob,
@@ -27,6 +28,7 @@ import {
 } from "@frontend/lib/format";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
+import { SelectionMethod } from "@frontend/components/selection-method";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
 import { Pipeline } from "@frontend/components/pipeline";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -60,6 +62,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [voiceSteered, setVoiceSteered] = useState(false);
   const [lineage, setLineage] = useState<JobLineage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -99,12 +102,20 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         setVoiceSteered(Boolean(data.voiceSteered));
         setLineage(data.lineage ?? null);
         setError(null);
+        setReconnecting(false);
         const waitingFollowup = data.job.status === "ready" && !(data.followup ?? data.job.followup);
         if (ACTIVE.has(data.job.status) || waitingFollowup) {
           timer = setTimeout(() => void load(), 1500);
         }
       } catch (err) {
         if (cancelled) return;
+        // A dropped connection or an API restart is not the pack's fault: keep the page and
+        // keep asking until the API answers again, instead of stopping on "Failed to fetch".
+        if (err instanceof ApiUnreachableError) {
+          setReconnecting(true);
+          timer = setTimeout(() => void load(), 3000);
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load job workspace");
       }
     }
@@ -179,6 +190,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   if (!job) {
     return (
       <div className="space-y-6" aria-busy="true">
+        {reconnecting && (
+          <p className="text-xs text-[var(--fg-muted)] text-center" role="status">
+            Can&apos;t reach the server. Retrying…
+          </p>
+        )}
         <div className="skel h-20 rounded-xl" />
         <div className="skel h-24 rounded-xl" />
         <div className="grid gap-4 lg:grid-cols-3">
@@ -207,6 +223,12 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
             {job.sourceTitle || "Content pack"}
           </span>
         </nav>
+        {reconnecting && (
+          <span className="inline-flex items-center gap-1.5" role="status">
+            <IconRefresh className="h-3 w-3 animate-spin" aria-hidden="true" />
+            Connection lost. Retrying…
+          </span>
+        )}
       </div>
 
       <header className="panel p-5 sm:p-6 space-y-3">
@@ -440,6 +462,8 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           </span>
         </summary>
         <div className="px-5 pb-5 space-y-4 border-t border-[var(--border)] pt-4">
+          <SelectionMethod analyzer={job.analyzer} status={job.status} />
+
           {followup && (
             <aside className="cell p-4 space-y-1.5">
               <p className="timecode text-[11px] text-[var(--fg-muted)]">Next move</p>
@@ -451,6 +475,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           {(job.status === "ready" || job.status === "clipping" || voiceSteered) && (
             <VoiceInfluence
               steered={voiceSteered}
+              usedForPicks={job.analyzer !== "fallback"}
               voiceApplied={voiceApplied}
               lineage={lineage}
               currentJobId={job.id}

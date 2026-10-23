@@ -8,14 +8,21 @@ import {
   listClipsForJob,
   updateJob,
 } from "../db/client.js";
-import { copyFixtureVideo, cutClip, ffmpegAvailable, probeDurationSec } from "./ffmpeg.js";
+import {
+  copyCachedClip,
+  copyFixtureVideo,
+  cutClip,
+  ffmpegAvailable,
+  fixtureClipCacheKey,
+  probeDurationSec,
+} from "./ffmpeg.js";
 import { FIXTURE_DURATION_SEC, FIXTURE_TITLE, FIXTURE_TRANSCRIPT } from "./fixture.js";
 import { mindsConfigured, proposeClipsWithMinds, requestAutonomousFollowUp } from "./minds.js";
 import { clipsDir, ensureDataDirs, sourcesDir, uploadsDir } from "../lib/paths.js";
 import { fallbackArtifacts } from "./artifacts.js";
 import { fallbackClipRecipes } from "./recipes.js";
 import { snapshotVoice } from "./lineage.js";
-import { loadVoiceMemory } from "./voice.js";
+import { loadVoiceMemory, voiceSourceKey } from "./voice.js";
 import { downloadYoutubeVideo, fetchYoutubeMeta } from "./youtube.js";
 
 export async function enqueueJob(input) {
@@ -60,7 +67,10 @@ export async function processJob(jobId) {
     const source = await resolveSource(jobId);
 
     await updateJob(jobId, { status: "analyzing" });
-    const voice = await loadVoiceMemory({ beforeSec: job.createdAt + 1 });
+    const voice = await loadVoiceMemory({
+      beforeSec: job.createdAt + 1,
+      sourceKey: voiceSourceKey(job),
+    });
     const voiceApplied = snapshotVoice(voice);
     let recipes = [];
     let analyzer = "fallback";
@@ -73,9 +83,10 @@ export async function processJob(jobId) {
           transcript: source.transcript,
           durationSec: source.durationSec,
           voice,
+          reuseSavedAnswer: job.sourceType === "fixture",
         });
         recipes = result.recipes;
-        analyzer = "minds";
+        analyzer = result.savedAnswer ? "minds_saved" : "minds";
         if (result.artifacts) artifacts = result.artifacts;
       } catch (error) {
         console.warn("Minds clip proposal failed, using fallback", error);
@@ -83,15 +94,22 @@ export async function processJob(jobId) {
     }
 
     if (recipes.length === 0) {
-      recipes = fallbackClipRecipes(source.transcript, source.durationSec);
+      recipes = fallbackClipRecipes(source.transcript, source.durationSec, source.title);
       analyzer = "fallback";
     }
 
+    // Deleted while the moments were chosen: don't queue ffmpeg cuts for a pack that is gone.
+    if (!(await getJob(jobId))) return;
     await updateJob(jobId, { analyzer, artifacts, voiceApplied, status: "clipping" });
-    await materializeClips(jobId, source.sourceVideoPath, recipes);
+    await materializeClips(jobId, source.sourceVideoPath, recipes, {
+      reuseCuts: job.sourceType === "fixture",
+    });
     await updateJob(jobId, { status: "ready" });
-    await writeFollowUp(jobId, source.title, recipes);
+    await writeFollowUp(jobId, source.title, recipes, job.sourceType === "fixture");
   } catch (error) {
+    // A pack deleted mid-run fails on its own missing row (no job to read, or clips that
+    // break the foreign key). Nothing is left to mark as failed, so stop quietly.
+    if (!(await getJob(jobId))) return;
     const message = error instanceof Error ? error.message : "Pipeline failed";
     await updateJob(jobId, { status: "failed", error: message });
     throw error;
@@ -147,7 +165,7 @@ async function resolveSource(jobId) {
   return { title, transcript, durationSec: durationSec ?? null, sourceVideoPath };
 }
 
-async function materializeClips(jobId, sourceVideoPath, recipes) {
+async function materializeClips(jobId, sourceVideoPath, recipes, { reuseCuts = false } = {}) {
   const existing = await listClipsForJob(jobId);
   if (existing.length > 0) return;
 
@@ -157,14 +175,20 @@ async function materializeClips(jobId, sourceVideoPath, recipes) {
     let videoPath = null;
     if (sourceVideoPath && fs.existsSync(sourceVideoPath) && ffmpegAvailable()) {
       const dest = path.join(clipsDir(), `${id}.mp4`);
+      const cut = {
+        sourcePath: sourceVideoPath,
+        startSec: recipe.startSec,
+        endSec: recipe.endSec,
+        aspectRatio: recipe.aspectRatio,
+      };
       try {
-        await cutClip({
-          sourcePath: sourceVideoPath,
-          outputPath: dest,
-          startSec: recipe.startSec,
-          endSec: recipe.endSec,
-          aspectRatio: recipe.aspectRatio,
-        });
+        if (reuseCuts) {
+          await copyCachedClip(dest, fixtureClipCacheKey(recipe), sourcesDir(), (tmp) =>
+            cutClip({ ...cut, outputPath: tmp }),
+          );
+        } else {
+          await cutClip({ ...cut, outputPath: dest });
+        }
         videoPath = dest;
       } catch (error) {
         console.warn(`Clip cut failed for ${recipe.platform}`, error);
@@ -193,11 +217,12 @@ async function materializeClips(jobId, sourceVideoPath, recipes) {
   await insertClips(records);
 }
 
-async function writeFollowUp(jobId, title, recipes) {
+async function writeFollowUp(jobId, title, recipes, reuseSavedAnswer) {
   try {
     const followup = await requestAutonomousFollowUp({
       title,
       platforms: recipes.map((recipe) => recipe.platform),
+      reuseSavedAnswer,
     });
     await updateJob(jobId, { followup });
   } catch (error) {

@@ -123,6 +123,7 @@ export function packStatus(status: string, pendingReview: number, clipCount: num
 
 export function analyzerLabel(value: string | null | undefined) {
   if (value === "minds") return "Mind";
+  if (value === "minds_saved") return "Mind (saved answer)";
   if (value === "fallback") return "Alternative processing";
   return null;
 }
