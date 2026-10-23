@@ -28,6 +28,7 @@ import {
 } from "@frontend/lib/format";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
+import { SelectionMethod } from "@frontend/components/selection-method";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
 import { Pipeline } from "@frontend/components/pipeline";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -461,6 +462,8 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           </span>
         </summary>
         <div className="px-5 pb-5 space-y-4 border-t border-[var(--border)] pt-4">
+          <SelectionMethod analyzer={job.analyzer} status={job.status} />
+
           {followup && (
             <aside className="cell p-4 space-y-1.5">
               <p className="timecode text-[11px] text-[var(--fg-muted)]">Next move</p>
@@ -472,6 +475,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           {(job.status === "ready" || job.status === "clipping" || voiceSteered) && (
             <VoiceInfluence
               steered={voiceSteered}
+              usedForPicks={job.analyzer !== "fallback"}
               voiceApplied={voiceApplied}
               lineage={lineage}
               currentJobId={job.id}
