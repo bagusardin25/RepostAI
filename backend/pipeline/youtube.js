@@ -5,6 +5,21 @@ import { parseTranscriptCues } from "./recipes.js";
 const VIDEO_ID = /(?:v=|youtu\.be\/|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})/;
 const PREFERRED_LANGS = ["en", "en-US", "en-GB", "id", "id-ID"];
 
+// A YouTube request that never settles would leave its pack on "Reading source" forever.
+// Reading the title and captions gets a total budget; a download only fails when no data
+// arrives for a while, so long videos still finish.
+const META_TIMEOUT_MS = 90_000;
+const DOWNLOAD_STALL_MS = 60_000;
+
+/** Rejects with `message` when `promise` has not settled after `ms`. */
+export function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export function extractYoutubeId(input) {
   const trimmed = input.trim();
   if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
@@ -162,6 +177,14 @@ export async function fetchYoutubeMeta(url) {
   const videoId = extractYoutubeId(url);
   if (!videoId) throw new Error("Invalid YouTube URL");
 
+  return withTimeout(
+    readYoutubeMeta(videoId),
+    META_TIMEOUT_MS,
+    "YouTube did not answer in time. Try again, or paste a transcript.",
+  );
+}
+
+async function readYoutubeMeta(videoId) {
   const info = await loadVideoInfo(videoId);
   const title = info.basic_info.title ?? "YouTube video";
   const durationSec = info.basic_info.duration ?? null;
@@ -199,14 +222,21 @@ export async function fetchYoutubeMeta(url) {
   return { videoId, title, durationSec, transcript: nextTranscript };
 }
 
-async function writeDownloadStream(stream, destPath, onBytes) {
+export async function writeDownloadStream(stream, destPath, { stallMs = DOWNLOAD_STALL_MS, onBytes } = {}) {
   const reader = stream.getReader();
   const out = fs.createWriteStream(destPath);
   let written = 0;
   let reportedAt = 0;
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      let read;
+      try {
+        read = await withTimeout(reader.read(), stallMs, "YouTube download stalled");
+      } catch (error) {
+        reader.cancel().catch(() => {});
+        throw error;
+      }
+      const { done, value } = read;
       if (done) break;
       if (value) {
         written += value.byteLength;
@@ -242,7 +272,7 @@ export async function downloadYoutubeVideo(url, destPath, { onBytes } = {}) {
         quality: "best",
         format: "mp4",
       });
-      await writeDownloadStream(stream, destPath, onBytes);
+      await writeDownloadStream(stream, destPath, { onBytes });
       if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1024) {
         return;
       }

@@ -3,8 +3,8 @@
 import { useEffect, useId, useState } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
-import { formatHashtags, isClipReady } from "@frontend/lib/content-pack";
-import { isPlatform } from "@frontend/lib/format";
+import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
+import { isPlatform, platformLabel } from "@frontend/lib/format";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
@@ -34,7 +34,8 @@ export function ClipCard({
   const [caption, setCaption] = useState(clip.displayCaption);
   const [hook, setHook] = useState(clip.displayHook);
   const [note, setNote] = useState(clip.reviewNote ?? "");
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  // The post text last copied: the card reads "Copied" until the hook or caption changes.
+  const [copiedPost, setCopiedPost] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [justApproved, setJustApproved] = useState(false);
@@ -52,25 +53,22 @@ export function ClipCard({
   const overLimit = charCount > limit;
   const ready = isClipReady(clip.status);
 
-  async function copyToClipboard(text: string, fieldLabel: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(fieldLabel);
-      toast.success(`Copied ${fieldLabel}`);
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch {
-      toast.error("Could not copy to clipboard");
-    }
-  }
-
   function captionWithHashtags() {
     const tags = formatHashtags(clip.hashtags);
     return [caption.trim(), tags].filter(Boolean).join("\n\n");
   }
 
-  function copyPost() {
-    const fullText = `${hook}\n\n${captionWithHashtags()}`.trim();
-    void copyToClipboard(fullText, "post");
+  const postText = `${hook}\n\n${captionWithHashtags()}`.trim();
+  const postCopied = copiedPost === postText;
+
+  async function copyPost() {
+    try {
+      await navigator.clipboard.writeText(postText);
+      setCopiedPost(postText);
+      toast.success("Copied post");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
   }
 
   async function act(action: "approve" | "reject" | "edit") {
@@ -144,6 +142,7 @@ export function ClipCard({
         {clip.videoUrl ? (
           <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg overflow-hidden bg-black border border-white/10 flex items-center justify-center">
             <video
+              aria-label={`${platformLabel(clip.platform)} clip, ${formatTimecode(clip.startSec)} to ${formatTimecode(clip.endSec)}`}
               className="h-full w-full object-contain"
               src={clip.videoUrl}
               controls
@@ -170,9 +169,10 @@ export function ClipCard({
 
           {clip.videoUrl && (
             <a
-              href={clip.videoUrl}
-              download={`${clip.platform}-${clip.id.slice(0, 6)}.mp4`}
-              className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
+              href={clipDownloadUrl(clip) ?? clip.videoUrl}
+              download={clipFileName(clip)}
+              aria-label={`Download ${platformLabel(clip.platform)} MP4`}
+              className="inline-flex min-h-6 items-center gap-1 px-1 -mr-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
             >
               <IconDownload className="h-3 w-3" />
               <span>MP4</span>
@@ -186,7 +186,7 @@ export function ClipCard({
           <div className="text-xs cell p-2.5 space-y-1">
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-2 text-left"
+              className="flex min-h-6 w-full items-center justify-between gap-2 text-left"
               aria-expanded={reasonOpen}
               onClick={() => setReasonOpen((current) => !current)}
             >
@@ -289,11 +289,13 @@ export function ClipCard({
           <div className="flex items-center justify-between gap-2 text-xs">
             <button
               type="button"
-              onClick={copyPost}
-              className="btn btn-ghost btn-xs flex-1 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+              onClick={() => void copyPost()}
+              className={`btn btn-ghost btn-xs flex-1 ${
+                postCopied ? "text-ok" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
+              }`}
             >
-              {copiedField === "post" ? <IconCheck className="h-3 w-3 text-[var(--ok)]" /> : <IconCopy className="h-3 w-3" />}
-              <span>{copiedField === "post" ? "Copied" : "Copy post"}</span>
+              {postCopied ? <IconCheck className="h-3 w-3" /> : <IconCopy className="h-3 w-3" />}
+              <span>{postCopied ? "Copied" : "Copy post"}</span>
             </button>
             <button
               type="button"

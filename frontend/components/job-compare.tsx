@@ -10,10 +10,11 @@ import {
   type JobComparePayload,
   type JobSummary,
 } from "@frontend/lib/api";
-import { formatDuration, platformLabel } from "@frontend/lib/format";
+import { analyzerLabel, formatDuration, platformLabel } from "@frontend/lib/format";
 import { PageHeader } from "@frontend/components/page-header";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
+import { earlierLaterIds } from "@frontend/lib/job-pair";
 
 export function JobCompare() {
   const router = useRouter();
@@ -28,6 +29,18 @@ export function JobCompare() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  function applyPair(nextA: string, nextB: string) {
+    const query = new URLSearchParams();
+    if (nextA) query.set("a", nextA);
+    if (nextB) query.set("b", nextB);
+    router.replace(`/jobs/compare?${query.toString()}`);
+  }
+
+  function commitPair(nextA: string, nextB: string) {
+    const ordered = earlierLaterIds(jobs, nextA, nextB);
+    applyPair(ordered?.earlierId ?? nextA, ordered?.laterId ?? nextB);
+  }
+
   useEffect(() => {
     listJobs()
       .then((payload) => setJobs(payload.jobs))
@@ -35,9 +48,14 @@ export function JobCompare() {
   }, []);
 
   useEffect(() => {
+    const ordered = earlierLaterIds(jobs, a, b);
+    if (ordered && (ordered.earlierId !== a || ordered.laterId !== b)) {
+      applyPair(ordered.earlierId, ordered.laterId);
+      return;
+    }
     setLeftId(a);
     setRightId(b);
-  }, [a, b]);
+  }, [a, b, jobs]);
 
   useEffect(() => {
     if (!a || !b || a === b) {
@@ -70,13 +88,6 @@ export function JobCompare() {
     [jobs],
   );
 
-  function applyPair(nextA: string, nextB: string) {
-    const query = new URLSearchParams();
-    if (nextA) query.set("a", nextA);
-    if (nextB) query.set("b", nextB);
-    router.replace(`/jobs/compare?${query.toString()}`);
-  }
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <nav className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)]" aria-label="Breadcrumb">
@@ -99,10 +110,7 @@ export function JobCompare() {
           value={leftId}
           jobs={readyJobs}
           exclude={rightId}
-          onChange={(id) => {
-            setLeftId(id);
-            applyPair(id, rightId);
-          }}
+          onChange={(id) => commitPair(id, rightId)}
         />
         <p className="timecode text-[11px] text-[var(--fg-muted)] text-center pb-2 hidden sm:block">then</p>
         <JobSelect
@@ -110,10 +118,7 @@ export function JobCompare() {
           value={rightId}
           jobs={readyJobs}
           exclude={leftId}
-          onChange={(id) => {
-            setRightId(id);
-            applyPair(leftId, id);
-          }}
+          onChange={(id) => commitPair(leftId, id)}
         />
       </div>
 
@@ -242,7 +247,7 @@ function JobMeta({
         {job.sourceTitle}
       </Link>
       <p className="text-xs text-[var(--fg-muted)]">
-        {job.analyzer === "minds" ? "Mind" : job.analyzer === "fallback" ? "Fallback" : "Job"} · {formatDuration(job.durationSec)}
+        {analyzerLabel(job.analyzer) ?? "Job"} · {formatDuration(job.durationSec)}
       </p>
     </div>
   );

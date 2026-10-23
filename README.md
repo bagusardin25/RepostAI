@@ -4,7 +4,9 @@
 
 RepostAI turns a YouTube video into a **content pack**: TikTok, Reels, and X clips plus a script, carousel, thread, and LinkedIn draft. A persistent [Minds](https://hellominds.ai) agent picks the moments. You approve, rewrite, or skip. Those decisions steer the next pack.
 
-Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**.
+**Live app:** [repostai-nine.vercel.app](https://repostai-nine.vercel.app) · **Tested on every pull request** by [TestSprite](https://www.testsprite.com). See [How it's tested](#how-its-tested).
+
+Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**. Extended for [TestSprite Hackathon Season 4](https://www.testsprite.com/hackathon-s4).
 
 > Built with [Minds by Animoca Brands](https://hellominds.ai).
 
@@ -107,6 +109,60 @@ Next pack injects those notes before the Mind proposes again
 
 ---
 
+## How it's tested
+
+Every pull request is tested end to end by [TestSprite](https://www.testsprite.com) on its own Vercel preview, and `main` only takes a pull request whose TestSprite check passed.
+
+```
+Write a change  →  open a PR  →  Vercel builds a preview  →  TestSprite runs the suite on it
+      ↑                                                                   │
+      └────────  fix the root cause  ←  read the failure on the PR  ←─────┘
+```
+
+- **Trigger:** the TestSprite GitHub App fires on the Vercel **Preview** deployment of each PR and tests `https://repostai-git-{branch-slug}-bagusardinp-3679s-projects.vercel.app`. Previews call the production API, so a run exercises the real pipeline, the Mind included.
+- **Results:** a TestSprite comment on the PR (per-test video, steps, error, cause, and fix) and a `TestSprite V3` commit status.
+- **CI:** GitHub Actions runs `pnpm lint`, `pnpm test`, and `pnpm build` on every pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+- **Merge gate:** a ruleset on `main` requires a pull request and a passing `TestSprite V3` status, and TestSprite reports failures as a failing status, so a failed test holds the merge.
+
+### What the suite covers
+
+A frontend UI suite built in the TestSprite 3.0 web portal against the live app, with no sign-in.
+
+| Area | What it checks |
+|---|---|
+| Landing and navigation | Landing → desk, section links, header navigation, theme toggle, system status dialog, mobile header, an unknown pack id shows "not found" |
+| Starting a pack | YouTube link, video upload, the demo sample, an invalid link is rejected |
+| Processing | Status updates without a refresh, a failed pack shows its error and Retry, a fallback pack is labeled as alternative processing |
+| Review | Approve, edit the hook or caption and save, reject, an X caption over the limit cannot be approved, Review next, Approve all remaining |
+| Taking the pack | Copy one post, Copy pack, browse the four drafts, download an MP4 |
+| Learning loop | Why these moments, learned style rules, compare two packs after feedback, Mind status and conversation |
+| Desk | Open a pack, search, list filters, view presets, filter the transcript, delete a pack or a project |
+
+`pnpm test` adds unit tests for the pipeline (Mind queue and time limits, transcript grounding, voice memory, ffmpeg, YouTube limits, interrupted packs), media downloads, the crash guard, and frontend helpers.
+
+### What the loop caught: PR #4
+
+[PR #4](https://github.com/bagusardin25/RepostAI/pull/4) went through the loop. The same 91 TestSprite cases ran before and after its fixes:
+
+| Run | Commit | Passed | Failed | Blocked |
+|---|---|---|---|---|
+| [PR #4, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8689bf2c-2273-4799-8c5f-f2f37c36e666) | `22ae6fb` | 56 | 15 | 20 |
+| [PR #5](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/eb4b890e-d4d7-44b6-a50d-e751de71846e) | `c3d2f12` | 64 | 17 | 10 |
+| [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | `c8d0baa` | 83 | 3 | 5 |
+
+Each fix is its own commit, and its message says what TestSprite found:
+
+| What the tests saw | Root cause | Commit |
+|---|---|---|
+| Fresh packs sat on "Finding moments", then fell back | Packs started together shared one Mind conversation and took each other's replies | `0b90521` |
+| Packs failed mid-run; the page showed "Failed to fetch" | An uncatchable fetch socket assertion ended the API; the page stopped polling after one error | `b30c0c4`, `22ae6fb` |
+| Demo packs sat on "Preparing clips" | Every demo pack cut the same windows again | `0b61b33` |
+| Packs sat on "Choosing three moments" past five minutes | A pack had no limit on its time in the Mind queue, so the Nth pack waited about N × 3 minutes | `4518e5c` |
+| `FOREIGN KEY constraint failed` in the logs | A pack deleted mid-run still inserted its clips | `6eb1bd1` |
+| No copied state, no word on how moments were picked, no status on the landing page | UI gaps | `09212ca`, `415afcc`, `c8d0baa` |
+
+---
+
 ## Architecture
 
 ```
@@ -206,7 +262,7 @@ On the desk, click **Run the sample**. It runs one built-in demo source: *Stop p
 
 | Command | Description |
 |---|---|
-| `pnpm test` | Pipeline unit tests (recipes, captions, voice, watch, lineage) |
+| `pnpm test` | Backend unit tests (`node:test`) and frontend helper tests (`tsx`) |
 | `pnpm lint` | TypeScript check |
 | `pnpm build` | Production build |
 | `pnpm start` | Production frontend |

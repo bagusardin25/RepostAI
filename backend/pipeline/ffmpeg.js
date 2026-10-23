@@ -178,28 +178,53 @@ export async function writeFixtureVideo(outputPath, durationSec = 48) {
   );
 }
 
-const fixtureRenders = new Map();
+const cachedRenders = new Map();
 
 /**
- * The demo sample's test-pattern video depends only on its length, so it is rendered once
- * into `cacheDir` and copied for each new pack. Packs started together share one render.
- * Each pack gets its own copy because deleting a pack deletes its source file.
+ * Packs that need the same rendered file share one render. Each caller gets its own copy,
+ * because deleting a pack deletes the file it owns. A failed render leaves no temp file.
  */
-export async function copyFixtureVideo(outputPath, durationSec, cacheDir, render = writeFixtureVideo) {
-  const cached = path.join(cacheDir, `fixture-${durationSec}s.mp4`);
-  if (!fs.existsSync(cached)) {
-    if (!fixtureRenders.has(cached)) {
-      const tmp = `${cached}.tmp.mp4`;
-      const pending = render(tmp, durationSec)
-        .then(() => fs.renameSync(tmp, cached))
+async function copyFromCache(outputPath, cachedPath, render) {
+  if (!fs.existsSync(cachedPath)) {
+    if (!cachedRenders.has(cachedPath)) {
+      const tmp = `${cachedPath}.tmp.mp4`;
+      const pending = Promise.resolve()
+        .then(() => render(tmp))
+        .then(() => fs.renameSync(tmp, cachedPath))
         .catch((error) => {
           fs.rmSync(tmp, { force: true });
           throw error;
         })
-        .finally(() => fixtureRenders.delete(cached));
-      fixtureRenders.set(cached, pending);
+        .finally(() => cachedRenders.delete(cachedPath));
+      cachedRenders.set(cachedPath, pending);
     }
-    await fixtureRenders.get(cached);
+    await cachedRenders.get(cachedPath);
   }
-  fs.copyFileSync(cached, outputPath);
+  fs.copyFileSync(cachedPath, outputPath);
+}
+
+/**
+ * The demo sample's test-pattern video depends only on its length, so it is rendered once
+ * into `cacheDir` and copied for each new pack.
+ */
+export async function copyFixtureVideo(outputPath, durationSec, cacheDir, render = writeFixtureVideo) {
+  const cached = path.join(cacheDir, `fixture-${durationSec}s.mp4`);
+  await copyFromCache(outputPath, cached, (tmp) => render(tmp, durationSec));
+}
+
+/** Stable file name for one demo-sample clip window. Colons in aspect ratios are unsafe on Windows. */
+export function fixtureClipCacheKey(recipe) {
+  const start = Math.round(Number(recipe.startSec) * 1000);
+  const end = Math.round(Number(recipe.endSec) * 1000);
+  const aspect = String(recipe.aspectRatio ?? "9:16").replace(/[^a-z0-9]+/gi, "");
+  return `fixture-clip-${start}-${end}-${aspect}`;
+}
+
+/**
+ * Demo-sample clips depend only on the window, so the first pack cuts once and later packs
+ * copy that file. Packs started together share the one cut.
+ */
+export async function copyCachedClip(outputPath, cacheKey, cacheDir, render) {
+  const cached = path.join(cacheDir, `${cacheKey}.mp4`);
+  await copyFromCache(outputPath, cached, render);
 }

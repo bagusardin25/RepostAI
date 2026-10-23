@@ -9,27 +9,39 @@ export function VoiceInfluence({
   voiceApplied,
   lineage,
   currentJobId,
+  usedForPicks = true,
 }: {
   steered: boolean;
   voiceApplied: VoiceApplied | null;
   lineage: JobLineage | null;
   currentJobId?: string;
+  /** False when alternative processing picked the clips, so the saved style was not applied. */
+  usedForPicks?: boolean;
 }) {
   const rejects = voiceApplied?.rejectedReasons ?? [];
   const notes = (voiceApplied?.notes ?? []).slice(0, 4);
+  const skipped = steered && !usedForPicks;
 
   return (
     <section className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="timecode text-[11px] text-[var(--fg-muted)]">Your style used here</p>
+          <p className="timecode text-[11px] text-[var(--fg-muted)]">
+            {skipped ? "Your saved style" : "Your style used here"}
+          </p>
           <h2 className="section-title">
-            {steered ? "Prior reviews steered these clips" : "No saved style yet"}
+            {skipped
+              ? "Saved style not used for these clips"
+              : steered
+                ? "Prior reviews steered these clips"
+                : "No saved style yet"}
           </h2>
           <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-2xl">
-            {steered
-              ? "These notes were used before the moments were chosen."
-              : "Approve, edit, or reject these clips. The next pack will follow what you keep."}
+            {skipped
+              ? "Alternative processing picked these clips, so these notes were not applied. The next pack the Mind answers will use them."
+              : steered
+                ? "These notes were used before the moments were chosen."
+                : "Approve, edit, or reject these clips. The next pack will follow what you keep."}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

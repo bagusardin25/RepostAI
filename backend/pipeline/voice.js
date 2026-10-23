@@ -1,31 +1,43 @@
 import { listVoiceEdits } from "../db/client.js";
 import { scoreVoiceMemory } from "./voice-score.js";
+import { extractYoutubeId } from "./youtube.js";
 
 export async function loadVoiceMemory(options = {}) {
   const edits = await listVoiceEdits(options.limit ?? 40, options.beforeSec ?? null);
+  return buildVoiceMemory(edits, options.sourceKey ?? null);
+}
+
+/**
+ * Reviews from other videos teach style only: their hooks and captions are described, never
+ * quoted, because the Mind copied quoted lines word for word into unrelated videos. Edited
+ * copy is quoted only for the same source video (`sourceKey`).
+ */
+export function buildVoiceMemory(edits, sourceKey = null) {
   const notes = [];
   const rejectedReasons = [];
   const preferredHooks = [];
   const platformNotes = {};
+  const addPlatformNote = (platform, line) => (platformNotes[platform] ??= []).push(line);
 
   for (const edit of edits) {
-    const bucket = (platformNotes[edit.platform] ??= []);
     if (edit.action === "reject") {
       rejectedReasons.push(edit.note || edit.originalCaption.slice(0, 80));
-      bucket.push(
+      addPlatformNote(
+        edit.platform,
         edit.note
           ? `Rejected: ${edit.note}`
           : "Rejected this clip. Avoid similar intros/moments.",
       );
     } else if (edit.action === "edit") {
-      notes.push(
-        `On ${edit.platform}, caption was rewritten to: ${edit.editedCaption ?? ""}`,
-      );
-      bucket.push(`Prefer copy like: ${edit.editedCaption ?? ""}`);
+      notes.push(`On ${edit.platform}, the creator ${describeRewrite(edit)}.`);
+      if (edit.note) addPlatformNote(edit.platform, `Edit note: ${edit.note}`);
+      if (sourceKey && voiceSourceKey(edit) === sourceKey && edit.editedCaption) {
+        addPlatformNote(edit.platform, `Prefer copy like (same video): ${edit.editedCaption}`);
+      }
       if (edit.editedHook) preferredHooks.push(edit.editedHook);
     } else {
-      notes.push(`Approved ${edit.platform} clip.`);
-      if (edit.note) bucket.push(`Approved because: ${edit.note}`);
+      notes.push(`Approved ${edit.platform} clip: ${describeCopy(edit)}.`);
+      if (edit.note) addPlatformNote(edit.platform, `Approved because: ${edit.note}`);
       if (edit.originalHook) preferredHooks.push(edit.originalHook);
     }
   }
@@ -44,6 +56,59 @@ export async function loadVoiceMemory(options = {}) {
   };
 }
 
+/** Same key for a job and for the voice edits made on it, so reruns of one video match. */
+export function voiceSourceKey(item) {
+  if (!item) return null;
+  if (item.sourceType === "fixture") return "fixture";
+  const videoId = item.sourceUrl ? extractYoutubeId(item.sourceUrl) : null;
+  if (videoId) return `youtube:${videoId}`;
+  const jobId = item.jobId ?? item.id;
+  return jobId ? `job:${jobId}` : null;
+}
+
+/** What a review says about style, without the reviewed words. */
+export function describeReviewStyle(edit) {
+  return edit.action === "edit" ? describeRewrite(edit) : describeCopy(edit);
+}
+
+function describeRewrite(edit) {
+  const changes = [
+    rewriteChange("hook", edit.originalHook, edit.editedHook),
+    rewriteChange("caption", edit.originalCaption, edit.editedCaption),
+  ].filter(Boolean);
+  return changes.length ? changes.join(" and ") : "rewrote the copy";
+}
+
+function rewriteChange(label, before, after) {
+  const next = String(after ?? "").trim();
+  if (!next || next === String(before ?? "").trim()) return null;
+  const from = wordCount(before);
+  const to = wordCount(next);
+  const question = isQuestion(next) ? ", as a question" : "";
+  if (from > to) return `cut the ${label} from ${from} to ${to} words${question}`;
+  if (from && from < to) return `grew the ${label} from ${from} to ${to} words${question}`;
+  return `rewrote the ${label} (${to} words${question})`;
+}
+
+function describeCopy(edit) {
+  const parts = [copyLength("hook", edit.originalHook), copyLength("caption", edit.originalCaption)];
+  return parts.filter(Boolean).join(", ") || "no copy";
+}
+
+function copyLength(label, text) {
+  const words = wordCount(text);
+  if (!words) return null;
+  return `${words}-word ${label}${isQuestion(text) ? " (a question)" : ""}`;
+}
+
+function wordCount(text) {
+  return String(text ?? "").split(/\s+/).filter(Boolean).length;
+}
+
+function isQuestion(text) {
+  return String(text ?? "").trim().endsWith("?");
+}
+
 function unique(values) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
@@ -58,11 +123,12 @@ export function voiceMemoryPrompt(memory) {
   }
 
   const platformLines = Object.entries(memory.platformNotes)
+    .filter(([, lines]) => lines.length > 0)
     .map(([platform, lines]) => `- ${platform}: ${lines.join(" | ")}`)
     .join("\n");
 
   return [
-    "Learned creator preferences from previous review/approve/reject cycles:",
+    "Learned creator style from previous review/approve/reject cycles, mostly on other videos. Follow their tone, length, and structure. Never reuse wording from another video; only lines marked (same video) may be reused.",
     memory.notes.map((note) => `- ${note}`).join("\n"),
     memory.rejectedReasons.length
       ? `Rejected patterns: ${memory.rejectedReasons.join(" ; ")}`

@@ -5,6 +5,7 @@ import { BrandMark } from "@frontend/components/brand-mark";
 import { IconArrowRight } from "@frontend/components/icons";
 import { Showcase } from "@frontend/components/showcase";
 import { ThemeToggle } from "@frontend/components/theme-provider";
+import { SystemStatusButton } from "@frontend/components/system-status";
 
 const REPO_URL = "https://github.com/bagusardin25/RepostAI";
 
@@ -86,6 +87,7 @@ export function LandingContent() {
           </nav>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <ThemeToggle />
+            <SystemStatusButton />
             <Link href="/desk" className="btn btn-primary shrink-0">
               Open the desk
             </Link>

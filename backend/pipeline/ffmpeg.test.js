@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { copyFixtureVideo, createLimiter } from "./ffmpeg.js";
+import { copyCachedClip, copyFixtureVideo, createLimiter, fixtureClipCacheKey } from "./ffmpeg.js";
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -76,6 +76,52 @@ describe("copyFixtureVideo", () => {
       assert.deepEqual(fs.readdirSync(dir), []);
       await copyFixtureVideo(path.join(dir, "b.mp4"), 28, dir, render);
       assert.equal(attempts, 2);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("copyCachedClip", () => {
+  it("names a demo clip from its window without a colon", () => {
+    assert.equal(
+      fixtureClipCacheKey({ startSec: 1.25, endSec: 12, aspectRatio: "9:16" }),
+      "fixture-clip-1250-12000-916",
+    );
+  });
+
+  it("cuts a shared window once and gives each pack its own file", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "repostai-clip-"));
+    let cuts = 0;
+    const render = async (outputPath) => {
+      cuts += 1;
+      await wait(20);
+      fs.writeFileSync(outputPath, "clip");
+    };
+    const key = fixtureClipCacheKey({ startSec: 0, endSec: 8, aspectRatio: "9:16" });
+    try {
+      const outputs = ["a", "b", "c"].map((id) => path.join(dir, `${id}.mp4`));
+      await Promise.all(outputs.map((output) => copyCachedClip(output, key, dir, render)));
+      assert.equal(cuts, 1);
+      for (const output of outputs) assert.equal(fs.readFileSync(output, "utf8"), "clip");
+      fs.rmSync(outputs[0]);
+      assert.ok(fs.existsSync(path.join(dir, `${key}.mp4`)));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("cuts a different window again", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "repostai-clip-"));
+    let cuts = 0;
+    const render = async (outputPath) => {
+      cuts += 1;
+      fs.writeFileSync(outputPath, String(cuts));
+    };
+    try {
+      await copyCachedClip(path.join(dir, "a.mp4"), "fixture-clip-0-8000-916", dir, render);
+      await copyCachedClip(path.join(dir, "b.mp4"), "fixture-clip-8000-16000-916", dir, render);
+      assert.equal(cuts, 2);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

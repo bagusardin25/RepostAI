@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, type Dispatch, type SetStateAction } from "react";
 import {
+  ApiUnreachableError,
   getJob,
   retryJob,
   deleteJob,
@@ -16,11 +17,19 @@ import {
   type VoiceApplied,
 } from "@frontend/lib/api";
 
-import { formatContentPack, isClipReady, summarizeClipDecisions } from "@frontend/lib/content-pack";
+import {
+  clipDownloadUrl,
+  clipFileName,
+  copyPackMessage,
+  formatContentPack,
+  isClipReady,
+  summarizeClipDecisions,
+} from "@frontend/lib/content-pack";
 import { analyzerLabel, formatDuration, packStatus, sourceTypeLabel } from "@frontend/lib/format";
 import { clipPlatformLabel } from "@frontend/lib/progress";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
 import { ClipCard } from "@frontend/components/clip-card";
+import { SelectionMethod } from "@frontend/components/selection-method";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
 import { ProcessingStage } from "@frontend/components/processing-stage";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -50,6 +59,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   const [voiceSteered, setVoiceSteered] = useState(false);
   const [lineage, setLineage] = useState<JobLineage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -113,12 +123,23 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         setVoiceSteered(Boolean(data.voiceSteered));
         setLineage(data.lineage ?? null);
         setError(null);
+        setReconnecting(false);
+        // A ready pack is usable while the Mind's follow-up is still queued, so poll for it slowly.
         const waitingFollowup = data.job.status === "ready" && !(data.followup ?? data.job.followup);
-        if (ACTIVE.has(data.job.status) || waitingFollowup) {
+        if (ACTIVE.has(data.job.status)) {
           timer = setTimeout(() => void load(), 1500);
+        } else if (waitingFollowup) {
+          timer = setTimeout(() => void load(), 5000);
         }
       } catch (err) {
         if (cancelled) return;
+        // A dropped connection or an API restart is not the pack's fault: keep the page and
+        // keep asking until the API answers again, instead of stopping on "Failed to fetch".
+        if (err instanceof ApiUnreachableError) {
+          setReconnecting(true);
+          timer = setTimeout(() => void load(), 3000);
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load job workspace");
       }
     }
@@ -155,12 +176,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       return;
     }
     void navigator.clipboard.writeText(pack.text);
-    const bits = [
-      pack.ready.length > 0 ? `${pack.ready.length} clip${pack.ready.length === 1 ? "" : "s"}` : null,
-      pack.draftsIncluded ? "4 drafts" : null,
-    ].filter(Boolean);
-    const extra = pack.waitingCount > 0 ? ` ${pack.waitingCount} still need review.` : "";
-    toast.success(`Copied ${bits.join(" + ")}.${extra}`);
+    toast.success(copyPackMessage(pack));
   }
 
   function reviewNext() {
@@ -193,6 +209,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   if (!job) {
     return (
       <div className="space-y-6" aria-busy="true">
+        {reconnecting && (
+          <p className="text-xs text-[var(--fg-muted)] text-center" role="status">
+            Can&apos;t reach the server. Retrying…
+          </p>
+        )}
         <div className="skel h-20 rounded-xl" />
         <div className="skel h-24 rounded-xl" />
         <div className="grid gap-4 lg:grid-cols-3">
@@ -210,17 +231,25 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      <nav className="flex min-w-0 items-center gap-2 text-[0.8125rem] text-[var(--fg-muted)]" aria-label="Breadcrumb">
-        <Link href="/desk" className="hover:text-[var(--fg-bright)] transition-colors">
-          Projects
-        </Link>
-        <span aria-hidden="true" className="text-[var(--fg-subtle)]">
-          /
-        </span>
-        <span className="truncate text-[var(--fg-bright)]" aria-current="page">
-          {job.sourceTitle || "Pack"}
-        </span>
-      </nav>
+      <div className="flex items-center justify-between gap-3">
+        <nav className="flex min-w-0 items-center gap-2 text-[0.8125rem] text-[var(--fg-muted)]" aria-label="Breadcrumb">
+          <Link href="/desk" className="inline-flex min-h-6 items-center hover:text-[var(--fg-bright)] transition-colors">
+            Projects
+          </Link>
+          <span aria-hidden="true" className="text-[var(--fg-subtle)]">
+            /
+          </span>
+          <span className="truncate text-[var(--fg-bright)]" aria-current="page">
+            {job.sourceTitle || "Pack"}
+          </span>
+        </nav>
+        {reconnecting && (
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-[0.8125rem] text-[var(--fg-muted)]" role="status">
+            <IconRefresh className="h-3 w-3 animate-spin" aria-hidden="true" />
+            Connection lost. Retrying…
+          </span>
+        )}
+      </div>
 
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-2.5">
@@ -409,7 +438,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                       : "Review first"}
                 </p>
                 {clip.videoUrl ? (
-                  <a href={clip.videoUrl} download className="underline underline-offset-4">
+                  <a
+                    href={clipDownloadUrl(clip) ?? clip.videoUrl}
+                    download={clipFileName(clip)}
+                    className="inline-flex min-h-6 items-center underline underline-offset-4"
+                  >
                     Download MP4
                   </a>
                 ) : (
@@ -435,6 +468,8 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
             </span>
           </summary>
           <div className="px-1 pb-6 space-y-4 border-t border-[var(--border)] pt-5">
+            <SelectionMethod analyzer={job.analyzer} status={job.status} />
+
             {followup && (
               <aside className="cell p-4 space-y-1.5">
                 <p className="timecode text-[11px] text-[var(--fg-muted)]">Next move</p>
@@ -446,6 +481,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
             {(job.status === "ready" || job.status === "clipping" || voiceSteered) && (
               <VoiceInfluence
                 steered={voiceSteered}
+                usedForPicks={job.analyzer !== "fallback"}
                 voiceApplied={voiceApplied}
                 lineage={lineage}
                 currentJobId={job.id}
@@ -458,7 +494,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                 void navigator.clipboard.writeText(job.id);
                 toast.info("Copied pack ID");
               }}
-              className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] timecode"
+              className="inline-flex min-h-6 items-center text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] timecode"
             >
               Copy pack ID
             </button>
@@ -504,6 +540,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               {((sourceTab === "video" && job.sourceVideoUrl) || (!job.transcript && job.sourceVideoUrl)) && (
                 <div className="bg-black p-4 flex justify-center">
                   <video
+                    aria-label="Source video"
                     className="max-h-80 w-full max-w-2xl rounded-lg object-contain"
                     src={job.sourceVideoUrl}
                     controls

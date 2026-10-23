@@ -233,6 +233,7 @@ export default function MindPage() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Optional note to the Mind"
+                aria-label="Optional note to the Mind"
                 className="field flex-1 text-sm"
                 disabled={sending || !desk.ok}
               />

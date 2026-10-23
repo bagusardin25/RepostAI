@@ -19,7 +19,7 @@ export type JobSummary = {
   durationSec: number | null;
   status: string;
   error: string | null;
-  analyzer: "minds" | "fallback" | null;
+  analyzer: "minds" | "minds_saved" | "fallback" | null;
   createdAt: number;
   updatedAt?: number;
   hasTranscript: boolean;
@@ -183,23 +183,27 @@ function apiUrl(path: string) {
   return `${base}${path}`;
 }
 
+/** The API could not be reached, or answered without JSON (for example while it restarts). */
+export class ApiUnreachableError extends Error {}
+
+const UNREACHABLE = "Can't reach the RepostAI server. Check that the backend is running, then retry.";
+
 async function parse<T>(res: Promise<Response> | Response): Promise<T> {
-  const resolved = await res;
-  const text = await resolved.text();
+  let resolved: Response;
+  try {
+    resolved = await res;
+  } catch {
+    throw new ApiUnreachableError(UNREACHABLE);
+  }
+  const text = await resolved.text().catch(() => "");
   let data: (T & { error?: string }) | null = null;
   try {
     data = text ? (JSON.parse(text) as T & { error?: string }) : null;
   } catch {
-    // A proxy error page is not JSON; report it below in plain words.
+    // A proxy error page is not JSON: the API is down or restarting.
   }
-  if (!resolved.ok || !data) {
-    throw new Error(
-      data?.error ||
-        (resolved.status >= 500
-          ? "Can't reach the RepostAI server. Check that the backend is running, then retry."
-          : resolved.statusText || "Request failed"),
-    );
-  }
+  if (!data) throw new ApiUnreachableError(UNREACHABLE);
+  if (!resolved.ok) throw new Error(data.error || resolved.statusText || "Request failed");
   return data;
 }
 

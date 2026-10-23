@@ -122,8 +122,9 @@ export function packStatus(status: string, pendingReview: number, clipCount: num
 }
 
 export function analyzerLabel(value: string | null | undefined) {
-  if (value === "minds") return "Picked by the Mind";
-  if (value === "fallback") return "Picked by the built-in picker. The Mind wasn't available for this pack.";
+  if (value === "minds") return "Mind";
+  if (value === "minds_saved") return "Mind (saved answer)";
+  if (value === "fallback") return "Alternative processing";
   return null;
 }
 

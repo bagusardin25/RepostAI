@@ -22,6 +22,8 @@ const display = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
+  // Link previews point at the production app, including when shared from a preview.
+  metadataBase: new URL("https://repostai-nine.vercel.app"),
   title: {
     default: "RepostAI",
     template: "%s · RepostAI",
