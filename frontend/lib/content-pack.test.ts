@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ClipPackage } from "./api";
-import { clipDownloadUrl, copyPackMessage } from "./content-pack";
+import { clipDownloadUrl, copyPackMessage, formatClipPost } from "./content-pack";
 
 const clip = { id: "3229d75e-37d2", platform: "tiktok", videoUrl: "/api/media/clips/3229d75e.mp4" } as const;
 
@@ -41,5 +41,26 @@ describe("copyPackMessage", () => {
 
   it("adds nothing when every clip is decided", () => {
     assert.equal(copyPackMessage({ ready: ready(1), waitingCount: 0, draftsIncluded: true }), "Copied 1 clip + 4 drafts.");
+  });
+});
+
+describe("formatClipPost", () => {
+  const post = {
+    platform: "tiktok",
+    startSec: 8,
+    endSec: 22,
+    durationSec: 14,
+    displayHook: "Hook",
+    displayCaption: "Caption",
+    hashtags: ["clips"],
+  };
+
+  it("adds the lines spoken in the clip, timed from its start", () => {
+    const text = formatClipPost(post, "[00:00:08] First line.\n[00:00:16] Second line.\n[00:00:30] Later.");
+    assert.ok(text.endsWith("TRANSCRIPT:\n00:00 First line.\n00:08 Second line."));
+  });
+
+  it("leaves the transcript out when none is known", () => {
+    assert.equal(formatClipPost(post).includes("TRANSCRIPT"), false);
   });
 });

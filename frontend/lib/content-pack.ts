@@ -1,5 +1,6 @@
 import type { ClipPackage, ContentArtifacts } from "@frontend/lib/api";
 import { formatDuration } from "@frontend/lib/format";
+import { clipTranscript, timedTranscript } from "@frontend/lib/transcript";
 
 export function isClipReady(status: string) {
   return status === "approved" || status === "edited";
@@ -16,14 +17,21 @@ export function formatHashtags(tags: string[]) {
   return tags.map((tag) => (tag.startsWith("#") ? tag : `#${tag}`)).join(" ");
 }
 
-export function formatClipPost(clip: {
-  platform: string;
-  durationSec: number;
-  displayHook: string;
-  displayCaption: string;
-  hashtags: string[];
-}) {
+/** One clip in Copy pack: hook, caption, tags, and the lines spoken in it when the transcript is known. */
+export function formatClipPost(
+  clip: {
+    platform: string;
+    startSec: number;
+    endSec: number;
+    durationSec: number;
+    displayHook: string;
+    displayCaption: string;
+    hashtags: string[];
+  },
+  transcript = "",
+) {
   const tags = formatHashtags(clip.hashtags);
+  const spoken = timedTranscript(clipTranscript(transcript, clip.startSec, clip.endSec));
   return [
     `[${clip.platform.toUpperCase()} · ${formatDuration(clip.durationSec)}]`,
     "HOOK:",
@@ -32,6 +40,7 @@ export function formatClipPost(clip: {
     "CAPTION:",
     clip.displayCaption,
     tags ? `\nTAGS:\n${tags}` : "",
+    spoken ? `\nTRANSCRIPT:\n${spoken}` : "",
   ]
     .join("\n")
     .trim();
@@ -56,13 +65,13 @@ export function clipDownloadUrl(clip: Pick<ClipPackage, "id" | "platform" | "vid
   return `${clip.videoUrl}${join}download=${encodeURIComponent(clipFileName(clip))}`;
 }
 
-export function formatReadyClips(clips: ClipPackage[]) {
+export function formatReadyClips(clips: ClipPackage[], transcript = "") {
   const ready = clips.filter((clip) => isClipReady(clip.status));
   const waitingCount = clips.filter((clip) => clip.status === "needs_review").length;
   return {
     ready,
     waitingCount,
-    text: ready.map(formatClipPost).join("\n\n---\n\n"),
+    text: ready.map((clip) => formatClipPost(clip, transcript)).join("\n\n---\n\n"),
   };
 }
 
@@ -105,8 +114,8 @@ export function formatAllDrafts(artifacts: ContentArtifacts) {
   ].join("\n");
 }
 
-export function formatContentPack(clips: ClipPackage[], artifacts: ContentArtifacts | null) {
-  const pack = formatReadyClips(clips);
+export function formatContentPack(clips: ClipPackage[], artifacts: ContentArtifacts | null, transcript = "") {
+  const pack = formatReadyClips(clips, transcript);
   const drafts = artifacts ? formatAllDrafts(artifacts) : "";
   const parts = [
     pack.text && `## Ready clips\n\n${pack.text}`,

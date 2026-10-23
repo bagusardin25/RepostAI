@@ -178,7 +178,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   }
 
   function handleCopyPack() {
-    const pack = formatContentPack(clips, artifacts);
+    const pack = formatContentPack(clips, artifacts, job?.transcript ?? "");
     if (!pack.text.trim()) {
       toast.info("Approve a clip or wait for drafts first");
       return;
@@ -411,11 +411,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         </section>
       ) : null}
 
-      {clips.length > 0 && packView !== "copy" ? <ClipGrid clips={clips} lineage={lineage} onChange={setClips} /> : null}
+      {clips.length > 0 && packView !== "copy" ? <ClipGrid clips={clips} lineage={lineage} transcript={job.transcript} onChange={setClips} /> : null}
 
       {artifacts && packView !== "video" ? <ArtifactsPanel artifacts={artifacts} /> : null}
 
-      {clips.length > 0 && packView === "copy" ? <ClipGrid clips={clips} lineage={lineage} onChange={setClips} /> : null}
+      {clips.length > 0 && packView === "copy" ? <ClipGrid clips={clips} lineage={lineage} transcript={job.transcript} onChange={setClips} /> : null}
 
       {artifacts && packView === "video" ? (
         <details className="disclosure">
@@ -608,10 +608,12 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 function ClipGrid({
   clips,
   lineage,
+  transcript,
   onChange,
 }: {
   clips: ClipPackage[];
   lineage: JobLineage | null;
+  transcript: string;
   onChange: Dispatch<SetStateAction<ClipPackage[]>>;
 }) {
   const handles = useRef(new Map<string, ClipCardHandle>());
@@ -666,6 +668,7 @@ function ClipGrid({
                 else handles.current.delete(clip.id);
               }}
               clip={clip}
+              transcript={transcript}
               previousHook={prior && !prior.first ? prior.previousHook : null}
               previousNote={prior && !prior.first ? prior.previousNote : null}
               onChange={(next) =>

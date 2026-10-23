@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useImperativeHandle, useState, type Ref } from "react";
+import { useEffect, useId, useImperativeHandle, useMemo, useState, type Ref } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
 import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
 import { isPlatform, platformLabel } from "@frontend/lib/format";
+import { clipTranscript, formatSrt, transcriptText } from "@frontend/lib/transcript";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
@@ -27,12 +28,15 @@ export type ClipCardHandle = {
 
 export function ClipCard({
   clip,
+  transcript = "",
   onChange,
   previousHook,
   previousNote,
   ref,
 }: {
   clip: ClipPackage;
+  /** The whole pack transcript; the card shows the part spoken inside this clip. */
+  transcript?: string;
   onChange: (clip: ClipPackage) => void;
   previousHook?: string | null;
   previousNote?: string | null;
@@ -54,6 +58,17 @@ export function ClipCard({
   const [reasonOpen, setReasonOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [pastHook, setPastHook] = useState(false);
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
+
+  const spoken = useMemo(
+    () => clipTranscript(transcript, clip.startSec, clip.endSec),
+    [transcript, clip.startSec, clip.endSec],
+  );
+  const srtHref = useMemo(
+    () => `data:text/plain;charset=utf-8,${encodeURIComponent(formatSrt(spoken))}`,
+    [spoken],
+  );
 
   useEffect(() => {
     setCaption(clip.displayCaption);
@@ -81,6 +96,16 @@ export function ClipCard({
       await navigator.clipboard.writeText(postText);
       setCopiedPost(postText);
       toast.success("Copied post");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
+  }
+
+  async function copyTranscript() {
+    try {
+      await navigator.clipboard.writeText(transcriptText(spoken));
+      setTranscriptCopied(true);
+      toast.success("Copied transcript");
     } catch {
       toast.error("Could not copy to clipboard");
     }
@@ -237,6 +262,53 @@ export function ClipCard({
             {!reasonOpen && (
               <p className="text-[var(--fg-muted)] leading-relaxed line-clamp-2">{clip.reason}</p>
             )}
+          </div>
+        )}
+
+        {spoken.length > 0 && (
+          <div className="text-xs cell p-2.5 space-y-1.5">
+            <button
+              type="button"
+              className="flex min-h-6 w-full items-center justify-between gap-2 text-left"
+              aria-expanded={transcriptOpen}
+              onClick={() => setTranscriptOpen((current) => !current)}
+            >
+              <p className="timecode text-[10px] text-[var(--fg-muted)]">Transcript · {spoken.length} lines</p>
+              <span className="timecode text-[10px] text-[var(--fg-subtle)]">{transcriptOpen ? "Hide" : "Show"}</span>
+            </button>
+            <ol className="space-y-1">
+              {(transcriptOpen ? spoken : spoken.slice(0, 2)).map((line) => (
+                <li key={`${line.startSec}-${line.text}`} className="flex gap-2 leading-relaxed">
+                  <span className="timecode shrink-0 pt-px text-[10px] text-[var(--fg-subtle)]">
+                    {formatTimecode(line.startSec)}
+                  </span>
+                  <span className={transcriptOpen ? "text-[var(--fg)]" : "text-[var(--fg-muted)] line-clamp-2"}>
+                    {line.text}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5">
+              <button
+                type="button"
+                onClick={() => void copyTranscript()}
+                className={`inline-flex min-h-6 items-center gap-1 text-[11px] ${
+                  transcriptCopied ? "text-ok" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                }`}
+              >
+                {transcriptCopied ? <IconCheck className="h-3 w-3" /> : <IconCopy className="h-3 w-3" />}
+                <span>{transcriptCopied ? "Copied" : "Copy transcript"}</span>
+              </button>
+              <a
+                href={srtHref}
+                download={clipFileName(clip).replace(/\.mp4$/, ".srt")}
+                aria-label={`Download ${platformLabel(clip.platform)} subtitles (.srt)`}
+                className="inline-flex min-h-6 items-center gap-1 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)]"
+              >
+                <IconDownload className="h-3 w-3" />
+                <span>Download .srt</span>
+              </a>
+            </div>
           </div>
         )}
 
