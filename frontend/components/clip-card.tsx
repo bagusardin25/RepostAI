@@ -5,6 +5,7 @@ import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api"
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
 import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
 import { isPlatform, platformLabel } from "@frontend/lib/format";
+import { COVERED_AREAS, hookTop } from "@frontend/lib/safe-zones";
 import { clipTranscript, formatSrt, transcriptText } from "@frontend/lib/transcript";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -60,6 +61,9 @@ export function ClipCard({
   const [pastHook, setPastHook] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [showCovered, setShowCovered] = useState(false);
+  const covered = isPlatform(clip.platform) ? COVERED_AREAS[clip.platform] : [];
+  const hookTopShare = isPlatform(clip.platform) ? hookTop(clip.platform) : 0.12;
 
   const spoken = useMemo(
     () => clipTranscript(transcript, clip.startSec, clip.endSec),
@@ -189,7 +193,12 @@ export function ClipCard({
 
       <div className="bg-black p-3 flex flex-col items-center">
         {clip.videoUrl ? (
-          <div className="relative w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg overflow-hidden bg-black border border-white/10 flex items-center justify-center">
+          // A phone-shaped 9:16 frame, so the shaded UI areas line up with the picture.
+          <div className="relative h-[min(48vh,380px)] aspect-[9/16] max-w-full overflow-hidden rounded-[1.4rem] border-[5px] border-zinc-800 bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.08)] flex items-center justify-center">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-1 z-20 h-1 w-10 -translate-x-1/2 rounded-full bg-zinc-800"
+            />
             <video
               aria-label={`${platformLabel(clip.platform)} clip, ${formatTimecode(clip.startSec)} to ${formatTimecode(clip.endSec)}`}
               className="h-full w-full object-contain"
@@ -207,12 +216,39 @@ export function ClipCard({
               <p
                 aria-hidden="true"
                 data-testid="hook-overlay"
-                className="pointer-events-none absolute inset-x-3 top-[12%] line-clamp-3 text-center text-[15px] font-semibold leading-snug text-white"
+                style={{ top: `${hookTopShare * 100}%` }}
+                className="pointer-events-none absolute inset-x-3 line-clamp-3 text-center text-[15px] font-semibold leading-snug text-white"
               >
                 <span className="rounded bg-black/60 px-1.5 py-0.5 [box-decoration-break:clone] [-webkit-box-decoration-break:clone] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
                   {hookOnScreen}
                 </span>
               </p>
+            )}
+            {showCovered && (
+              <div aria-hidden="true" data-testid="covered-areas" className="pointer-events-none absolute inset-0 z-10">
+                {covered.map((area) => (
+                  <div
+                    key={area.label}
+                    className="absolute border border-dashed border-white/60"
+                    style={{
+                      left: `${area.x * 100}%`,
+                      top: `${area.y * 100}%`,
+                      width: `${area.w * 100}%`,
+                      height: `${area.h * 100}%`,
+                      backgroundImage:
+                        "repeating-linear-gradient(135deg, rgba(255,255,255,0.16) 0 6px, transparent 6px 12px)",
+                    }}
+                  >
+                    <span
+                      className={`absolute top-0.5 whitespace-nowrap rounded bg-black/75 px-1 text-[9px] font-medium text-white ${
+                        area.x > 0 ? "right-0.5" : "left-0.5"
+                      }`}
+                    >
+                      {area.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ) : (
@@ -233,17 +269,40 @@ export function ClipCard({
           </div>
 
           {clip.videoUrl && (
-            <a
-              href={clipDownloadUrl(clip) ?? clip.videoUrl}
-              download={clipFileName(clip)}
-              aria-label={`Download ${platformLabel(clip.platform)} MP4`}
-              className="inline-flex min-h-6 items-center gap-1 px-1 -mr-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
-            >
-              <IconDownload className="h-3 w-3" />
-              <span>MP4</span>
-            </a>
+            <div className="flex items-center gap-3">
+              {covered.length > 0 && (
+                <button
+                  type="button"
+                  aria-pressed={showCovered}
+                  onClick={() => setShowCovered((current) => !current)}
+                  title={`Shade where ${platformLabel(clip.platform)} draws its own UI over the video (approximate)`}
+                  className={`inline-flex min-h-6 items-center gap-1 text-[11px] transition-colors ${
+                    showCovered ? "text-white" : "text-zinc-300 hover:text-white"
+                  }`}
+                >
+                  <span aria-hidden="true" className="h-2.5 w-2.5 rounded-[3px] border border-dashed border-current" />
+                  <span>Safe zones</span>
+                </button>
+              )}
+              <a
+                href={clipDownloadUrl(clip) ?? clip.videoUrl}
+                download={clipFileName(clip)}
+                aria-label={`Download ${platformLabel(clip.platform)} MP4`}
+                className="inline-flex min-h-6 items-center gap-1 px-1 -mr-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
+              >
+                <IconDownload className="h-3 w-3" />
+                <span>MP4</span>
+              </a>
+            </div>
           )}
         </div>
+
+        {showCovered && (
+          <p className="w-full px-1 pt-1 text-[10px] leading-relaxed text-zinc-400">
+            Shaded: roughly where {platformLabel(clip.platform)} puts its own buttons and text. Keep the subject
+            and on-screen text clear of it. Approximate; the apps move these around.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3.5 p-4">
