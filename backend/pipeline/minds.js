@@ -7,7 +7,7 @@ import { mindPlainText } from "../lib/mind-text.js";
 import { parseMindArtifacts } from "./artifacts.js";
 import { HIGH, LOW, conversationTurn, createAsker, createTurnQueue } from "./mind-turns.js";
 import { parseMindClipRecipes } from "./recipes.js";
-import { voiceMemoryPrompt } from "./voice.js";
+import { describeReviewStyle, voiceMemoryPrompt } from "./voice.js";
 
 const ALIAS = process.env.MINDS_CONVERSATION_ALIAS || "main";
 
@@ -134,7 +134,7 @@ export async function proposeClipsWithMinds(input) {
     throw new Error(`Mind did not reply with clip packages within ${PROPOSAL_WAIT_MS / 1000}s`);
   }
   return {
-    recipes: parseMindClipRecipes(answer.text, input.durationSec),
+    recipes: parseMindClipRecipes(answer.text, input.durationSec, input.transcript),
     raw: answer.text,
     artifacts: parseMindArtifacts(answer.text, input.transcript),
     savedAnswer: answer.saved,
@@ -303,6 +303,7 @@ Tenets:
 - NEVER change the creator's core claim. Adapt format and tone only.
 - Prefer hook-first clips. Skip long intros unless the creator likes them.
 - Ground every timestamp in the transcript. Do not invent moments.
+- Earlier messages in this conversation are about other videos. Never reuse their hooks, captions, or reasons. Write hook and caption from THIS transcript only.
 
 ${voiceMemoryPrompt(input.voice)}
 
@@ -337,32 +338,32 @@ Return ONLY JSON with this shape:
   }
 }
 
-Produce exactly one clip per platform (tiktok, instagram, x). Timestamps must exist in the transcript window.
+Produce exactly one clip per platform (tiktok, instagram, and x). Timestamps must exist in the transcript window.
 Each platform MUST use a different time window (different startSec and endSec). Do not return the same slice three times.
-- tiktok: hook-first opening, usually 12–45s
-- instagram: a mid-video explanatory beat, usually 15–50s
-- x: a short closing takeaway, usually 8–25s
-If the source is shorter than 40s, still offset the windows (opening / middle / end) instead of cloning one range.
-hook = the on-screen first line spoken in the first seconds of THAT clip.
-caption = the post text pasted under the video. Put hashtags only in the hashtags array, not inside caption.
+- tiktok: 12–45s. Caption is one or two short spoken lines.
+- instagram: 15–50s. Caption states the rule, then the one line that supports it.
+- x: 8–25s. Caption is a single sentence under 220 characters.
+Start the window on the claim itself. Do not start on a false start, "excuse me", or a broken fragment.
+hook = the first intelligible sentence spoken inside that window. Do not paraphrase it into a different claim.
+reason = the clock range (m:ss–m:ss) and why that spoken line fits the platform. Never say "second zero" unless startSec is 0.
+caption = post text for that platform only. No hashtags in the caption. No "full breakdown" line.
+hashtags = words that appear in that clip. tiktok 3–4, instagram 4–5, x 1–2. Do not use #fyp, #repostai, or #creators.
 Also produce the four text artifacts. Tweets <= 280 chars. Carousel 4-6 slides. LinkedIn stays professional.`;
 }
 
-function buildReviewMemoryMessage(input) {
+// The reviewed hook and caption stay out of this message: sent as a "standing preference",
+// the Mind reused them word for word on unrelated videos. It gets their shape instead.
+export function buildReviewMemoryMessage(input) {
   const lines = [
     "Creator review (do NOT publish):",
+    `Video: ${input.title || "source video"}`,
     `Platform: ${input.platform}`,
     `Action: ${input.action}`,
-    `Original hook: ${input.originalHook || "(unchanged)"}`,
-    `Original caption: ${input.originalCaption || ""}`,
+    `Style: ${describeReviewStyle(input)}`,
   ];
-  if (input.action === "edit") {
-    if (input.editedHook) lines.push(`Rewritten hook: ${input.editedHook}`);
-    if (input.editedCaption) lines.push(`Rewritten caption: ${input.editedCaption}`);
-  }
   if (input.note) lines.push(`Creator note: ${input.note}`);
   lines.push(
-    "Remember this as a standing preference for future packages on this platform. Confirm in one sentence. Do not propose new clips.",
+    "Remember the style as a standing preference for future packages on this platform, not the wording: lines from this video must never appear in another video's package. Confirm in one sentence. Do not propose new clips.",
   );
   return lines.join("\n");
 }
@@ -370,9 +371,18 @@ function buildReviewMemoryMessage(input) {
 function buildSessionRecapMessage(input) {
   const rows = (input.clips ?? [])
     .map((clip) => {
-      const caption = clip.editedCaption || clip.caption || "";
+      const style =
+        clip.status === "edited"
+          ? describeReviewStyle({
+              action: "edit",
+              originalHook: clip.hook,
+              editedHook: clip.editedHook,
+              originalCaption: clip.caption,
+              editedCaption: clip.editedCaption,
+            })
+          : "";
       return `- ${clip.platform}: ${clip.status}${clip.reviewNote ? ` — ${clip.reviewNote}` : ""}${
-        clip.status === "edited" ? ` → ${caption.slice(0, 140)}` : ""
+        style ? ` → ${style}` : ""
       }`;
     })
     .join("\n");
@@ -381,7 +391,7 @@ function buildSessionRecapMessage(input) {
 
 ${rows}
 
-Reply with 3 short bullets of what you will do differently on the next job. No new clip JSON.`;
+Reply with 3 short bullets of what you will do differently on the next job. Describe style, not lines from this video. No new clip JSON.`;
 }
 
 function buildFollowUpPrompt(input) {

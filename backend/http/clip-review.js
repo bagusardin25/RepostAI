@@ -45,7 +45,10 @@ export async function POST(request, params) {
   });
 
   defer(async () => {
+    const job = await getJob(clip.jobId);
+    const title = job?.sourceTitle ?? "source video";
     await rememberCreatorDecision({
+      title,
       platform: clip.platform,
       action,
       originalCaption: clip.caption,
@@ -57,11 +60,7 @@ export async function POST(request, params) {
 
     const clips = await listClipsForJob(clip.jobId);
     if (clips.some((item) => item.status === "needs_review")) return;
-    const job = await getJob(clip.jobId);
-    await rememberReviewSession({
-      title: job?.sourceTitle ?? "source video",
-      clips,
-    });
+    await rememberReviewSession({ title, clips });
   });
 
   const updated = await getClip(params.id);

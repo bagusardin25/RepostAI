@@ -22,7 +22,7 @@ import { clipsDir, ensureDataDirs, sourcesDir, uploadsDir } from "../lib/paths.j
 import { fallbackArtifacts } from "./artifacts.js";
 import { fallbackClipRecipes } from "./recipes.js";
 import { snapshotVoice } from "./lineage.js";
-import { loadVoiceMemory } from "./voice.js";
+import { loadVoiceMemory, voiceSourceKey } from "./voice.js";
 import { downloadYoutubeVideo, fetchYoutubeMeta } from "./youtube.js";
 
 export async function enqueueJob(input) {
@@ -67,7 +67,10 @@ export async function processJob(jobId) {
     const source = await resolveSource(jobId);
 
     await updateJob(jobId, { status: "analyzing" });
-    const voice = await loadVoiceMemory({ beforeSec: job.createdAt + 1 });
+    const voice = await loadVoiceMemory({
+      beforeSec: job.createdAt + 1,
+      sourceKey: voiceSourceKey(job),
+    });
     const voiceApplied = snapshotVoice(voice);
     let recipes = [];
     let analyzer = "fallback";
@@ -91,7 +94,7 @@ export async function processJob(jobId) {
     }
 
     if (recipes.length === 0) {
-      recipes = fallbackClipRecipes(source.transcript, source.durationSec);
+      recipes = fallbackClipRecipes(source.transcript, source.durationSec, source.title);
       analyzer = "fallback";
     }
 

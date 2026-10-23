@@ -347,12 +347,17 @@ export async function insertVoiceEdit(record) {
 
 export async function listVoiceEdits(limit = 40, beforeSec = null) {
   const db = await getDb();
-  const result = await db.execute("SELECT * FROM voice_edits");
+  const result = await db.execute(
+    `SELECT voice_edits.*, jobs.source_type, jobs.source_url
+     FROM voice_edits LEFT JOIN jobs ON jobs.id = voice_edits.job_id`,
+  );
   return result.rows
     .map((row) => ({
       id: row.id,
       clipId: row.clip_id,
       jobId: row.job_id,
+      sourceType: row.source_type ?? null,
+      sourceUrl: row.source_url ?? null,
       platform: row.platform,
       action: row.action,
       originalCaption: row.original_caption,
