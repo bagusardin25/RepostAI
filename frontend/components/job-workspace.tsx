@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  type Dispatch,
+  type KeyboardEvent,
+  type SetStateAction,
+} from "react";
 import {
   ApiUnreachableError,
   getJob,
@@ -28,7 +36,7 @@ import {
 import { analyzerLabel, formatDuration, packStatus, sourceTypeLabel } from "@frontend/lib/format";
 import { clipPlatformLabel } from "@frontend/lib/progress";
 import { ArtifactsPanel } from "@frontend/components/artifacts-panel";
-import { ClipCard } from "@frontend/components/clip-card";
+import { ClipCard, type ClipCardHandle } from "@frontend/components/clip-card";
 import { SelectionMethod } from "@frontend/components/selection-method";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
 import { ProcessingStage } from "@frontend/components/processing-stage";
@@ -182,7 +190,10 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
   function reviewNext() {
     const next = clips.find((clip) => clip.status === "needs_review");
     if (!next) return;
-    document.getElementById(`clip-${next.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const card = document.getElementById(`clip-${next.id}`);
+    card?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Focus the card too, so the review shortcuts act on it.
+    card?.focus({ preventScroll: true });
   }
 
   const filteredTranscript = useMemo(() => {
@@ -392,6 +403,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               </button>
             ))}
           </div>
+
+          <p className="hidden text-xs text-[var(--fg-subtle)] sm:block">
+            Select a clip, then <Kbd>J</Kbd> <Kbd>K</Kbd> to move, <Kbd>A</Kbd> to approve, <Kbd>R</Kbd> to reject,{" "}
+            <Kbd>C</Kbd> to copy the post.
+          </p>
         </section>
       ) : null}
 
@@ -598,14 +614,57 @@ function ClipGrid({
   lineage: JobLineage | null;
   onChange: Dispatch<SetStateAction<ClipPackage[]>>;
 }) {
+  const handles = useRef(new Map<string, ClipCardHandle>());
+
+  function focusCard(id: string) {
+    const card = document.getElementById(`clip-${id}`);
+    card?.focus({ preventScroll: true });
+    card?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // Review shortcuts work only while focus is on a card (not while typing), so single
+  // letters never fire from elsewhere on the page.
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("input, textarea, select, [contenteditable='true']")) return;
+    const id = target.closest<HTMLElement>("[data-clip-id]")?.dataset.clipId;
+    const index = clips.findIndex((clip) => clip.id === id);
+    if (index === -1) return;
+
+    const key = event.key.toLowerCase();
+    if (key === "j" || key === "k") {
+      event.preventDefault();
+      focusCard(clips[(index + (key === "j" ? 1 : clips.length - 1)) % clips.length].id);
+      return;
+    }
+    const handle = handles.current.get(clips[index].id);
+    if (!handle) return;
+    if (key === "c") {
+      event.preventDefault();
+      void handle.copyPost();
+    } else if (key === "a" || key === "r") {
+      event.preventDefault();
+      void (key === "a" ? handle.approve() : handle.reject());
+      const next =
+        clips.find((clip, i) => i > index && clip.status === "needs_review") ??
+        clips.find((clip, i) => i < index && clip.status === "needs_review");
+      if (next) focusCard(next.id);
+    }
+  }
+
   return (
     <section className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-3 items-start animate-fade-in-up">
+      <div className="grid gap-4 lg:grid-cols-3 items-start animate-fade-in-up" onKeyDown={onKeyDown}>
         {clips.map((clip) => {
           const prior = lineage?.platforms.find((row) => row.platform === clip.platform);
           return (
             <ClipCard
               key={clip.id}
+              ref={(handle) => {
+                if (handle) handles.current.set(clip.id, handle);
+                else handles.current.delete(clip.id);
+              }}
               clip={clip}
               previousHook={prior && !prior.first ? prior.previousHook : null}
               previousNote={prior && !prior.first ? prior.previousNote : null}
@@ -617,5 +676,13 @@ function ClipGrid({
         })}
       </div>
     </section>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="timecode rounded border border-[var(--border-strong)] px-1 text-[0.6875rem] text-[var(--fg-muted)]">
+      {children}
+    </kbd>
   );
 }

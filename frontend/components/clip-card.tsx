@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useImperativeHandle, useState, type Ref } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
 import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
@@ -15,16 +15,28 @@ import {
   IconClock,
 } from "@frontend/components/icons";
 
+// How long the hook stays on the preview once the clip plays, like on-screen text in the first seconds.
+const HOOK_SECONDS = 3;
+
+/** What the pack page's review shortcuts can do to a card. */
+export type ClipCardHandle = {
+  approve: () => Promise<void>;
+  reject: () => Promise<void>;
+  copyPost: () => Promise<void>;
+};
+
 export function ClipCard({
   clip,
   onChange,
   previousHook,
   previousNote,
+  ref,
 }: {
   clip: ClipPackage;
   onChange: (clip: ClipPackage) => void;
   previousHook?: string | null;
   previousNote?: string | null;
+  ref?: Ref<ClipCardHandle>;
 }) {
   const toast = useToast();
   const hookId = useId();
@@ -40,6 +52,8 @@ export function ClipCard({
   const [error, setError] = useState<string | null>(null);
   const [justApproved, setJustApproved] = useState(false);
   const [reasonOpen, setReasonOpen] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [pastHook, setPastHook] = useState(false);
 
   useEffect(() => {
     setCaption(clip.displayCaption);
@@ -60,6 +74,7 @@ export function ClipCard({
 
   const postText = `${hook}\n\n${captionWithHashtags()}`.trim();
   const postCopied = copiedPost === postText;
+  const hookOnScreen = hook.trim() && (!playing || !pastHook) ? hook.trim() : null;
 
   async function copyPost() {
     try {
@@ -118,6 +133,12 @@ export function ClipCard({
     }
   }
 
+  useImperativeHandle(ref, () => ({
+    approve: () => act("approve"),
+    reject: () => act("reject"),
+    copyPost,
+  }));
+
   const primaryLabel = busy === "approve"
     ? "Saving…"
     : dirty
@@ -129,7 +150,10 @@ export function ClipCard({
   return (
     <article
       id={`clip-${clip.id}`}
-      className={`panel clip-card flex flex-col overflow-hidden transition-all duration-300 scroll-mt-28 ${
+      data-clip-id={clip.id}
+      tabIndex={-1}
+      aria-label={`${platformLabel(clip.platform)} clip`}
+      className={`panel clip-card flex flex-col overflow-hidden transition-all duration-300 scroll-mt-28 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tally)] ${
         ready ? "clip-accent-ready" : clip.status === "rejected" ? "clip-accent-rejected" : "clip-accent-review"
       } ${justApproved ? "card-approved-flash" : ""}`}
     >
@@ -140,7 +164,7 @@ export function ClipCard({
 
       <div className="bg-black p-3 flex flex-col items-center">
         {clip.videoUrl ? (
-          <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg overflow-hidden bg-black border border-white/10 flex items-center justify-center">
+          <div className="relative w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg overflow-hidden bg-black border border-white/10 flex items-center justify-center">
             <video
               aria-label={`${platformLabel(clip.platform)} clip, ${formatTimecode(clip.startSec)} to ${formatTimecode(clip.endSec)}`}
               className="h-full w-full object-contain"
@@ -148,7 +172,23 @@ export function ClipCard({
               controls
               playsInline
               preload="metadata"
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => setPlaying(false)}
+              onTimeUpdate={(e) => setPastHook(e.currentTarget.currentTime >= HOOK_SECONDS)}
             />
+            {/* The hook as viewers would see it on screen; the field below stays the source of truth. */}
+            {hookOnScreen && (
+              <p
+                aria-hidden="true"
+                data-testid="hook-overlay"
+                className="pointer-events-none absolute inset-x-3 top-[12%] line-clamp-3 text-center text-[15px] font-semibold leading-snug text-white"
+              >
+                <span className="rounded bg-black/60 px-1.5 py-0.5 [box-decoration-break:clone] [-webkit-box-decoration-break:clone] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+                  {hookOnScreen}
+                </span>
+              </p>
+            )}
           </div>
         ) : (
           <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg flex flex-col items-center justify-center p-4 text-center text-xs text-zinc-400 space-y-2 bg-zinc-900 border border-white/10">
@@ -220,7 +260,7 @@ export function ClipCard({
             placeholder="Opening line on screen..."
           />
           <p className="text-[11px] text-[var(--fg-subtle)] leading-relaxed">
-            First line on screen in the first seconds. Not the post.
+            On screen for the first {HOOK_SECONDS} seconds, as previewed on the video. Not the post.
           </p>
         </div>
 
