@@ -45,6 +45,17 @@ export function summarizeClipDecisions(clips: Pick<ClipPackage, "status">[]) {
   };
 }
 
+export function clipFileName(clip: Pick<ClipPackage, "id" | "platform">) {
+  return `${clip.platform}-${clip.id.slice(0, 6)}.mp4`;
+}
+
+/** The clip's MP4 link that saves the file instead of opening it in the player. */
+export function clipDownloadUrl(clip: Pick<ClipPackage, "id" | "platform" | "videoUrl">) {
+  if (!clip.videoUrl) return null;
+  const join = clip.videoUrl.includes("?") ? "&" : "?";
+  return `${clip.videoUrl}${join}download=${encodeURIComponent(clipFileName(clip))}`;
+}
+
 export function formatReadyClips(clips: ClipPackage[]) {
   const ready = clips.filter((clip) => isClipReady(clip.status));
   const waitingCount = clips.filter((clip) => clip.status === "needs_review").length;
@@ -108,6 +119,23 @@ export function formatContentPack(clips: ClipPackage[], artifacts: ContentArtifa
     draftsIncluded: Boolean(drafts),
     text: parts.join("\n\n----\n\n"),
   };
+}
+
+/** Clips still in review are left out of Copy pack on purpose, so the toast says so. */
+export function copyPackMessage(
+  pack: Pick<ReturnType<typeof formatContentPack>, "ready" | "waitingCount" | "draftsIncluded">,
+) {
+  const copied = [
+    pack.ready.length > 0 ? `${pack.ready.length} clip${pack.ready.length === 1 ? "" : "s"}` : null,
+    pack.draftsIncluded ? "4 drafts" : null,
+  ].filter(Boolean);
+  const left =
+    pack.waitingCount === 0
+      ? ""
+      : pack.waitingCount === 1
+        ? " 1 clip still needs review and is left out until you approve it."
+        : ` ${pack.waitingCount} clips still need review and are left out until you approve them.`;
+  return `Copied ${copied.join(" + ")}.${left}`;
 }
 
 export function draftTeasers(artifacts: ContentArtifacts) {

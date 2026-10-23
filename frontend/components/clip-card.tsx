@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
-import { formatHashtags, isClipReady } from "@frontend/lib/content-pack";
+import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
 import { isPlatform } from "@frontend/lib/format";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
@@ -168,8 +168,8 @@ export function ClipCard({
 
           {clip.videoUrl && (
             <a
-              href={clip.videoUrl}
-              download={`${clip.platform}-${clip.id.slice(0, 6)}.mp4`}
+              href={clipDownloadUrl(clip) ?? clip.videoUrl}
+              download={clipFileName(clip)}
               className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
             >
               <IconDownload className="h-3 w-3" />

@@ -17,7 +17,14 @@ import {
   type VoiceApplied,
 } from "@frontend/lib/api";
 
-import { formatContentPack, isClipReady, summarizeClipDecisions } from "@frontend/lib/content-pack";
+import {
+  clipDownloadUrl,
+  clipFileName,
+  copyPackMessage,
+  formatContentPack,
+  isClipReady,
+  summarizeClipDecisions,
+} from "@frontend/lib/content-pack";
 import {
   analyzerLabel,
   formatDuration,
@@ -152,12 +159,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       return;
     }
     void navigator.clipboard.writeText(pack.text);
-    const bits = [
-      pack.ready.length > 0 ? `${pack.ready.length} clip${pack.ready.length === 1 ? "" : "s"}` : null,
-      pack.draftsIncluded ? "4 drafts" : null,
-    ].filter(Boolean);
-    const extra = pack.waitingCount > 0 ? ` ${pack.waitingCount} still need review.` : "";
-    toast.success(`Copied ${bits.join(" + ")}.${extra}`);
+    toast.success(copyPackMessage(pack));
   }
 
   function reviewNext() {
@@ -437,7 +439,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                       : "Review first"}
                 </p>
                 {clip.videoUrl ? (
-                  <a href={clip.videoUrl} download className="underline underline-offset-4">
+                  <a
+                    href={clipDownloadUrl(clip) ?? clip.videoUrl}
+                    download={clipFileName(clip)}
+                    className="underline underline-offset-4"
+                  >
                     Download MP4
                   </a>
                 ) : (
