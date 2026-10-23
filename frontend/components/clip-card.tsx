@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
 import { PLATFORM_SPECS } from "@frontend/lib/constants";
 import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
-import { isPlatform } from "@frontend/lib/format";
+import { isPlatform, platformLabel } from "@frontend/lib/format";
 import { PlatformMark } from "@frontend/components/platform-mark";
 import { StatusPill } from "@frontend/components/status-pill";
 import { useToast } from "@frontend/components/toast";
@@ -142,6 +142,7 @@ export function ClipCard({
         {clip.videoUrl ? (
           <div className="w-full max-w-[260px] aspect-[9/16] max-h-[min(48vh,380px)] rounded-lg overflow-hidden bg-black border border-white/10 flex items-center justify-center">
             <video
+              aria-label={`${platformLabel(clip.platform)} clip, ${formatTimecode(clip.startSec)} to ${formatTimecode(clip.endSec)}`}
               className="h-full w-full object-contain"
               src={clip.videoUrl}
               controls
@@ -170,7 +171,8 @@ export function ClipCard({
             <a
               href={clipDownloadUrl(clip) ?? clip.videoUrl}
               download={clipFileName(clip)}
-              className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
+              aria-label={`Download ${platformLabel(clip.platform)} MP4`}
+              className="inline-flex min-h-6 items-center gap-1 px-1 -mr-1 text-[11px] text-zinc-300 hover:text-white transition-colors"
             >
               <IconDownload className="h-3 w-3" />
               <span>MP4</span>
@@ -184,7 +186,7 @@ export function ClipCard({
           <div className="text-xs cell p-2.5 space-y-1">
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-2 text-left"
+              className="flex min-h-6 w-full items-center justify-between gap-2 text-left"
               aria-expanded={reasonOpen}
               onClick={() => setReasonOpen((current) => !current)}
             >

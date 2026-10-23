@@ -110,9 +110,12 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         setLineage(data.lineage ?? null);
         setError(null);
         setReconnecting(false);
+        // A ready pack is usable while the Mind's follow-up is still queued, so poll for it slowly.
         const waitingFollowup = data.job.status === "ready" && !(data.followup ?? data.job.followup);
-        if (ACTIVE.has(data.job.status) || waitingFollowup) {
+        if (ACTIVE.has(data.job.status)) {
           timer = setTimeout(() => void load(), 1500);
+        } else if (waitingFollowup) {
+          timer = setTimeout(() => void load(), 5000);
         }
       } catch (err) {
         if (cancelled) return;
@@ -217,7 +220,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between text-xs text-[var(--fg-muted)]">
         <nav className="flex items-center gap-1.5" aria-label="Breadcrumb">
-          <Link href="/desk" className="hover:text-[var(--fg)] transition-colors">
+          <Link href="/desk" className="inline-flex min-h-6 items-center hover:text-[var(--fg)] transition-colors">
             Projects
           </Link>
           <span>/</span>
@@ -442,7 +445,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
                   <a
                     href={clipDownloadUrl(clip) ?? clip.videoUrl}
                     download={clipFileName(clip)}
-                    className="underline underline-offset-4"
+                    className="inline-flex min-h-6 items-center underline underline-offset-4"
                   >
                     Download MP4
                   </a>
@@ -494,7 +497,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               void navigator.clipboard.writeText(job.id);
               toast.info("Copied pack ID");
             }}
-            className="text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] timecode"
+            className="inline-flex min-h-6 items-center text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] timecode"
           >
             Copy pack ID
           </button>
@@ -540,6 +543,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
             {((sourceTab === "video" && job.sourceVideoUrl) || (!job.transcript && job.sourceVideoUrl)) && (
               <div className="bg-black p-4 flex justify-center">
                 <video
+                  aria-label="Source video"
                   className="max-h-80 w-full max-w-2xl rounded-lg object-contain"
                   src={job.sourceVideoUrl}
                   controls
