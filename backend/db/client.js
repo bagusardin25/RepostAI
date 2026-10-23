@@ -76,6 +76,8 @@ async function connect() {
   await ensureColumn(client, "jobs", "voice_applied", "TEXT");
   await ensureColumn(client, "voice_edits", "original_hook", "TEXT");
   await ensureColumn(client, "voice_edits", "edited_hook", "TEXT");
+  // 1 for packs started from a pull request preview (see lib/sandbox.js).
+  await ensureColumn(client, "jobs", "sandbox", "INTEGER NOT NULL DEFAULT 0");
   return client;
 }
 
@@ -134,6 +136,7 @@ function mapJob(row) {
     followup: parseJson(row.followup, null),
     artifacts: parseJson(row.artifacts, null),
     voiceApplied: parseJson(row.voice_applied, null),
+    sandbox: Boolean(row.sandbox),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -168,8 +171,8 @@ export async function createJob(input) {
   await db.execute({
     sql: `INSERT INTO jobs (
       id, source_type, source_url, source_title, source_video_path,
-      transcript, duration_sec, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?)`,
+      transcript, duration_sec, status, sandbox, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,
     args: [
       input.id,
       input.sourceType,
@@ -178,6 +181,7 @@ export async function createJob(input) {
       input.sourceVideoPath ?? null,
       input.transcript ?? "",
       input.durationSec ?? null,
+      input.sandbox ? 1 : 0,
       ts,
       ts,
     ],
@@ -191,11 +195,13 @@ export async function getJob(id) {
   return result.rows[0] ? mapJob(result.rows[0]) : null;
 }
 
-export async function listJobs() {
+/** Sandbox packs (from pull request previews) are left out unless `includeSandbox` is set. */
+export async function listJobs({ includeSandbox = false } = {}) {
   const db = await getDb();
   const result = await db.execute("SELECT * FROM jobs");
   return result.rows
     .map(mapJob)
+    .filter((job) => includeSandbox || !job.sandbox)
     .sort((a, b) => b.createdAt - a.createdAt)
     .map(({ transcript, artifacts, ...rest }) => ({
       ...rest,
@@ -345,13 +351,15 @@ export async function insertVoiceEdit(record) {
   });
 }
 
-export async function listVoiceEdits(limit = 40, beforeSec = null) {
+/** Reviews made on sandbox packs are left out unless `includeSandbox` is set. */
+export async function listVoiceEdits(limit = 40, beforeSec = null, { includeSandbox = false } = {}) {
   const db = await getDb();
   const result = await db.execute(
-    `SELECT voice_edits.*, jobs.source_type, jobs.source_url
+    `SELECT voice_edits.*, jobs.source_type, jobs.source_url, jobs.sandbox
      FROM voice_edits LEFT JOIN jobs ON jobs.id = voice_edits.job_id`,
   );
   return result.rows
+    .filter((row) => includeSandbox || !row.sandbox)
     .map((row) => ({
       id: row.id,
       clipId: row.clip_id,

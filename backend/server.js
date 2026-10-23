@@ -86,10 +86,10 @@ async function route(request, url) {
     return json({ ok: true, service: "repostai-backend" });
   }
   if (pathname === "/api/health" && method === "GET") return getHealth();
-  if (pathname === "/api/jobs" && method === "GET") return listJobs();
+  if (pathname === "/api/jobs" && method === "GET") return listJobs(request);
   if (pathname === "/api/jobs" && method === "POST") return createJob(request);
   if (pathname === "/api/jobs/compare" && method === "GET") return compareJobs(request);
-  if (pathname === "/api/voice" && method === "GET") return getVoice();
+  if (pathname === "/api/voice" && method === "GET") return getVoice(request);
   if (pathname === "/api/mind/history" && method === "GET") return getMind(request);
   if (pathname === "/api/mind/messages" && method === "POST") return postMind(request);
   if (pathname === "/api/mind/skills" && method === "POST") return postMind(request);

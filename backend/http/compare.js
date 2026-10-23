@@ -28,8 +28,11 @@ export async function GET(request) {
   ]);
 
   const voiceApplied =
-    later.voiceApplied ?? snapshotVoice(await loadVoiceMemory({ beforeSec: later.createdAt }));
-  const teaching = (await listVoiceEdits(80)).filter((edit) => edit.jobId === earlier.id);
+    later.voiceApplied ??
+    snapshotVoice(await loadVoiceMemory({ beforeSec: later.createdAt, includeSandbox: later.sandbox }));
+  const teaching = (await listVoiceEdits(80, null, { includeSandbox: earlier.sandbox })).filter(
+    (edit) => edit.jobId === earlier.id,
+  );
   const earlierPublic = earlierClips.map(publicClip);
   const laterPublic = laterClips.map(publicClip);
   const packages = compareJobPackages(earlierClips, laterClips).map((row) => ({

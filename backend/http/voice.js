@@ -1,12 +1,15 @@
 import { listJobs, listVoiceEdits } from "../db/client.js";
 import { json } from "../lib/http.js";
+import { isPreviewRequest } from "../lib/sandbox.js";
 import { loadVoiceMemory } from "../pipeline/voice.js";
 
-export async function GET() {
+export async function GET(request) {
+  // The production Style page shows only what real reviews taught; previews also see test reviews.
+  const includeSandbox = isPreviewRequest(request);
   const [memory, edits, jobs] = await Promise.all([
-    loadVoiceMemory(),
-    listVoiceEdits(40),
-    listJobs(),
+    loadVoiceMemory({ includeSandbox }),
+    listVoiceEdits(40, null, { includeSandbox }),
+    listJobs({ includeSandbox }),
   ]);
 
   const withImpact = edits.map((edit) => ({

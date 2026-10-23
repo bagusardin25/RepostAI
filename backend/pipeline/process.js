@@ -37,6 +37,7 @@ export async function enqueueJob(input) {
       sourceTitle: input.title || FIXTURE_TITLE,
       transcript: FIXTURE_TRANSCRIPT,
       durationSec: FIXTURE_DURATION_SEC,
+      sandbox: input.sandbox,
     });
   }
 
@@ -56,6 +57,7 @@ export async function enqueueJob(input) {
     sourceTitle: input.title || (input.youtubeUrl ? "YouTube video" : "Uploaded video"),
     sourceVideoPath,
     transcript: input.transcript ?? "",
+    sandbox: input.sandbox,
   });
 }
 
@@ -73,6 +75,7 @@ export async function processJob(jobId) {
     const voice = await loadVoiceMemory({
       beforeSec: job.createdAt + 1,
       sourceKey: voiceSourceKey(job),
+      includeSandbox: job.sandbox,
     });
     const voiceApplied = snapshotVoice(voice);
     let recipes = [];
@@ -113,7 +116,10 @@ export async function processJob(jobId) {
     });
     clearProgress(jobId);
     await updateJob(jobId, { status: "ready" });
-    await writeFollowUp(jobId, source.title, recipes, job.sourceType === "fixture");
+    await writeFollowUp(jobId, source.title, recipes, {
+      reuseSavedAnswer: job.sourceType === "fixture",
+      sandbox: job.sandbox,
+    });
   } catch (error) {
     // A pack deleted mid-run fails on its own missing row (no job to read, or clips that
     // break the foreign key). Nothing is left to mark as failed, so stop quietly.
@@ -231,12 +237,13 @@ async function materializeClips(jobId, sourceVideoPath, recipes, { reuseCuts = f
   await insertClips(records);
 }
 
-async function writeFollowUp(jobId, title, recipes, reuseSavedAnswer) {
+async function writeFollowUp(jobId, title, recipes, { reuseSavedAnswer, sandbox }) {
   try {
     const followup = await requestAutonomousFollowUp({
       title,
       platforms: recipes.map((recipe) => recipe.platform),
       reuseSavedAnswer,
+      sandbox,
     });
     await updateJob(jobId, { followup });
   } catch (error) {

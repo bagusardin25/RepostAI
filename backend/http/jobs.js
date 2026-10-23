@@ -2,10 +2,12 @@ import { listClipsForJob, listJobs } from "../db/client.js";
 import { enqueueJob, processJob } from "../pipeline/process.js";
 import { publicJob } from "./serialize.js";
 import { defer, json } from "../lib/http.js";
+import { isPreviewRequest } from "../lib/sandbox.js";
 import { extractYoutubeId } from "../pipeline/youtube.js";
 
-export async function GET() {
-  const jobs = await listJobs();
+export async function GET(request) {
+  // Previews see their own test packs; the production desk never lists them.
+  const jobs = await listJobs({ includeSandbox: isPreviewRequest(request) });
   const withCounts = await Promise.all(
     jobs.map(async (job) => {
       const clips = await listClipsForJob(job.id);
@@ -64,7 +66,14 @@ export async function POST(request) {
     return json({ error: "Invalid YouTube URL" }, 400);
   }
 
-  const job = await enqueueJob({ youtubeUrl, transcript, title, fixture, file });
+  const job = await enqueueJob({
+    youtubeUrl,
+    transcript,
+    title,
+    fixture,
+    file,
+    sandbox: isPreviewRequest(request),
+  });
   defer(async () => {
     await processJob(job.id);
   });
