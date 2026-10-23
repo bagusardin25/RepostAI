@@ -115,6 +115,7 @@ Write a change  →  open a PR  →  Vercel builds a preview  →  TestSprite ru
 
 - **Trigger:** the TestSprite GitHub App fires on the Vercel **Preview** deployment of each PR and tests `https://repostai-git-{branch-slug}-bagusardinp-3679s-projects.vercel.app`. Previews call the production API, so a run exercises the real pipeline, the Mind included.
 - **Results:** a TestSprite comment on the PR (per-test video, steps, error, cause, and fix) and a `TestSprite V3` commit status.
+- **CI:** GitHub Actions runs `pnpm lint`, `pnpm test`, and `pnpm build` on every pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 - **Merge gate:** a ruleset on `main` requires a pull request and a passing `TestSprite V3` status, and TestSprite reports failures as a failing status, so a failed test holds the merge.
 
 ### What the suite covers
