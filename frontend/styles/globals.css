@@ -36,7 +36,7 @@
   --field-bg: #ffffff;
   --field-border: rgba(23, 20, 15, 0.16);
   --field-color: #17140f;
-  --header-bg: rgba(245, 243, 239, 0.82);
+  --header-bg: #f5f3ef;
   --glass-bg: #ffffff;
   --glass-bg-strong: #ffffff;
   --glass-border: rgba(23, 20, 15, 0.09);
@@ -101,7 +101,7 @@ html.dark {
   --field-bg: #0f0e0c;
   --field-border: rgba(255, 255, 255, 0.14);
   --field-color: #f4f1ec;
-  --header-bg: rgba(10, 9, 8, 0.78);
+  --header-bg: #0a0908;
   --glass-bg: #151311;
   --glass-bg-strong: #1a1816;
   --glass-border: rgba(255, 255, 255, 0.08);
@@ -351,13 +351,12 @@ html.dark {
     border-radius: var(--radius-xl);
   }
 
+  /* Solid, so page content never shows through the sticky header while scrolling. */
   .site-header {
     width: 100%;
     max-width: 100%;
     background: var(--header-bg);
     border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   }
 
   .site-wrap {

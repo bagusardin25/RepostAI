@@ -54,7 +54,7 @@ export function SystemStatusButton() {
         <SystemStatus health={health} />
       </button>
 
-      {/* The site header blurs its backdrop, which would trap a fixed overlay inside it. */}
+      {/* Rendered at the body, so a blurred or transformed header can never trap the fixed overlay. */}
       {open &&
         createPortal(
           <div
