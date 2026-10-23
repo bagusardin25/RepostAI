@@ -28,6 +28,8 @@ export type JobSummary = {
   clipCount?: number;
   pendingReview?: number;
   progress?: JobProgress | null;
+  /** Started from a pull request preview; the live app leaves it out of its desk and style. */
+  sandbox?: boolean;
 };
 
 export type FollowUp = {

@@ -41,6 +41,7 @@ import { SelectionMethod } from "@frontend/components/selection-method";
 import { VoiceInfluence } from "@frontend/components/voice-influence";
 import { ProcessingStage } from "@frontend/components/processing-stage";
 import { StatusPill } from "@frontend/components/status-pill";
+import { TestPackBadge } from "@frontend/components/test-pack-badge";
 import { useToast } from "@frontend/components/toast";
 import {
   IconChevronRight,
@@ -271,6 +272,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
               {clips.length > 0 ? ` · ${clips.length} clips${draftCount ? ` + ${draftCount} drafts` : ""}` : ""}
             </span>
             <StatusPill value={packStatus(job.status, waitingCount, clips.length)} />
+            {job.sandbox ? <TestPackBadge /> : null}
             {job.sourceUrl && (
               <a
                 href={job.sourceUrl}

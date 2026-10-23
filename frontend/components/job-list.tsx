@@ -6,6 +6,7 @@ import { listJobs, deleteJob, type JobSummary } from "@frontend/lib/api";
 import { formatDuration, formatRelative, packStatus, sourceTypeLabel } from "@frontend/lib/format";
 import { snapshotFrom, stepHeadline, useSmoothProgress } from "@frontend/lib/progress";
 import { StatusPill } from "@frontend/components/status-pill";
+import { TestPackBadge } from "@frontend/components/test-pack-badge";
 import { useToast } from "@frontend/components/toast";
 import { IconChevronRight, IconRefresh, IconSearch, IconTrash } from "@frontend/components/icons";
 
@@ -216,6 +217,7 @@ export function JobList({ titleId }: { titleId?: string }) {
                   {pending > 0 ? (
                     <span className="text-[0.8125rem] font-semibold text-[var(--live-fg)]">{pending} to review</span>
                   ) : null}
+                  {job.sandbox ? <TestPackBadge className="hidden sm:inline-flex" /> : null}
                   {pending > 0 ? null : (
                     <StatusPill value={packStatus(job.status, job.pendingReview ?? 0, job.clipCount ?? 0)} />
                   )}
