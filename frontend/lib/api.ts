@@ -6,7 +6,7 @@ export type JobSummary = {
   durationSec: number | null;
   status: string;
   error: string | null;
-  analyzer: "minds" | "fallback" | null;
+  analyzer: "minds" | "minds_saved" | "fallback" | null;
   createdAt: number;
   updatedAt?: number;
   hasTranscript: boolean;
@@ -169,9 +169,22 @@ function apiUrl(path: string) {
   return `${base}${path}`;
 }
 
+/** The API could not be reached, or answered without JSON (for example while it restarts). */
+export class ApiUnreachableError extends Error {}
+
 async function parse<T>(res: Promise<Response> | Response): Promise<T> {
-  const resolved = await res;
-  const data = (await resolved.json()) as T & { error?: string };
+  let resolved: Response;
+  try {
+    resolved = await res;
+  } catch {
+    throw new ApiUnreachableError("Can't reach the server");
+  }
+  let data: T & { error?: string };
+  try {
+    data = (await resolved.json()) as T & { error?: string };
+  } catch {
+    throw new ApiUnreachableError(`Can't reach the server (HTTP ${resolved.status})`);
+  }
   if (!resolved.ok) throw new Error(data.error || resolved.statusText);
   return data;
 }

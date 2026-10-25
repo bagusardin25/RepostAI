@@ -13,6 +13,7 @@ import { GET as getMedia } from "./http/media.js";
 import { GET as getMind, POST as postMind } from "./http/mind.js";
 import { GET as getVoice } from "./http/voice.js";
 import { GET as getWatch, POST as postWatch } from "./http/watch.js";
+import { failInterruptedJobs } from "./db/client.js";
 import { startWatchLoop } from "./pipeline/watch.js";
 import { corsHeaders, json } from "./lib/http.js";
 import {
@@ -22,9 +23,21 @@ import {
   HOST,
   frontendOrigin,
 } from "./lib/ports.js";
+import { installCrashGuard } from "./lib/process-guard.js";
 
+installCrashGuard();
 loadEnvFiles();
 assertDistinctPorts();
+
+// Runs before the server accepts requests, so no new job can be caught by it.
+try {
+  const interrupted = await failInterruptedJobs(
+    "Processing was interrupted by a server restart. Retry this pack.",
+  );
+  if (interrupted > 0) console.log(`marked ${interrupted} interrupted pack(s) as failed`);
+} catch (error) {
+  console.error("Could not mark interrupted packs", error);
+}
 
 const server = createServer((req, res) => {
   handle(req, res).catch((error) => {

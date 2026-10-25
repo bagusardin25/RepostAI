@@ -1,13 +1,30 @@
 import { createMindsClient, parseHumanIdFromBuilderApiKey } from "@animocabrands/minds-client-lib";
+import { getSetting, setSetting } from "../db/client.js";
 import { PLATFORM_SPECS } from "../lib/constants.js";
 import { tenetsSeedMessage } from "../lib/tenets.js";
 import { extractJsonObject } from "../lib/json.js";
 import { mindPlainText } from "../lib/mind-text.js";
 import { parseMindArtifacts } from "./artifacts.js";
+import { HIGH, LOW, conversationTurn, createAsker, createTurnQueue } from "./mind-turns.js";
 import { parseMindClipRecipes } from "./recipes.js";
-import { voiceMemoryPrompt } from "./voice.js";
+import { describeReviewStyle, voiceMemoryPrompt } from "./voice.js";
 
 const ALIAS = process.env.MINDS_CONVERSATION_ALIAS || "main";
+
+// Every request shares one conversation, and waitForReply() takes the first Mind message
+// after ours, so packs processed together stole each other's replies and timed out into
+// the fallback. All turns now go through one queue, with clip proposals first.
+const ask = createAsker({
+  enqueue: createTurnQueue(),
+  turn: async (prompt, options) => {
+    const { mindsClient } = await ensureAlias();
+    return conversationTurn(mindsClient, ALIAS, prompt, options);
+  },
+  store: {
+    get: (key) => getSetting(`mind.answer.${key}`),
+    set: (key, text) => setSetting(`mind.answer.${key}`, text),
+  },
+});
 
 export function mindsConfigured() {
   return Boolean(process.env.MINDS_BUILDER_API_KEY);
@@ -95,52 +112,52 @@ export async function mindsHealth() {
   }
 }
 
+// How long a pack waits for the Mind in total, queue included, before it falls back. Each
+// turn may take up to 180s, so without this cap packs queued behind each other waited about
+// three minutes per pack ahead of them, and TestSprite saw fresh packs sit on "Choosing three
+// moments" past its five-minute limit.
+const PROPOSAL_WAIT_MS = 120_000;
+
+/**
+ * `reuseSavedAnswer` (demo samples): a prompt identical to one the Mind already answered,
+ * same sample and same learned style, gets that saved answer back instead of a new turn.
+ */
 export async function proposeClipsWithMinds(input) {
-  const { mindsClient } = await ensureAlias();
-  const before = await mindsClient.getLatestHistoryFingerprint(ALIAS);
-  const messageText = buildPrompt(input);
-
-  await mindsClient.sendMessage({ alias: ALIAS, messageText });
-  const outcome = await mindsClient.waitForReply({
-    alias: ALIAS,
+  const answer = await ask(buildPrompt(input), {
+    priority: HIGH,
     timeoutMs: 180_000,
-    afterFingerprint: before,
-    sentMessageText: messageText,
+    waitMs: PROPOSAL_WAIT_MS,
+    reuseSaved: Boolean(input.reuseSavedAnswer),
+    accept: (text) => hasClipRecipes(text, input.durationSec),
   });
-
-  if (outcome.timedOut) {
-    throw new Error("Mind did not reply with clip packages in time");
-  }
-
-  const raw = mindPlainText(outcome.reply.messageText ?? "");
-  const recipes = parseMindClipRecipes(raw, input.durationSec);
-  if (recipes.length === 0) {
-    throw new Error("Mind reply parsed but contained no valid clip packages");
+  if (!answer) {
+    throw new Error(`Mind did not reply with clip packages within ${PROPOSAL_WAIT_MS / 1000}s`);
   }
   return {
-    recipes,
-    raw,
-    artifacts: parseMindArtifacts(raw, input.transcript),
+    recipes: parseMindClipRecipes(answer.text, input.durationSec, input.transcript),
+    raw: answer.text,
+    artifacts: parseMindArtifacts(answer.text, input.transcript),
+    savedAnswer: answer.saved,
   };
+}
+
+function hasClipRecipes(text, durationSec) {
+  try {
+    return parseMindClipRecipes(text, durationSec).length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function rememberCreatorDecision(input) {
   if (!mindsConfigured()) return { sent: false };
-  const { mindsClient } = await ensureAlias();
-  await mindsClient.sendMessage({
-    alias: ALIAS,
-    messageText: buildReviewMemoryMessage(input),
-  });
+  await ask(buildReviewMemoryMessage(input), { priority: LOW, timeoutMs: 45_000 });
   return { sent: true };
 }
 
 export async function rememberReviewSession(input) {
   if (!mindsConfigured()) return { sent: false };
-  const { mindsClient } = await ensureAlias();
-  await mindsClient.sendMessage({
-    alias: ALIAS,
-    messageText: buildSessionRecapMessage(input),
-  });
+  await ask(buildSessionRecapMessage(input), { priority: LOW, timeoutMs: 45_000 });
   return { sent: true };
 }
 
@@ -149,30 +166,37 @@ export async function requestAutonomousFollowUp(input) {
   if (!mindsConfigured()) return fallback;
 
   try {
-    const { mindsClient } = await ensureAlias();
-    const before = await mindsClient.getLatestHistoryFingerprint(ALIAS);
-    const messageText = buildFollowUpPrompt(input);
-    await mindsClient.sendMessage({ alias: ALIAS, messageText });
-    const outcome = await mindsClient.waitForReply({
-      alias: ALIAS,
+    const answer = await ask(buildFollowUpPrompt(input), {
+      priority: LOW,
       timeoutMs: 60_000,
-      afterFingerprint: before,
-      sentMessageText: messageText,
+      reuseSaved: Boolean(input.reuseSavedAnswer),
+      accept: looksLikeFollowUp,
     });
-    if (outcome.timedOut) return fallback;
-    return parseFollowUp(mindPlainText(outcome.reply.messageText ?? ""), fallback);
+    return answer ? parseFollowUp(answer.text, fallback) : fallback;
   } catch (error) {
     console.warn("Autonomous follow-up failed", error);
     return fallback;
   }
 }
 
+function looksLikeFollowUp(text) {
+  try {
+    const root = extractJsonObject(text);
+    return Boolean(root.reminder || root.nextMove || root.next_move);
+  } catch {
+    return false;
+  }
+}
+
 export async function sendMindMessage(text) {
   const trimmed = String(text ?? "").trim();
   if (!trimmed) throw new Error("Message is empty");
-  const { mindsClient } = await ensureAlias();
-  await mindsClient.sendMessage({ alias: ALIAS, messageText: trimmed });
-  return { ok: true, alias: ALIAS };
+  if (!mindsConfigured()) throw new Error("MINDS_BUILDER_API_KEY is not set");
+  // Waits behind any pack that is talking to the Mind; the reply lands in the conversation.
+  ask(trimmed, { priority: LOW, timeoutMs: 60_000 }).catch((error) => {
+    console.warn("Mind message failed", error);
+  });
+  return { ok: true, alias: ALIAS, queued: true };
 }
 
 export async function seedMindTenets() {
@@ -279,6 +303,7 @@ Tenets:
 - NEVER change the creator's core claim. Adapt format and tone only.
 - Prefer hook-first clips. Skip long intros unless the creator likes them.
 - Ground every timestamp in the transcript. Do not invent moments.
+- Earlier messages in this conversation are about other videos. Never reuse their hooks, captions, or reasons. Write hook and caption from THIS transcript only.
 
 ${voiceMemoryPrompt(input.voice)}
 
@@ -313,32 +338,32 @@ Return ONLY JSON with this shape:
   }
 }
 
-Produce exactly one clip per platform (tiktok, instagram, x). Timestamps must exist in the transcript window.
+Produce exactly one clip per platform (tiktok, instagram, and x). Timestamps must exist in the transcript window.
 Each platform MUST use a different time window (different startSec and endSec). Do not return the same slice three times.
-- tiktok: hook-first opening, usually 12–45s
-- instagram: a mid-video explanatory beat, usually 15–50s
-- x: a short closing takeaway, usually 8–25s
-If the source is shorter than 40s, still offset the windows (opening / middle / end) instead of cloning one range.
-hook = the on-screen first line spoken in the first seconds of THAT clip.
-caption = the post text pasted under the video. Put hashtags only in the hashtags array, not inside caption.
+- tiktok: 12–45s. Caption is one or two short spoken lines.
+- instagram: 15–50s. Caption states the rule, then the one line that supports it.
+- x: 8–25s. Caption is a single sentence under 220 characters.
+Start the window on the claim itself. Do not start on a false start, "excuse me", or a broken fragment.
+hook = the first intelligible sentence spoken inside that window. Do not paraphrase it into a different claim.
+reason = the clock range (m:ss–m:ss) and why that spoken line fits the platform. Never say "second zero" unless startSec is 0.
+caption = post text for that platform only. No hashtags in the caption. No "full breakdown" line.
+hashtags = words that appear in that clip. tiktok 3–4, instagram 4–5, x 1–2. Do not use #fyp, #repostai, or #creators.
 Also produce the four text artifacts. Tweets <= 280 chars. Carousel 4-6 slides. LinkedIn stays professional.`;
 }
 
-function buildReviewMemoryMessage(input) {
+// The reviewed hook and caption stay out of this message: sent as a "standing preference",
+// the Mind reused them word for word on unrelated videos. It gets their shape instead.
+export function buildReviewMemoryMessage(input) {
   const lines = [
     "Creator review (do NOT publish):",
+    `Video: ${input.title || "source video"}`,
     `Platform: ${input.platform}`,
     `Action: ${input.action}`,
-    `Original hook: ${input.originalHook || "(unchanged)"}`,
-    `Original caption: ${input.originalCaption || ""}`,
+    `Style: ${describeReviewStyle(input)}`,
   ];
-  if (input.action === "edit") {
-    if (input.editedHook) lines.push(`Rewritten hook: ${input.editedHook}`);
-    if (input.editedCaption) lines.push(`Rewritten caption: ${input.editedCaption}`);
-  }
   if (input.note) lines.push(`Creator note: ${input.note}`);
   lines.push(
-    "Remember this as a standing preference for future packages on this platform. Confirm in one sentence. Do not propose new clips.",
+    "Remember the style as a standing preference for future packages on this platform, not the wording: lines from this video must never appear in another video's package. Confirm in one sentence. Do not propose new clips.",
   );
   return lines.join("\n");
 }
@@ -346,9 +371,18 @@ function buildReviewMemoryMessage(input) {
 function buildSessionRecapMessage(input) {
   const rows = (input.clips ?? [])
     .map((clip) => {
-      const caption = clip.editedCaption || clip.caption || "";
+      const style =
+        clip.status === "edited"
+          ? describeReviewStyle({
+              action: "edit",
+              originalHook: clip.hook,
+              editedHook: clip.editedHook,
+              originalCaption: clip.caption,
+              editedCaption: clip.editedCaption,
+            })
+          : "";
       return `- ${clip.platform}: ${clip.status}${clip.reviewNote ? ` — ${clip.reviewNote}` : ""}${
-        clip.status === "edited" ? ` → ${caption.slice(0, 140)}` : ""
+        style ? ` → ${style}` : ""
       }`;
     })
     .join("\n");
@@ -357,7 +391,7 @@ function buildSessionRecapMessage(input) {
 
 ${rows}
 
-Reply with 3 short bullets of what you will do differently on the next job. No new clip JSON.`;
+Reply with 3 short bullets of what you will do differently on the next job. Describe style, not lines from this video. No new clip JSON.`;
 }
 
 function buildFollowUpPrompt(input) {
