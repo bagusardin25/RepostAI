@@ -10,7 +10,6 @@ import {
   useState,
   type ClipboardEvent as ReactClipboardEvent,
   type FormEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createJob } from "@frontend/lib/api";
@@ -346,15 +345,14 @@ export function IngestForm() {
 
   function onLinkSubmit(event: FormEvent) {
     event.preventDefault();
+    // Submit is enabled for any typed link, so clicking it or pressing Enter on a link that
+    // isn't YouTube says why under the field instead of doing nothing.
+    if (hasUrl && !ytId) {
+      setTouched(true);
+      (file ? captionsInputRef.current : linkInputRef.current)?.focus();
+      return;
+    }
     void submit(file ? "file" : "url");
-  }
-
-  // Submit stays disabled until the link is a YouTube one, and a disabled submit also stops
-  // Enter from sending the form. Say why on Enter instead of waiting for the field to blur.
-  function onLinkKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
-    if (event.key !== "Enter" || !hasUrl || ytId) return;
-    event.preventDefault();
-    setTouched(true);
   }
 
   // Clicking empty space in the box goes to the link field, like a big label.
@@ -455,7 +453,6 @@ export function IngestForm() {
                   setError(null);
                 }}
                 onBlur={() => hasUrl && setTouched(true)}
-                onKeyDown={onLinkKeyDown}
                 onPaste={onInputPaste}
                 placeholder="youtube.com/watch?v=…"
                 inputMode="url"
@@ -485,7 +482,7 @@ export function IngestForm() {
               <button
                 type="submit"
                 className="btn btn-primary min-h-11 shrink-0 hidden sm:inline-flex"
-                disabled={busy !== null || !ytId}
+                disabled={busy !== null || !hasUrl}
               >
                 {submitLabel}
               </button>
@@ -495,7 +492,7 @@ export function IngestForm() {
                 {linkInvalidMessage}
               </p>
             ) : null}
-            <button type="submit" className="btn btn-primary btn-lg mt-3 w-full sm:hidden" disabled={busy !== null || !ytId}>
+            <button type="submit" className="btn btn-primary btn-lg mt-3 w-full sm:hidden" disabled={busy !== null || !hasUrl}>
               {submitLabel}
             </button>
 
@@ -652,7 +649,6 @@ export function IngestForm() {
                       setError(null);
                     }}
                     onBlur={() => hasUrl && setTouched(true)}
-                    onKeyDown={onLinkKeyDown}
                     onPaste={onInputPaste}
                     placeholder="youtube.com/watch?v=…"
                     inputMode="url"
@@ -676,7 +672,7 @@ export function IngestForm() {
                   <button type="button" className="btn btn-quiet min-h-11" onClick={removeFile}>
                     Use a link instead
                   </button>
-                  <button type="submit" className="btn btn-primary btn-lg" disabled={busy !== null || !ytId}>
+                  <button type="submit" className="btn btn-primary btn-lg" disabled={busy !== null || !hasUrl}>
                     Upload and cut
                   </button>
                 </div>

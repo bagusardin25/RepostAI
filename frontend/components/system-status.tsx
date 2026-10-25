@@ -90,7 +90,7 @@ export function SystemStatusButton() {
                   <StatusBadge ok={health?.mind} />
                 </div>
                 <div className="flex items-center justify-between p-2.5 cell hover:border-[var(--border-strong)] transition-colors">
-                  <span className="text-[var(--fg)]">Projects</span>
+                  <span className="text-[var(--fg)]">Saved projects</span>
                   <StatusBadge ok={health?.desk} />
                 </div>
               </div>

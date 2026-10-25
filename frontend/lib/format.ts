@@ -53,8 +53,8 @@ export const STATUS_LABEL: Record<string, string> = {
   completed: "Completed",
   failed: "Failed",
   needs_review: "To review",
-  approved: "Approved",
-  edited: "Approved",
+  approved: "Ready",
+  edited: "Ready",
   rejected: "Rejected",
 };
 
