@@ -22,11 +22,11 @@ Paste a public YouTube link (captions required). Review in minutes, not the afte
 
 | Output | What it is |
 |---|---|
-| 3 vertical clips | 9:16 cuts for TikTok, Instagram Reels, and X |
+| 3 vertical clips | 9:16 cuts for TikTok, Instagram Reels, and X, each with the lines spoken in it and a `.srt` subtitle file |
 | 4 text drafts | TikTok script, IG carousel, X thread, LinkedIn post |
-| Your call | Approve, Save & approve, or Reject — then **Copy pack** |
+| Your call | Approve, Save & approve, or Reject (or **A** / **R** on the keyboard), then **Copy pack** |
 
-Nothing posts. MP4s download one at a time.
+Nothing posts. MP4s and `.srt` files download one at a time.
 
 ---
 
@@ -38,8 +38,8 @@ Pick a source  →  Wait  →  Review what is left  →  Take the pack
 
 1. **Start** on `/desk` — paste a YouTube link, drop a video file plus its YouTube link for captions, or **Run the sample**.
 2. **Wait** — getting the video, picking moments, cutting clips. The page updates by itself.
-3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**.
-4. **Take** — **Copy pack** copies ready clips plus all four drafts. Download each MP4 separately.
+3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**. Each clip plays in a phone-shaped 9:16 frame with its hook on screen, and **Safe zones** shades where TikTok, Reels, or X draws its own buttons and text. On a selected clip, **J** / **K** move, **A** approves, **R** rejects, **C** copies the post.
+4. **Take** — **Copy pack** copies ready clips (hook, caption, tags, and the timed transcript) plus all four drafts. Download each MP4 and its `.srt` separately.
 
 Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (`/mind`) is the agent status. You do not need either page to finish a pack.
 
@@ -65,7 +65,7 @@ Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (
 
 ## Why the Mind matters
 
-Fallback recipes exist if the agent is offline. The pack then says **Picked by the built-in picker**, never Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
+Fallback recipes exist if the agent is offline. The pack then says **Alternative processing** and explains how its clips were picked, never Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
 
 ### Prove persistence (pack 1 → pack 2)
 
@@ -124,6 +124,15 @@ Write a change  →  open a PR  →  Vercel builds a preview  →  TestSprite ru
 - **CI:** GitHub Actions runs `pnpm lint`, `pnpm test`, and `pnpm build` on every pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 - **Merge gate:** a ruleset on `main` requires a pull request and a passing `TestSprite V3` status, and TestSprite reports failures as a failing status, so a failed test holds the merge.
 
+### Test runs stay out of production data
+
+Previews call the production API, so the first runs left about a hundred demo packs on the live desk and taught the saved style from test reviews. Now a pack started from a pull request preview (origin `<project>-git-<branch>-*.vercel.app`, any branch but `main`) is marked **sandbox**:
+
+- The live desk, the Style page, and the style used for real packs leave sandbox packs and their reviews out. Previews still see them, so the suite runs unchanged.
+- Reviews and follow-ups on sandbox packs are not sent to the Mind, so test runs do not teach it.
+- The pack page and the desk mark them **Preview test pack**.
+- Test packs from before this change were marked with a one-time, reversible script ([`backend/scripts/mark-sandbox.mjs`](backend/scripts/mark-sandbox.mjs): a dry run by default, `--apply`, and `--undo`). Nothing was deleted.
+
 ### What the suite covers
 
 A frontend UI suite built in the TestSprite 3.0 web portal against the live app, with no sign-in.
@@ -138,7 +147,7 @@ A frontend UI suite built in the TestSprite 3.0 web portal against the live app,
 | Learning loop | Why these moments, learned style rules, compare two packs after feedback, Mind status and conversation |
 | Desk | Open a pack, search, list filters, view presets, filter the transcript, delete a pack or a project |
 
-`pnpm test` adds unit tests for the pipeline (Mind queue and time limits, transcript grounding, voice memory, ffmpeg, YouTube limits, interrupted packs), media downloads, the crash guard, and frontend helpers.
+`pnpm test` adds unit tests for the pipeline (Mind queue and time limits, transcript grounding, voice memory, ffmpeg, YouTube limits, interrupted packs), media downloads, the crash guard, sandbox detection and filtering, the backfill script, and frontend helpers (download links, Copy pack, clip transcripts and `.srt`, safe zones).
 
 ### What the loop caught: PR #4
 
@@ -277,11 +286,11 @@ One source → 3 clips + 4 drafts. You stay the publisher.
 
 ### Desk (`/desk`)
 
-YouTube link, upload + optional caption URL, or the demo sample. **Projects** lists packs, with To review, Running and Reviewed tabs. Channel watch sits in a collapsed **Watch a channel** row.
+YouTube link, an uploaded video plus its YouTube link (for the captions), or the demo sample. **Projects** lists packs, with To review, Running and Reviewed tabs. Channel watch sits in a collapsed **Watch a channel** row.
 
 ### Content pack (`/jobs/[id]`)
 
-Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack). View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Clip cards, four draft teasers, MP4 downloads. **Why these moments** and the source transcript sit below.
+Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack) with keyboard review: **J** / **K** move, **A** approves, **R** rejects, **C** copies the post. View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Each clip card has a phone-shaped 9:16 preview with the hook on screen for its first 3 seconds, a **Safe zones** overlay for the platform's own UI, the clip's transcript with **Copy transcript** and **Download .srt**, and an MP4 download. **Why these moments** says whether the Mind or alternative processing picked them; the source transcript sits below.
 
 Edited and approved clips are **Ready**. Needs-review clips are not copied without a warning.
 
