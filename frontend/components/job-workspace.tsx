@@ -439,7 +439,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       {clips.length > 0 && (
         <section className="panel p-5 space-y-3">
           <div>
-            <h2 className="section-title">Downloads</h2>
+            <h2 className="section-title">Download MP4s</h2>
             <p className="text-xs text-[var(--fg-muted)]">
               Approve a clip to mark it ready. Each file downloads on its own.
             </p>
