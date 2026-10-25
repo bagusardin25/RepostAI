@@ -170,6 +170,20 @@ Each fix is its own commit, and its message says what TestSprite found:
 | `FOREIGN KEY constraint failed` in the logs | A pack deleted mid-run still inserted its clips | `6eb1bd1` |
 | No copied state, no word on how moments were picked, no status on the landing page | UI gaps | `09212ca`, `415afcc`, `c8d0baa` |
 
+### What the loop caught: PR #5
+
+[PR #5](https://github.com/bagusardin25/RepostAI/pull/5) carries the redesign. Its runs, and the last run on #4, found these problems. Each fix is its own commit:
+
+| Found in | What the tests saw | Root cause | Commit |
+|---|---|---|---|
+| [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | An MP4 link played the clip instead of saving it | The media route sent no `Content-Disposition`, so the browser opened the video | `73317a8` |
+| [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | "Copied 4 drafts. 3 still need review." read as if the clips had been dropped | The message did not say that clips wait for approval | `73317a8` |
+| [PR #5, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/6cbef7c9-2c53-4cdf-9082-76f4a2e952b0) | Enter on a non-YouTube link did nothing, with no "Invalid YouTube URL" | A disabled submit button also blocks Enter, and the hint waited for the field to lose focus | `788682c` |
+| [PR #5, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/6cbef7c9-2c53-4cdf-9082-76f4a2e952b0) | A search with no matches said "Nothing in this tab." | The empty state did not tell a search apart from an empty tab | `788682c` |
+| [PR #5, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/51e1ad2d-72b5-4de8-9d06-698449a456da) | A finished pack had no "Download MP4s" section | Merging #4 into the redesign renamed the section "Downloads" | `4f592e9` |
+
+Run 2 confirmed the run 1 fixes: both copies of "Reject an invalid YouTube link" and "Search projects in the Desk list" passed. The other failures in these runs came from older cases written for the pre-redesign UI (the Upload video and Try sample tabs, a "CONTENT PACK" label, Copy pack including clips still under review) or from the shared preview data, such as deleting one of a hundred sample packs with the same title.
+
 ---
 
 ## Architecture
