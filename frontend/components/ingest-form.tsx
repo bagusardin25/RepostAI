@@ -10,6 +10,7 @@ import {
   useState,
   type ClipboardEvent as ReactClipboardEvent,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createJob } from "@frontend/lib/api";
@@ -327,7 +328,7 @@ export function IngestForm() {
         linkInputRef.current?.focus();
         throw new Error(
           hasUrl
-            ? "That isn't a YouTube link. Paste a youtube.com or youtu.be link, or drop the video file."
+            ? "Invalid YouTube URL. Paste a youtube.com or youtu.be link, or drop the video file."
             : "Paste a YouTube link first.",
         );
       }
@@ -346,6 +347,14 @@ export function IngestForm() {
   function onLinkSubmit(event: FormEvent) {
     event.preventDefault();
     void submit(file ? "file" : "url");
+  }
+
+  // Submit stays disabled until the link is a YouTube one, and a disabled submit also stops
+  // Enter from sending the form. Say why on Enter instead of waiting for the field to blur.
+  function onLinkKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" || !hasUrl || ytId) return;
+    event.preventDefault();
+    setTouched(true);
   }
 
   // Clicking empty space in the box goes to the link field, like a big label.
@@ -370,7 +379,7 @@ export function IngestForm() {
 
 
   const uploadPct = upload && upload.total > 0 ? Math.min(100, Math.round((upload.loaded / upload.total) * 100)) : 0;
-  const linkInvalidMessage = "That isn't a YouTube link. Paste a youtube.com or youtu.be link, or drop the video file.";
+  const linkInvalidMessage = "Invalid YouTube URL. Paste a youtube.com or youtu.be link, or drop the video file.";
   const portrait = fileMeta ? fileMeta.height > fileMeta.width : false;
   const helpId = `${inputId}-help`;
   const submitLabel = busy === "url" ? "Starting…" : "Cut this video";
@@ -446,6 +455,7 @@ export function IngestForm() {
                   setError(null);
                 }}
                 onBlur={() => hasUrl && setTouched(true)}
+                onKeyDown={onLinkKeyDown}
                 onPaste={onInputPaste}
                 placeholder="youtube.com/watch?v=…"
                 inputMode="url"
@@ -481,7 +491,7 @@ export function IngestForm() {
               </button>
             </div>
             {urlInvalid ? (
-              <p id={hintId} className="mt-2 text-sm text-bad">
+              <p id={hintId} role="alert" className="mt-2 text-sm text-bad">
                 {linkInvalidMessage}
               </p>
             ) : null}
@@ -642,6 +652,7 @@ export function IngestForm() {
                       setError(null);
                     }}
                     onBlur={() => hasUrl && setTouched(true)}
+                    onKeyDown={onLinkKeyDown}
                     onPaste={onInputPaste}
                     placeholder="youtube.com/watch?v=…"
                     inputMode="url"
@@ -655,7 +666,7 @@ export function IngestForm() {
                     className={`text-[0.8125rem] leading-normal ${urlInvalid ? "text-bad" : "text-[var(--fg-muted)]"}`}
                   >
                     {urlInvalid
-                      ? "That isn't a YouTube link. Paste the youtube.com or youtu.be link for this video."
+                      ? "Invalid YouTube URL. Paste the youtube.com or youtu.be link for this video."
                       : ytId
                         ? "Captions will come from this link."
                         : "The cuts come from your file. Their timing comes from this video's YouTube captions."}

@@ -185,7 +185,13 @@ export function JobList({ titleId }: { titleId?: string }) {
         </div>
       ) : filteredJobs.length === 0 ? (
         <div className="panel-dashed p-8 text-center text-sm text-[var(--fg-muted)] animate-fade-in-up">
-          <p>{jobs.length === 0 ? "No projects yet. Packs you start show up here." : "Nothing in this tab."}</p>
+          <p>
+            {jobs.length === 0
+              ? "No projects yet. Packs you start show up here."
+              : search.trim()
+                ? "No projects match this filter."
+                : "Nothing in this tab."}
+          </p>
         </div>
       ) : (
         <div key={filter} className="panel divide-y divide-[var(--border)] overflow-hidden rounded-xl animate-fade-in-up">
