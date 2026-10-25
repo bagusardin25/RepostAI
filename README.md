@@ -4,7 +4,9 @@
 
 RepostAI turns a YouTube video into a **content pack**: TikTok, Reels, and X clips plus a script, carousel, thread, and LinkedIn draft. A persistent [Minds](https://hellominds.ai) agent picks the moments. You approve, rewrite, or skip. Those decisions steer the next pack.
 
-Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**.
+**Live app:** [repostai-nine.vercel.app](https://repostai-nine.vercel.app) · **Tested on every pull request** by [TestSprite](https://www.testsprite.com). See [How it's tested](#how-its-tested).
+
+Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**. Extended for [TestSprite Hackathon Season 4](https://www.testsprite.com/hackathon-s4).
 
 > Built with [Minds by Animoca Brands](https://hellominds.ai).
 
@@ -20,11 +22,11 @@ Paste a public YouTube link (captions required). Review in minutes, not the afte
 
 | Output | What it is |
 |---|---|
-| 3 vertical clips | 9:16 cuts for TikTok, Instagram Reels, and X |
+| 3 vertical clips | 9:16 cuts for TikTok, Instagram Reels, and X, each with the lines spoken in it and a `.srt` subtitle file |
 | 4 text drafts | TikTok script, IG carousel, X thread, LinkedIn post |
-| Your call | Approve, Save & approve, or Reject — then **Copy pack** |
+| Your call | Approve, Save & approve, or Reject (or **A** / **R** on the keyboard), then **Copy pack** |
 
-Nothing posts. MP4s download one at a time.
+Nothing posts. MP4s and `.srt` files download one at a time.
 
 ---
 
@@ -34,17 +36,23 @@ Nothing posts. MP4s download one at a time.
 Pick a source  →  Wait  →  Review what is left  →  Take the pack
 ```
 
-1. **Start** on `/desk` — YouTube link, upload + optional caption URL, or the labeled **Demo data** sample.
-2. **Wait** — reading source, finding moments, preparing clips. The page updates by itself.
-3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**.
-4. **Take** — **Copy pack** copies ready clips plus all four drafts. Download each MP4 separately.
+1. **Start** on `/desk` — paste a YouTube link, drop a video file plus its YouTube link for captions, or **Run the sample**.
+2. **Wait** — getting the video, picking moments, cutting clips. The page updates by itself.
+3. **Review** — sticky bar shows `ready / need review`. Edited clips count as **Ready**. Each clip plays in a phone-shaped 9:16 frame with its hook on screen, and **Safe zones** shades where TikTok, Reels, or X draws its own buttons and text. On a selected clip, **J** / **K** move, **A** approves, **R** rejects, **C** copies the post.
+4. **Take** — **Copy pack** copies ready clips (hook, caption, tags, and the timed transcript) plus all four drafts. Download each MP4 and its `.srt` separately.
 
 Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (`/mind`) is the agent status. You do not need either page to finish a pack.
 
-**Start** on the desk — paste a YouTube link, upload, or try the sample.
+**Start** on the desk — one box takes everything. Paste a YouTube link (anywhere on the page works) to see its title and thumbnail, drag a video in and the box grows into a drop zone, or run the sample.
 
 <p align="center">
-  <img src="docs/screenshots/desk.png" alt="Desk — paste a YouTube link or run the demo sample" width="920" />
+  <img src="docs/screenshots/desk.png" alt="Desk — one box for a YouTube link, a dropped video file, or the sample" width="920" />
+</p>
+
+**Watch** it work — the bar follows the backend's real stage, download size and clip count, and the three 9:16 frames fill in as each cut finishes.
+
+<p align="center">
+  <img src="docs/screenshots/processing.png" alt="Processing — cutting clip 2 of 3, with live progress and the 9:16 frames filling in" width="920" />
 </p>
 
 **Review** the pack — three 9:16 clips, hooks, captions, and Copy pack. Nothing publishes.
@@ -57,11 +65,11 @@ Optional: **Style** (`/voice`) is keep/stop rules from those reviews. **Mind** (
 
 ## Why the Mind matters
 
-Fallback recipes exist if the agent is offline — the desk labels that **Alt process**, never as Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
+Fallback recipes exist if the agent is offline. The pack then says **Alternative processing** and explains how its clips were picked, never Mind. On the happy path the Mind is the product: one conversation, memory, and a follow-up after every ready pack.
 
 ### Prove persistence (pack 1 → pack 2)
 
-1. Open [`/desk`](http://localhost:3000/desk), run **Try sample** or a **public YouTube URL with captions**.
+1. Open [`/desk`](http://localhost:3000/desk), click **Run the sample** or paste a **public YouTube URL with captions**.
 2. Reject one clip with a note (for example `skip cold intros`) and/or save a shorter caption.
 3. Open **Style** — keep/stop rules. Open **Mind** → Conversation if you want the transcript.
 4. Run a second pack.
@@ -98,6 +106,86 @@ Next pack injects those notes before the Mind proposes again
 - **Prefer hook-first clips** — skip long intros unless you like them
 - **Ground every timestamp** in the transcript — do not invent speech
 - **Respect platform limits** — TikTok/IG ≤ 2200 chars, X ≤ 280 chars
+
+---
+
+## How it's tested
+
+Every pull request is tested end to end by [TestSprite](https://www.testsprite.com) on its own Vercel preview, and `main` only takes a pull request whose TestSprite check passed.
+
+```
+Write a change  →  open a PR  →  Vercel builds a preview  →  TestSprite runs the suite on it
+      ↑                                                                   │
+      └────────  fix the root cause  ←  read the failure on the PR  ←─────┘
+```
+
+- **Trigger:** the TestSprite GitHub App fires on the Vercel **Preview** deployment of each PR and tests `https://repostai-git-{branch-slug}-bagusardinp-3679s-projects.vercel.app`. Previews call the production API, so a run exercises the real pipeline, the Mind included.
+- **Results:** a TestSprite comment on the PR (per-test video, steps, error, cause, and fix) and a `TestSprite V3` commit status.
+- **CI:** GitHub Actions runs `pnpm lint`, `pnpm test`, and `pnpm build` on every pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+- **Merge gate:** a ruleset on `main` requires a pull request and a passing `TestSprite V3` status, and TestSprite reports failures as a failing status, so a failed test holds the merge.
+
+### Test runs stay out of production data
+
+Previews call the production API, so the first runs left about a hundred demo packs on the live desk and taught the saved style from test reviews. Now a pack started from a pull request preview (origin `<project>-git-<branch>-*.vercel.app`, any branch but `main`) is marked **sandbox**:
+
+- The live desk, the Style page, and the style used for real packs leave sandbox packs and their reviews out. Previews still see them, so the suite runs unchanged.
+- Reviews and follow-ups on sandbox packs are not sent to the Mind, so test runs do not teach it.
+- The pack page and the desk mark them **Preview test pack**.
+- Test packs from before this change were marked with a one-time, reversible script ([`backend/scripts/mark-sandbox.mjs`](backend/scripts/mark-sandbox.mjs): a dry run by default, `--apply`, and `--undo`). Nothing was deleted.
+
+### What the suite covers
+
+A frontend UI suite built in the TestSprite 3.0 web portal against the live app, with no sign-in.
+
+| Area | What it checks |
+|---|---|
+| Landing and navigation | Landing → desk, section links, header navigation, theme toggle, system status dialog, mobile header, an unknown pack id shows "not found" |
+| Starting a pack | YouTube link, video upload, the demo sample, an invalid link is rejected |
+| Processing | Status updates without a refresh, a failed pack shows its error and Retry, a fallback pack is labeled as alternative processing |
+| Review | Approve, edit the hook or caption and save, reject, an X caption over the limit cannot be approved, Review next, Approve all remaining |
+| Taking the pack | Copy one post, Copy pack, browse the four drafts, download an MP4 |
+| Learning loop | Why these moments, learned style rules, compare two packs after feedback, Mind status and conversation |
+| Desk | Open a pack, search, list filters, view presets, filter the transcript, delete a pack or a project |
+
+`pnpm test` adds unit tests for the pipeline (Mind queue and time limits, transcript grounding, voice memory, ffmpeg, YouTube limits, interrupted packs), media downloads, the crash guard, sandbox detection and filtering, the backfill script, and frontend helpers (download links, Copy pack, clip transcripts and `.srt`, safe zones).
+
+### What the loop caught: PR #4
+
+[PR #4](https://github.com/bagusardin25/RepostAI/pull/4) went through the loop. The same 91 TestSprite cases ran before and after its fixes:
+
+| Run | Commit | Passed | Failed | Blocked |
+|---|---|---|---|---|
+| [PR #4, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8689bf2c-2273-4799-8c5f-f2f37c36e666) | `22ae6fb` | 56 | 15 | 20 |
+| [PR #5](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/eb4b890e-d4d7-44b6-a50d-e751de71846e) | `c3d2f12` | 64 | 17 | 10 |
+| [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | `c8d0baa` | 83 | 3 | 5 |
+
+Each fix is its own commit, and its message says what TestSprite found:
+
+| What the tests saw | Root cause | Commit |
+|---|---|---|
+| Fresh packs sat on "Finding moments", then fell back | Packs started together shared one Mind conversation and took each other's replies | `0b90521` |
+| Packs failed mid-run; the page showed "Failed to fetch" | An uncatchable fetch socket assertion ended the API; the page stopped polling after one error | `b30c0c4`, `22ae6fb` |
+| Demo packs sat on "Preparing clips" | Every demo pack cut the same windows again | `0b61b33` |
+| Packs sat on "Choosing three moments" past five minutes | A pack had no limit on its time in the Mind queue, so the Nth pack waited about N × 3 minutes | `4518e5c` |
+| `FOREIGN KEY constraint failed` in the logs | A pack deleted mid-run still inserted its clips | `6eb1bd1` |
+| No copied state, no word on how moments were picked, no status on the landing page | UI gaps | `09212ca`, `415afcc`, `c8d0baa` |
+
+### What the loop caught: PR #5
+
+[PR #5](https://github.com/bagusardin25/RepostAI/pull/5) carries the redesign. Its runs, and the last run on #4, found these problems. Each fix is its own commit:
+
+| Found in | What the tests saw | Root cause | Commit |
+|---|---|---|---|
+| [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | An MP4 link played the clip instead of saving it | The media route sent no `Content-Disposition`, so the browser opened the video | `73317a8` |
+| [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | "Copied 4 drafts. 3 still need review." read as if the clips had been dropped | The message did not say that clips wait for approval | `73317a8` |
+| [PR #5, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/6cbef7c9-2c53-4cdf-9082-76f4a2e952b0) | Enter on a non-YouTube link did nothing, with no "Invalid YouTube URL" | A disabled submit button also blocks Enter, and the hint waited for the field to lose focus | `788682c` |
+| [PR #5, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/6cbef7c9-2c53-4cdf-9082-76f4a2e952b0) | A search with no matches said "Nothing in this tab." | The empty state did not tell a search apart from an empty tab | `788682c` |
+| [PR #5, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/51e1ad2d-72b5-4de8-9d06-698449a456da) | A finished pack had no "Download MP4s" section | Merging #4 into the redesign renamed the section "Downloads" | `4f592e9` |
+| [PR #5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | Approved clips read "Approved" while the review bar counted them as ready | The redesign renamed the live app's "Ready" label | `d690215` |
+| [PR #5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | The status dialog said "Projects" instead of "Saved projects" | The redesign renamed the live app's label | `d690215` |
+| [PR #5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | "Cut this video" stayed disabled for a non-YouTube link, so clicking it did nothing | The button was enabled only for a YouTube link, so a click never reached the check that explains why | `d690215` |
+
+Run 2 confirmed the run 1 fixes: both copies of "Reject an invalid YouTube link" and "Search projects in the Desk list" passed. Run 3 confirmed the run 2 fix: both copies of "Review a finished pack workspace" passed. The other failures in these runs came from older cases written for the pre-redesign UI (the Upload video and Try sample tabs, a "CONTENT PACK" label, Copy pack including clips still under review) or from the shared preview data, such as deleting one of a hundred sample packs with the same title.
 
 ---
 
@@ -190,17 +278,17 @@ pnpm dev
 | [http://localhost:3000/mind](http://localhost:3000/mind) | Mind status |
 | [http://localhost:3000/jobs/compare](http://localhost:3000/jobs/compare) | Compare two packs |
 
-YouTube jobs need **captions**. Upload-only has no speech-to-text unless you also paste a captioned YouTube URL on the upload tab.
+YouTube jobs need **captions**. Upload-only has no speech-to-text, so after you drop a file the desk asks for that video's captioned YouTube link.
 
 ### Demo sample
 
-On the desk, open **Try sample**. There is one **Demo data** clip: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
+On the desk, click **Run the sample**. It runs one built-in demo source: *Stop posting the same YouTube video everywhere*. It skips YouTube download, uses the built-in transcript, and writes local 9:16 files.
 
 ### Other commands
 
 | Command | Description |
 |---|---|
-| `pnpm test` | Pipeline unit tests (recipes, captions, voice, watch, lineage) |
+| `pnpm test` | Backend unit tests (`node:test`) and frontend helper tests (`tsx`) |
 | `pnpm lint` | TypeScript check |
 | `pnpm build` | Production build |
 | `pnpm start` | Production frontend |
@@ -215,11 +303,11 @@ One source → 3 clips + 4 drafts. You stay the publisher.
 
 ### Desk (`/desk`)
 
-YouTube link, upload + optional caption URL, or the demo sample. **Your projects** lists packs. Channel watch is collapsed under **Optional: automate new uploads**.
+YouTube link, an uploaded video plus its YouTube link (for the captions), or the demo sample. **Projects** lists packs, with To review, Running and Reviewed tabs. Channel watch sits in a collapsed **Watch a channel** row.
 
 ### Content pack (`/jobs/[id]`)
 
-Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack). View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Clip cards, four draft teasers, MP4 downloads. **How this was chosen** and the source transcript sit below.
+Sticky review bar (`ready / need review`, Review next, Approve all remaining, Copy pack) with keyboard review: **J** / **K** move, **A** approves, **R** rejects, **C** copies the post. View presets: All platforms, Video-first, Copy-first (display only — all three clips are still produced). Each clip card has a phone-shaped 9:16 preview with the hook on screen for its first 3 seconds, a **Safe zones** overlay for the platform's own UI, the clip's transcript with **Copy transcript** and **Download .srt**, and an MP4 download. **Why these moments** says whether the Mind or alternative processing picked them; the source transcript sits below.
 
 Edited and approved clips are **Ready**. Needs-review clips are not copied without a warning.
 

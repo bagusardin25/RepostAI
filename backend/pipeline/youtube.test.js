@@ -92,7 +92,7 @@ describe("YouTube time limits", () => {
         controller.close();
       },
     });
-    await writeDownloadStream(stream, dest, 50);
+    await writeDownloadStream(stream, dest, { stallMs: 50 });
     assert.deepEqual([...fs.readFileSync(dest)], [1, 2, 3, 4, 5]);
   });
 
@@ -107,7 +107,9 @@ describe("YouTube time limits", () => {
         cancelled = true;
       },
     });
-    await assert.rejects(writeDownloadStream(stream, dest, 20), { message: "YouTube download stalled" });
+    await assert.rejects(writeDownloadStream(stream, dest, { stallMs: 20 }), {
+      message: "YouTube download stalled",
+    });
     assert.equal(cancelled, true);
   });
 });

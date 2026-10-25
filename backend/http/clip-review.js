@@ -46,6 +46,8 @@ export async function POST(request, params) {
 
   defer(async () => {
     const job = await getJob(clip.jobId);
+    // Reviews on sandbox packs (pull request previews) are test runs, not the creator's taste.
+    if (job?.sandbox) return;
     const title = job?.sourceTitle ?? "source video";
     await rememberCreatorDecision({
       title,

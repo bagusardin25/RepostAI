@@ -163,7 +163,8 @@ export async function rememberReviewSession(input) {
 
 export async function requestAutonomousFollowUp(input) {
   const fallback = fallbackFollowUp(input.title);
-  if (!mindsConfigured()) return fallback;
+  // Sandbox packs (pull request previews) keep test chatter out of the Mind's conversation.
+  if (!mindsConfigured() || input.sandbox) return fallback;
 
   try {
     const answer = await ask(buildFollowUpPrompt(input), {

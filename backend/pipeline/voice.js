@@ -2,8 +2,11 @@ import { listVoiceEdits } from "../db/client.js";
 import { scoreVoiceMemory } from "./voice-score.js";
 import { extractYoutubeId } from "./youtube.js";
 
+/** Production packs learn only from production reviews; sandbox packs may also use test reviews. */
 export async function loadVoiceMemory(options = {}) {
-  const edits = await listVoiceEdits(options.limit ?? 40, options.beforeSec ?? null);
+  const edits = await listVoiceEdits(options.limit ?? 40, options.beforeSec ?? null, {
+    includeSandbox: Boolean(options.includeSandbox),
+  });
   return buildVoiceMemory(edits, options.sourceKey ?? null);
 }
 

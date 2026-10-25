@@ -49,12 +49,12 @@ export function SystemStatusButton() {
         type="button"
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        className="glass-chip hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+        className="hidden sm:flex h-8 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-2.5 text-[0.8125rem] text-[var(--fg-muted)] hover:text-[var(--fg-bright)] transition-colors"
       >
         <SystemStatus health={health} />
       </button>
 
-      {/* The site header blurs its backdrop, which would trap a fixed overlay inside it. */}
+      {/* Rendered at the body, so a blurred or transformed header can never trap the fixed overlay. */}
       {open &&
         createPortal(
           <div
@@ -96,7 +96,7 @@ export function SystemStatusButton() {
               </div>
 
               <div className="pt-2 flex justify-between items-center text-[11px] text-[var(--fg-muted)] border-t border-[var(--border)]">
-                <span>If something is offline, retry or refresh</span>
+                <span>If a part is offline, wait a moment and check again.</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -106,7 +106,7 @@ export function SystemStatusButton() {
                   className="btn btn-ghost btn-xs"
                 >
                   <IconRefresh className="h-3 w-3" />
-                  <span>Check</span>
+                  <span>Check again</span>
                 </button>
               </div>
             </div>
@@ -124,15 +124,15 @@ function SystemStatus({ health }: { health: Health | null }) {
   const label = !health
     ? "Checking…"
     : allOk
-      ? "System ready"
+      ? "Ready"
       : processingOk
-        ? "Processing available"
-        : "Check system";
-  const tone = !health ? "bg-[var(--warn)]" : allOk || processingOk ? "bg-[var(--ok)] shadow-[0_0_6px_rgba(4,120,87,0.5)]" : knownBad ? "bg-[var(--bad)]" : "bg-[var(--warn)]";
+        ? "Ready, Mind off"
+        : "Something's offline";
+  const tone = !health ? "bg-[var(--warn)]" : allOk || processingOk ? "bg-[var(--ok)]" : knownBad ? "bg-[var(--bad)]" : "bg-[var(--warn)]";
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${tone}`} aria-hidden />
+      <span className={`h-[7px] w-[7px] rounded-full transition-all duration-300 ${tone}`} aria-hidden />
       <span>{label}</span>
     </span>
   );

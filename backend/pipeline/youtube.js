@@ -222,9 +222,11 @@ async function readYoutubeMeta(videoId) {
   return { videoId, title, durationSec, transcript: nextTranscript };
 }
 
-export async function writeDownloadStream(stream, destPath, stallMs = DOWNLOAD_STALL_MS) {
+export async function writeDownloadStream(stream, destPath, { stallMs = DOWNLOAD_STALL_MS, onBytes } = {}) {
   const reader = stream.getReader();
   const out = fs.createWriteStream(destPath);
+  let written = 0;
+  let reportedAt = 0;
   try {
     while (true) {
       let read;
@@ -237,6 +239,12 @@ export async function writeDownloadStream(stream, destPath, stallMs = DOWNLOAD_S
       const { done, value } = read;
       if (done) break;
       if (value) {
+        written += value.byteLength;
+        const now = Date.now();
+        if (onBytes && now - reportedAt > 250) {
+          reportedAt = now;
+          onBytes(written);
+        }
         if (!out.write(Buffer.from(value))) {
           await new Promise((resolve) => out.once("drain", resolve));
         }
@@ -249,7 +257,7 @@ export async function writeDownloadStream(stream, destPath, stallMs = DOWNLOAD_S
   }
 }
 
-export async function downloadYoutubeVideo(url, destPath) {
+export async function downloadYoutubeVideo(url, destPath, { onBytes } = {}) {
   const videoId = extractYoutubeId(url);
   if (!videoId) throw new Error("Invalid YouTube URL");
 
@@ -264,7 +272,7 @@ export async function downloadYoutubeVideo(url, destPath) {
         quality: "best",
         format: "mp4",
       });
-      await writeDownloadStream(stream, destPath);
+      await writeDownloadStream(stream, destPath, { onBytes });
       if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1024) {
         return;
       }

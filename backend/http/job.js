@@ -26,10 +26,12 @@ export async function GET(_request, params) {
         }
       : null);
 
+  // A production pack compares only with production packs; a sandbox pack may use either.
   const voiceApplied =
-    job.voiceApplied ?? snapshotVoice(await loadVoiceMemory({ beforeSec: job.createdAt }));
+    job.voiceApplied ??
+    snapshotVoice(await loadVoiceMemory({ beforeSec: job.createdAt, includeSandbox: job.sandbox }));
 
-  const previous = (await listJobs()).find(
+  const previous = (await listJobs({ includeSandbox: job.sandbox })).find(
     (item) => item.id !== job.id && item.status === "ready" && item.createdAt < job.createdAt,
   );
   let lineage = {

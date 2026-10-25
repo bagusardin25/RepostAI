@@ -68,26 +68,24 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="border-t border-[var(--border)] py-8 mt-auto text-xs text-[var(--fg-muted)]">
+      <footer className="border-t border-[var(--border)] py-6 mt-auto text-[0.8125rem] text-[var(--fg-subtle)]">
         <div className="site-wrap flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Link href="/" className="font-medium text-[var(--fg)] hover:opacity-80 transition-opacity">
+            <Link href="/" className="text-[var(--fg-muted)] hover:text-[var(--fg-bright)] transition-colors">
               RepostAI
             </Link>
-            <span>—</span>
+            <span aria-hidden="true">·</span>
             <span>Creative Minds Jam #1</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>TikTok / Reels / X</span>
-            <span>·</span>
+          <div className="flex items-center gap-4">
             <a
               href="https://hellominds.ai"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[var(--fg)] transition-colors"
+              className="text-[var(--fg-muted)] hover:text-[var(--fg-bright)] transition-colors"
             >
-              Powered by Minds Agent
+              Built on Minds
             </a>
           </div>
         </div>

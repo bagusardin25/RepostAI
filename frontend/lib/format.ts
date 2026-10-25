@@ -15,44 +15,44 @@ export const PLATFORM_CODE: Record<Platform, string> = {
 export const JOB_STAGES = [
   {
     key: "fetching_source",
-    label: "Reading source",
-    detail: "Pulling the video and captions.",
+    label: "Get video",
+    detail: "Downloading the video and reading its captions.",
   },
   {
     key: "analyzing",
-    label: "Finding moments",
-    detail: "Picking the strongest windows and drafting copy.",
+    label: "Pick moments",
+    detail: "Choosing three moments and drafting the posts.",
   },
   {
     key: "clipping",
-    label: "Preparing clips",
-    detail: "Cutting 9:16 files and finishing your drafts.",
+    label: "Cut clips",
+    detail: "Cutting the 9:16 files and finishing the drafts.",
   },
   {
     key: "ready",
-    label: "Ready for review",
-    detail: "Review each clip, then copy or download.",
+    label: "Review",
+    detail: "Approve each clip, then copy or download.",
   },
 ] as const;
 
 export const JOB_STATUS_COPY: Record<string, { label: string; detail: string }> = {
-  queued: { label: "Queued", detail: "Waiting to start this content pack." },
+  queued: { label: "Queued", detail: "Waiting to start this pack." },
   fetching_source: JOB_STAGES[0],
   analyzing: JOB_STAGES[1],
   clipping: JOB_STAGES[2],
   ready: JOB_STAGES[3],
-  failed: { label: "Failed", detail: "This pack stopped. Retry, or start a new source." },
+  failed: { label: "Failed", detail: "This pack stopped. Retry it, or start a new one." },
 };
 
 export const STATUS_LABEL: Record<string, string> = {
   queued: "Queued",
-  fetching_source: "Reading source",
-  analyzing: "Finding moments",
-  clipping: "Preparing clips",
-  ready: "Ready for review",
+  fetching_source: "Getting video",
+  analyzing: "Picking moments",
+  clipping: "Cutting clips",
+  ready: "Ready to review",
   completed: "Completed",
   failed: "Failed",
-  needs_review: "Needs review",
+  needs_review: "To review",
   approved: "Ready",
   edited: "Ready",
   rejected: "Rejected",
@@ -93,10 +93,10 @@ export function formatRelative(unixSec: number) {
 export function formatDuration(sec: number | null | undefined) {
   if (sec == null) return "—";
   const total = Math.max(0, Math.floor(sec));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  if (m === 0) return `${s}s`;
-  return `${m}m ${String(s).padStart(2, "0")}s`;
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
 
 export function formatBytes(bytes: number) {
@@ -106,7 +106,7 @@ export function formatBytes(bytes: number) {
 
 export function sourceTypeLabel(value: string) {
   if (value === "youtube") return "YouTube";
-  if (value === "fixture") return "Demo";
+  if (value === "fixture") return "Sample";
   if (value === "upload") return "Upload";
   if (value === "watch") return "Channel watch";
   return value;
