@@ -116,7 +116,7 @@ export function ClipCard({
   }
 
   async function act(action: "approve" | "reject" | "edit") {
-    if (overLimit && action !== "reject") {
+    if (overLimit && action === "edit") {
       const msg = `Caption is ${charCount - limit} characters over limit.`;
       setError(msg);
       toast.error(msg);
