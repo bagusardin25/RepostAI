@@ -187,6 +187,19 @@ Each fix is its own commit, and its message says what TestSprite found:
 
 Run 2 confirmed the run 1 fixes: both copies of "Reject an invalid YouTube link" and "Search projects in the Desk list" passed. Run 3 confirmed the run 2 fix: both copies of "Review a finished pack workspace" passed. The other failures in these runs came from older cases written for the pre-redesign UI (the Upload video and Try sample tabs, a "CONTENT PACK" label, Copy pack including clips still under review) or from the shared preview data, such as deleting one of a hundred sample packs with the same title.
 
+PR #5 was merged with a one-time admin bypass, because its trigger replayed an old list of 91 test IDs, including cases deleted from the plan. Since PR #6, pull requests run on a TestSprite project whose plan holds only the 32 current cases, and the ruleset has no bypass.
+
+### What the loop caught: PR #6
+
+[PR #6](https://github.com/bagusardin25/RepostAI/pull/6) tested the gate itself. Its first commit planted a regression on purpose: Approve skipped the caption limit, so a 300-character X caption was saved and the clip turned Ready. Unit tests and the build still passed.
+
+- **The gate held.** The first run went red, 30 of 32, and the required check blocked the merge.
+- **The two failures were test wording, not the app.** One case read the small MP4 links inside the clip cards instead of the "Download MP4s" list. The other searched the transcript for "the" and misread lines that contain it. Both cases were rewritten.
+- **The case written for the planted bug passed by mistake.** Its generated script filled the caption but never clicked Save & approve, and the run's AI judge passed it. No caption over 280 characters was saved by any run, which we checked against the API. The case now has to make the click and see the over-limit message.
+- **The real gap was on the server.** The review API accepted a 300-character X caption with HTTP 200, so the limit lived only in one branch of the clip card's handler.
+
+The fix checks the limit for every action but Reject, in the card ([`frontend/lib/caption-limit.ts`](frontend/lib/caption-limit.ts)) and in the API, which now answers `422` for an over-limit caption. Unit tests cover both, so CI catches this without the browser suite. The PR could merge only after TestSprite passed on the fix. Run links are on the PR.
+
 ---
 
 ## Architecture

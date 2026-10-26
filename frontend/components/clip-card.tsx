@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useImperativeHandle, useMemo, useState, type Ref } from "react";
 import { formatTimecode, reviewClip, type ClipPackage } from "@frontend/lib/api";
-import { PLATFORM_SPECS } from "@frontend/lib/constants";
+import { captionLimit, reviewBlockedBy } from "@frontend/lib/caption-limit";
 import { clipDownloadUrl, clipFileName, formatHashtags, isClipReady } from "@frontend/lib/content-pack";
 import { isPlatform, platformLabel } from "@frontend/lib/format";
 import { COVERED_AREAS, hookTop } from "@frontend/lib/safe-zones";
@@ -81,7 +81,7 @@ export function ClipCard({
   }, [clip.displayCaption, clip.displayHook, clip.reviewNote]);
 
   const dirty = caption !== clip.displayCaption || hook !== clip.displayHook;
-  const limit = isPlatform(clip.platform) ? PLATFORM_SPECS[clip.platform].captionLimit : 2200;
+  const limit = captionLimit(clip.platform);
   const charCount = caption.length;
   const overLimit = charCount > limit;
   const ready = isClipReady(clip.status);
@@ -116,10 +116,10 @@ export function ClipCard({
   }
 
   async function act(action: "approve" | "reject" | "edit") {
-    if (overLimit && action === "edit") {
-      const msg = `Caption is ${charCount - limit} characters over limit.`;
-      setError(msg);
-      toast.error(msg);
+    const blocked = reviewBlockedBy(action, clip.platform, caption);
+    if (blocked) {
+      setError(blocked);
+      toast.error(blocked);
       return;
     }
 
