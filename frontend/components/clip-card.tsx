@@ -314,7 +314,7 @@ export function ClipCard({
               aria-expanded={reasonOpen}
               onClick={() => setReasonOpen((current) => !current)}
             >
-              <p className="timecode text-[10px] text-[var(--fg-muted)]">Why this moment</p>
+              <p className="timecode text-[10px] text-[var(--fg-muted)]">Why this clip</p>
               <span className="timecode text-[10px] text-[var(--fg-subtle)]">{reasonOpen ? "Hide" : "Show"}</span>
             </button>
             {reasonOpen && <p className="text-[var(--fg)] leading-relaxed">{clip.reason}</p>}

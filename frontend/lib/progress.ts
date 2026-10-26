@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { JobProgress } from "@frontend/lib/api";
 import { isPlatform } from "@frontend/lib/format";
 
-// Clips are named by where they go: the Instagram clip is a Reel.
-const CLIP_PLATFORM: Record<string, string> = { tiktok: "TikTok", instagram: "Reels", x: "X" };
+// Clips are named by platform on the pack page, the same as their cards.
+const CLIP_PLATFORM: Record<string, string> = { tiktok: "TikTok", instagram: "Instagram", x: "X" };
 
 export function clipPlatformLabel(value: string) {
   return isPlatform(value) ? CLIP_PLATFORM[value] : value;
