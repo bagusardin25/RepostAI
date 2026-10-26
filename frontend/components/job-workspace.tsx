@@ -239,6 +239,9 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
 
   const { readyCount, waitingCount, rejectedCount } = summarizeClipDecisions(clips);
   const draftCount = artifacts ? 4 : 0;
+  // The review section waits for the progress panel to leave, so nothing jumps under a click
+  // the moment a pack turns ready.
+  const showReview = clips.length > 0 && !stageVisible;
   const analyzer = analyzerLabel(job.analyzer);
 
   return (
@@ -343,7 +346,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       )}
 
 
-      {clips.length > 0 ? (
+      {showReview ? (
         <section className="review-bar p-4 sm:p-5 space-y-3">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
@@ -413,11 +416,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         </section>
       ) : null}
 
-      {clips.length > 0 && packView !== "copy" ? <ClipGrid clips={clips} lineage={lineage} transcript={job.transcript} onChange={setClips} /> : null}
+      {showReview && packView !== "copy" ? <ClipGrid clips={clips} lineage={lineage} transcript={job.transcript} onChange={setClips} /> : null}
 
       {artifacts && packView !== "video" ? <ArtifactsPanel artifacts={artifacts} /> : null}
 
-      {clips.length > 0 && packView === "copy" ? <ClipGrid clips={clips} lineage={lineage} transcript={job.transcript} onChange={setClips} /> : null}
+      {showReview && packView === "copy" ? <ClipGrid clips={clips} lineage={lineage} transcript={job.transcript} onChange={setClips} /> : null}
 
       {artifacts && packView === "video" ? (
         <details className="disclosure">
@@ -436,7 +439,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
         </details>
       ) : null}
 
-      {clips.length > 0 && (
+      {showReview && (
         <section className="panel p-5 space-y-3">
           <div>
             <h2 className="section-title">Download MP4s</h2>
