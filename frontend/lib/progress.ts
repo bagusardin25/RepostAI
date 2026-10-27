@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { JobProgress } from "@frontend/lib/api";
-import { isPlatform } from "@frontend/lib/format";
+import { platformLabel } from "@frontend/lib/format";
 
-// Downloads and progress name each clip by its format (the Instagram clip is a Reel); the cards name the platform.
-const CLIP_PLATFORM: Record<string, string> = { tiktok: "TikTok", instagram: "Reels", x: "X" };
-
+// Downloads and the progress line use the same platform names as the clip cards.
 export function clipPlatformLabel(value: string) {
-  return isPlatform(value) ? CLIP_PLATFORM[value] : value;
+  return platformLabel(value);
 }
 
 /** Share of the whole bar each backend stage owns. */
