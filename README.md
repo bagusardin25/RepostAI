@@ -4,7 +4,7 @@
 
 RepostAI turns a YouTube video into a **content pack**: TikTok, Reels, and X clips plus a script, carousel, thread, and LinkedIn draft. A persistent [Minds](https://hellominds.ai) agent picks the moments. You approve, rewrite, or skip. Those decisions steer the next pack.
 
-**Live app:** [repostai-nine.vercel.app](https://repostai-nine.vercel.app) · **Tested on every pull request** by [TestSprite](https://www.testsprite.com). See [How it's tested](#how-its-tested).
+**Live app:** [repostai-nine.vercel.app](https://repostai-nine.vercel.app) · **Demo:** [3-minute video](https://youtu.be/BPagZq-LnMM) · **Tested on every pull request** by [TestSprite](https://www.testsprite.com), which has found [26 bugs so far](#every-bug-testsprite-found). See [How it's tested](#how-its-tested).
 
 Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Content Repurposing Across Platforms**. Extended for [TestSprite Hackathon Season 4](https://www.testsprite.com/hackathon-s4).
 
@@ -19,9 +19,13 @@ Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Conten
 | What | Link |
 |---|---|
 | Live app | [repostai-nine.vercel.app](https://repostai-nine.vercel.app) (no sign-up: open the desk and click **Run the sample**) |
+| Demo video | [YouTube, 3 minutes](https://youtu.be/BPagZq-LnMM) |
+| Write-up | [Medium: I planted a bug to test my merge gate](https://medium.com/@bagusardinp/i-planted-a-bug-to-test-my-merge-gate-the-test-written-for-it-passed-8dbc759ecf96) |
+| X thread | [On X](https://x.com/ArdinPrayoga/status/2114890540626174296) |
 | PR with the TestSprite check | [#6: a planted bug, the gate, and the fix](https://github.com/bagusardin25/RepostAI/pull/6) |
-| TestSprite runs on #6 | [Run 1: 30/32, blocked](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/610c5981-e13c-4561-b100-e3e533a8e86c) · [Run 2: 31/32, blocked](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/feb64fe0-42bc-415f-8d2a-b67ae371eea7) |
+| TestSprite runs on #6 | [Run 1: 30/32, blocked](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/610c5981-e13c-4561-b100-e3e533a8e86c) · [Run 10: 32/32, merged](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/dffae7d7-cf56-4a94-b605-d8ec438c5d14) · [all ten](#what-the-loop-caught-pr-6) |
 | Earlier loops | [#4: packs that stole each other's agent replies](https://github.com/bagusardin25/RepostAI/pull/4) · [#5: the redesign](https://github.com/bagusardin25/RepostAI/pull/5) |
+| Every bug TestSprite found | [26 bugs: where each was found and the commit that fixed it](#every-bug-testsprite-found) |
 
 ---
 
@@ -131,19 +135,71 @@ Write a change  →  open a PR  →  Vercel builds a preview  →  TestSprite ru
 - **Trigger:** the TestSprite GitHub App fires on the Vercel **Preview** deployment of each PR and tests `https://repostai-git-{branch-slug}-bagusardinp-3679s-projects.vercel.app`. Previews call the production API, so a run exercises the real pipeline, the Mind included.
 - **Results:** a TestSprite comment on the PR (per-test video, steps, error, cause, and fix) and a `TestSprite V3` commit status.
 - **CI:** GitHub Actions runs `pnpm lint`, `pnpm test`, and `pnpm build` on every pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
-- **Merge gate:** a ruleset on `main` requires a pull request, a passing `TestSprite V3` status, and a passing CI job, with no bypass. TestSprite reports failures as a failing status, so a failed test holds the merge.
+- **Merge gate:** a ruleset on `main` requires a pull request, a passing `TestSprite V3` status, and a passing CI job, with no bypass. TestSprite reports failures as a failing status, so a failed test holds the merge. The one exception is a docs-only commit: the README update that added the demo links and the full bug list was pushed straight to `main`, outside the gate.
 
-### Bugs the loop caught, in short
+### Every bug TestSprite found
 
-| Bug | Found in | Commit |
-|---|---|---|
-| Packs stole each other's AI replies, so fresh packs fell back to the non-AI picker | TestSprite runs on PR #2 and #3 | `0b90521` |
-| The API process died mid-run on an uncatchable `fetch` assertion, and 26 packs in progress failed | TestSprite, PR #4 run 1 | `b30c0c4` |
-| The Nth pack waited about N × 3 minutes for the Mind | TestSprite runs on PR #4 and #5 | `4518e5c` |
-| ffmpeg ran out of threads when several packs were cut at once | TestSprite run on PR #2 | `d9df30e` |
-| The review API saved an X caption over 280 characters | PR #6, while checking a false pass | `da9e32d` |
+TestSprite has found **26 bugs** in RepostAI so far. Each one went through the same loop:
 
-Each fix is its own commit, and its message names the test that found it. The sections below have the runs and the smaller catches.
+1. A run on the pull request fails or is blocked, and the required check holds the merge.
+2. We read the run (video, steps, error) and, when packs are involved, the Railway logs.
+3. We fix the root cause in its own commit. The commit message names the test that found it.
+4. The next run on the pull request checks the fix.
+
+| TestSprite project | Cases | Pull requests | Bugs found |
+|---|---|---|---|
+| First project | 59, then 91 | #2 to #5 | 21 |
+| *RepostAI PR gate* | 32 | #6 | 5 |
+
+**In the pipeline and the API**
+
+| # | Bug | Found by | Fixed in |
+|---|---|---|---|
+| 1 | Packs started together took each other's Mind replies, timed out, and fell back to the non-AI picker | Runs on [#2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/02509878-5e69-436d-81f4-d98f24a13fb7) and [#3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/3ac723bd-8af9-4296-bcda-77f75757b31c) | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`0b90521`](https://github.com/bagusardin25/RepostAI/commit/0b90521) |
+| 2 | Packs cut off by an API restart stayed on "Preparing clips" forever | Runs on [#2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/02509878-5e69-436d-81f4-d98f24a13fb7) and [#3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/3ac723bd-8af9-4296-bcda-77f75757b31c) | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`0b90521`](https://github.com/bagusardin25/RepostAI/commit/0b90521) |
+| 3 | The API process died on an uncatchable `fetch` assertion, and 26 packs in progress failed | [#4, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8b696b5f-7b8b-48d7-b164-bf2ab64db329) | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`b30c0c4`](https://github.com/bagusardin25/RepostAI/commit/b30c0c4) |
+| 4 | ffmpeg ran out of threads (`pthread_create failed`) when several packs were cut at once | The first runs | [#2](https://github.com/bagusardin25/RepostAI/pull/2), [`d9df30e`](https://github.com/bagusardin25/RepostAI/commit/d9df30e) |
+| 5 | The Nth pack waited about N × 3 minutes for the Mind | [#4, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8689bf2c-2273-4799-8c5f-f2f37c36e666) and [a #5 run](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/eb4b890e-d4d7-44b6-a50d-e751de71846e) | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`4518e5c`](https://github.com/bagusardin25/RepostAI/commit/4518e5c) |
+| 6 | Demo packs sat on "Preparing clips" because each one cut the same windows again | Runs on #4 | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`0b61b33`](https://github.com/bagusardin25/RepostAI/commit/0b61b33) |
+| 7 | A pack deleted mid-run still inserted its clips (`FOREIGN KEY constraint failed`) | A #5 run, in the Railway logs | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`6eb1bd1`](https://github.com/bagusardin25/RepostAI/commit/6eb1bd1) |
+
+**On the page**
+
+| # | Bug | Found by | Fixed in |
+|---|---|---|---|
+| 8 | After one failed request, the pack page stopped polling and showed only "Failed to fetch" | [#4, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8b696b5f-7b8b-48d7-b164-bf2ab64db329) | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`22ae6fb`](https://github.com/bagusardin25/RepostAI/commit/22ae6fb) |
+| 9 | The landing page had no system status control | Runs on #4 and #5 | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`c8d0baa`](https://github.com/bagusardin25/RepostAI/commit/c8d0baa) |
+| 10 | Compare could show the selected pack on the wrong side of its Earlier/Later control | Runs on #4 | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`0b61b33`](https://github.com/bagusardin25/RepostAI/commit/0b61b33) |
+| 11 | An MP4 link played the clip instead of downloading it | [#4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`73317a8`](https://github.com/bagusardin25/RepostAI/commit/73317a8) |
+| 12 | Enter on a non-YouTube link did nothing and showed no error | [#5, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/6cbef7c9-2c53-4cdf-9082-76f4a2e952b0) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`788682c`](https://github.com/bagusardin25/RepostAI/commit/788682c) |
+| 13 | The "Download MP4s" section disappeared in the redesign merge | [#5, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/51e1ad2d-72b5-4de8-9d06-698449a456da) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`4f592e9`](https://github.com/bagusardin25/RepostAI/commit/4f592e9) |
+| 14 | "Cut this video" stayed disabled for a non-YouTube link, so a click did nothing | [#5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`d690215`](https://github.com/bagusardin25/RepostAI/commit/d690215) |
+| 15 | The pack page jumped 646 px about 1.2 s after the pack turned ready, under the user's click | [#6, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/89d8856e-85eb-45fe-94a8-94de25f8194b) | [#6](https://github.com/bagusardin25/RepostAI/pull/6), [`cd025b0`](https://github.com/bagusardin25/RepostAI/commit/cd025b0) |
+| 16 | The Desk's delete button sat inside the row's link and stayed invisible until hover | [#6, run 4](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/aff0d635-55d4-47a3-bac3-b018c5f343e6) | [#6](https://github.com/bagusardin25/RepostAI/pull/6), [`1dfe597`](https://github.com/bagusardin25/RepostAI/commit/1dfe597) |
+| 17 | The Mind page showed nothing while the Minds API was slow, then only an error | [#6, run 7](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/54065649-b779-4bee-935a-eb3166abd33f) | [#6](https://github.com/bagusardin25/RepostAI/pull/6), [`1ed6e5e`](https://github.com/bagusardin25/RepostAI/commit/1ed6e5e) |
+
+**In labels and messages**
+
+| # | Bug | Found by | Fixed in |
+|---|---|---|---|
+| 18 | Finished packs still read "Ready for review"; there was no "Completed" | [The run on #2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/02509878-5e69-436d-81f4-d98f24a13fb7) | [#3](https://github.com/bagusardin25/RepostAI/pull/3), [`7e12986`](https://github.com/bagusardin25/RepostAI/commit/7e12986) |
+| 19 | "Copied" reset after 2 s, so a copied clip had no state of its own | Runs on #4 and #5 | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`09212ca`](https://github.com/bagusardin25/RepostAI/commit/09212ca) |
+| 20 | A pack never said whether the Mind or the fallback had picked its moments | Runs on #4 and #5 | [#4](https://github.com/bagusardin25/RepostAI/pull/4), [`415afcc`](https://github.com/bagusardin25/RepostAI/commit/415afcc) |
+| 21 | Copy pack's "3 still need review" read as if the clips had been dropped | [#4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`73317a8`](https://github.com/bagusardin25/RepostAI/commit/73317a8) |
+| 22 | A search with no matches said "Nothing in this tab." | [#5, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/6cbef7c9-2c53-4cdf-9082-76f4a2e952b0) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`788682c`](https://github.com/bagusardin25/RepostAI/commit/788682c) |
+| 23 | Approved clips read "Approved" while the review bar counted them as ready | [#5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`d690215`](https://github.com/bagusardin25/RepostAI/commit/d690215) |
+| 24 | The status dialog said "Projects" instead of "Saved projects" | [#5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | [#5](https://github.com/bagusardin25/RepostAI/pull/5), [`d690215`](https://github.com/bagusardin25/RepostAI/commit/d690215) |
+| 25 | One clip had two names: Instagram on its card, Reels in the progress frames and downloads | [#6, run 5](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/0222564e-63ad-41d1-9e75-5761d676ff86) | [#6](https://github.com/bagusardin25/RepostAI/pull/6), [`98ef822`](https://github.com/bagusardin25/RepostAI/commit/98ef822), [`7c31972`](https://github.com/bagusardin25/RepostAI/commit/7c31972) |
+| 26 | "Why this moment" inside a clip card read like the pack's "Why these moments" | [#6, run 5](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/0222564e-63ad-41d1-9e75-5761d676ff86) | [#6](https://github.com/bagusardin25/RepostAI/pull/6), [`98ef822`](https://github.com/bagusardin25/RepostAI/commit/98ef822) |
+
+Two more turned up because of the runs, though no test failed on them:
+
+- **The review API had no caption limit.** It saved a 300-character X caption with HTTP 200. We found it while checking why the case for the planted bug passed. The API now answers `422` ([#6](https://github.com/bagusardin25/RepostAI/pull/6), [`da9e32d`](https://github.com/bagusardin25/RepostAI/commit/da9e32d)).
+- **Test runs wrote to production.** Previews call the production API, so the runs left 104 demo packs on the live desk and taught the saved style from test reviews. Sandbox mode keeps them out now ([#5](https://github.com/bagusardin25/RepostAI/pull/5), [`34e62a5`](https://github.com/bagusardin25/RepostAI/commit/34e62a5), [`1001eec`](https://github.com/bagusardin25/RepostAI/commit/1001eec), [`2cb906d`](https://github.com/bagusardin25/RepostAI/commit/2cb906d); see [Test runs stay out of production data](#test-runs-stay-out-of-production-data)).
+
+One bug got through: the regression planted on purpose in #6. The case written for it passed without clicking Save & approve, and the bug was caught by hand. [PR #6](#what-the-loop-caught-pr-6) has the details.
+
+The sections below have each pull request's runs and root causes.
 
 ### Test runs stay out of production data
 
@@ -174,7 +230,7 @@ Cases that change a pack start their own from the demo sample. Cases that only r
 
 ### What the loop caught: PR #2 and #3
 
-The first runs, 59 cases on [PR #2](https://github.com/bagusardin25/RepostAI/pull/2) and [PR #3](https://github.com/bagusardin25/RepostAI/pull/3), found these problems. They also found the Mind reply race that PR #4 fixes.
+The first runs, 59 cases on [PR #2](https://github.com/bagusardin25/RepostAI/pull/2) and [PR #3](https://github.com/bagusardin25/RepostAI/pull/3), found these problems. They also found the Mind reply race and the stuck packs that PR #4 fixes.
 
 | Found in | What the tests saw | Root cause | Commit |
 |---|---|---|---|
@@ -183,10 +239,11 @@ The first runs, 59 cases on [PR #2](https://github.com/bagusardin25/RepostAI/pul
 
 ### What the loop caught: PR #4
 
-[PR #4](https://github.com/bagusardin25/RepostAI/pull/4) went through the loop. The same 91 TestSprite cases ran before and after its fixes:
+[PR #4](https://github.com/bagusardin25/RepostAI/pull/4) went through the loop. TestSprite ran before and after its fixes, 83 cases in the first run and 91 after:
 
 | Run | Commit | Passed | Failed | Blocked |
 |---|---|---|---|---|
+| [PR #4, run 1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8b696b5f-7b8b-48d7-b164-bf2ab64db329) | `0b90521` | 50 | 15 | 18 |
 | [PR #4, run 2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/8689bf2c-2273-4799-8c5f-f2f37c36e666) | `22ae6fb` | 56 | 15 | 20 |
 | [PR #5](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/eb4b890e-d4d7-44b6-a50d-e751de71846e) | `c3d2f12` | 64 | 17 | 10 |
 | [PR #4, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/9c7268ec-939b-4872-b7b5-c8382819a1cd) | `c8d0baa` | 83 | 3 | 5 |
@@ -196,11 +253,16 @@ Each fix is its own commit, and its message says what TestSprite found:
 | What the tests saw | Root cause | Commit |
 |---|---|---|
 | Fresh packs sat on "Finding moments", then fell back | Packs started together shared one Mind conversation and took each other's replies | `0b90521` |
-| Packs failed mid-run; the page showed "Failed to fetch" | An uncatchable fetch socket assertion ended the API; the page stopped polling after one error | `b30c0c4`, `22ae6fb` |
+| After an API restart, 21 packs stayed on "Preparing clips" forever | Nothing marked the packs a restart had cut off | `0b90521` |
+| Packs failed mid-run with "Processing was interrupted by a server restart" | An uncatchable `fetch` socket assertion ended the API process | `b30c0c4` |
+| The pack page showed only "Failed to fetch", even after the API was back | The page stopped polling after one failed request | `22ae6fb` |
 | Demo packs sat on "Preparing clips" | Every demo pack cut the same windows again | `0b61b33` |
+| Compare showed the selected pack on the other side of its Earlier/Later control | The compare query was not ordered by creation time | `0b61b33` |
 | Packs sat on "Choosing three moments" past five minutes | A pack had no limit on its time in the Mind queue, so the Nth pack waited about N × 3 minutes | `4518e5c` |
 | `FOREIGN KEY constraint failed` in the logs | A pack deleted mid-run still inserted its clips | `6eb1bd1` |
-| No copied state, no word on how moments were picked, no status on the landing page | UI gaps | `09212ca`, `415afcc`, `c8d0baa` |
+| After Copy post, every card read "Copy post" again | The copied state reset after 2 s | `09212ca` |
+| "How this was chosen" listed style notes but not who picked the moments | The section never said whether the Mind or alternative processing chose them | `415afcc` |
+| The status dialog could not be opened from the landing page | The landing page had no status control | `c8d0baa` |
 
 ### What the loop caught: PR #5
 
@@ -230,7 +292,22 @@ PR #5 was merged with a one-time admin bypass, because its trigger replayed an o
 - **The case written for the planted bug passed by mistake.** Its generated script filled the caption but never clicked Save & approve, and the run's AI judge passed it. No caption over 280 characters was saved by any run, which we checked against the API. The case now has to make the click and see the over-limit message. The same had happened on PR #4, where a delete case passed with no delete click in its run log.
 - **The real gap was on the server.** The review API accepted a 300-character X caption with HTTP 200, so the limit lived only in one branch of the clip card's handler.
 
-The fix checks the limit for every action but Reject, in the card ([`frontend/lib/caption-limit.ts`](frontend/lib/caption-limit.ts)) and in the API, which now answers `422` for an over-limit caption. Unit tests cover both, so CI catches this without the browser suite. The PR could merge only after TestSprite passed on the fix. Run links are on the PR.
+The fix checks the limit for every action but Reject, in the card ([`frontend/lib/caption-limit.ts`](frontend/lib/caption-limit.ts)) and in the API, which now answers `422` for an over-limit caption. Unit tests cover both, so CI catches this without the browser suite.
+
+All ten runs, in order. Every red run held the merge, and each fix is its own commit:
+
+| Run | Commit tested | Result | What it showed | Fix |
+|---|---|---|---|---|
+| [1](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/610c5981-e13c-4561-b100-e3e533a8e86c) | `235a85a` | 30/32 | Two cases misread the page, and the case for the planted bug passed without clicking Save & approve | `da9e32d`; two cases rewritten |
+| [2](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/feb64fe0-42bc-415f-8d2a-b67ae371eea7) | `da9e32d` | 31/32 | The delete case misread a search that lists one row | Case clarified |
+| [3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/89d8856e-85eb-45fe-94a8-94de25f8194b) | `1fa03a0` | 31/32, 1 blocked | The X caption was never filled: the clip cards rendered while the progress panel was still fading out, then jumped 646 px up about 1.2 s later | `cd025b0` |
+| [4](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/aff0d635-55d4-47a3-bac3-b018c5f343e6) | `cd025b0` | 30/32, 2 blocked | The delete button sat inside the row's link and stayed at opacity 0 until hover. The X case would not type 300 characters itself. | `1dfe597`; the case now gives the text |
+| [5](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/0222564e-63ad-41d1-9e75-5761d676ff86) | `1dfe597` | 30/32 | The cards said Instagram while the progress frames and the downloads said Reels, and "Why this moment" read like "Why these moments" | `98ef822` |
+| [6](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/ef37ecb1-a294-4934-8dad-5903170b56b2), [8](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/d137d8e7-df69-4863-9182-b9f23b8fd8f4), [9](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/b1bc5604-ecd0-49e4-aae3-c9fd44b45e5b) | `98ef822`, `1ed6e5e`, `c8ec413` | 31/32, 31/32, 30/32 | The MP4 case and the page disagreed on the Instagram download's name | `7c31972`: one name everywhere |
+| [7](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/54065649-b779-4bee-935a-eb3166abd33f) | `7407a3b` | 31/32, 1 blocked | The Mind page waited for a slow Minds API (32 s, then a 500) before it rendered anything, Rules and setup included | `1ed6e5e` |
+| [10](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/dffae7d7-cf56-4a94-b605-d8ec438c5d14) | `7c31972` | **32/32** | | Merged with no bypass |
+
+Runs 6, 8 and 9 were our own mistake rather than a bug: we renamed that download twice (`c8ec413`, `7c31972`) while the case expected the other name.
 
 ---
 
