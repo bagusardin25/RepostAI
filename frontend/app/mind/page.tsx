@@ -22,6 +22,7 @@ export default function MindPage() {
   const [messages, setMessages] = useState<MindMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [historyState, setHistoryState] = useState<"loading" | "ready" | "error">("loading");
   const [sending, setSending] = useState(false);
   const [equipping, setEquipping] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
@@ -30,20 +31,37 @@ export default function MindPage() {
   async function loadHistory() {
     const { messages: next } = await getMindHistory(50);
     setMessages(next);
+    setHistoryState("ready");
   }
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getMindDesk(), getMindHistory(50)])
-      .then(([nextDesk, history]) => {
-        if (cancelled) return;
-        setDesk(nextDesk);
-        setMessages(history.messages);
+    // The page does not wait for the Minds API: the rules are static, and a slow or failing
+    // Mind only affects the status card and the conversation.
+    getMindDesk()
+      .then((nextDesk) => {
+        if (!cancelled) setDesk(nextDesk);
       })
       .catch((err) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Could not load Mind");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load Mind");
       });
+    // The Minds API fails now and then and answers the next call, so try the history a few times
+    // before saying it could not be loaded.
+    void (async () => {
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          const history = await getMindHistory(50);
+          if (cancelled) return;
+          setMessages(history.messages);
+          setHistoryState("ready");
+          return;
+        } catch {
+          if (cancelled) return;
+          if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+        }
+      }
+      if (!cancelled) setHistoryState("error");
+    })();
     return () => {
       cancelled = true;
     };
@@ -116,33 +134,10 @@ export default function MindPage() {
     }
   }
 
-  if (error) {
-    return (
-      <div className="panel p-8 text-center space-y-3 max-w-md mx-auto">
-        <p className="text-xs text-bad" role="alert">{error}</p>
-        <Link href="/desk" className="btn btn-ghost btn-sm">
-          Back to desk
-        </Link>
-      </div>
-    );
-  }
-
-  if (!desk) {
-    return (
-      <div className="space-y-8 max-w-3xl mx-auto" aria-busy="true">
-        <PageHeader
-          kicker="Mind"
-          title="The agent behind the cuts"
-          lede="It picks moments. You still review every pack."
-        />
-        <div className="skel h-32 rounded-[var(--radius-xl)]" />
-        <div className="skel h-16 rounded-[var(--radius-xl)]" />
-      </div>
-    );
-  }
-
-  const online = desk.ok && desk.mind?.isEnabled !== false;
-  const statusLabel = desk.mind?.isEnabled === false ? "Disabled" : desk.ok ? "Connected" : "Offline";
+  const checking = !desk && !error;
+  const online = Boolean(desk?.ok) && desk?.mind?.isEnabled !== false;
+  const statusLabel = desk?.mind?.isEnabled === false ? "Disabled" : online ? "Connected" : "Offline";
+  const offlineReason = desk?.error ?? error;
 
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
@@ -157,21 +152,30 @@ export default function MindPage() {
         }
       />
 
-      <section className="panel p-5 sm:p-6 space-y-4">
+      <section className="panel p-5 sm:p-6 space-y-4" aria-busy={checking}>
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="space-y-1 min-w-0">
-            <p className="timecode text-[11px] text-[var(--fg-muted)]">{desk.mind?.name || "RepostAI Mind"}</p>
+            <p className="timecode text-[11px] text-[var(--fg-muted)]">{desk?.mind?.name || "RepostAI Mind"}</p>
             <h2 className="section-title">
-              {online ? "Ready to pick moments" : "Offline. The built-in picker can still cut clips."}
+              {checking
+                ? "Checking the Mind…"
+                : online
+                  ? "Ready to pick moments"
+                  : "Offline. The built-in picker can still cut clips."}
             </h2>
             <p className="text-xs text-[var(--fg-muted)] leading-relaxed max-w-lg">
               You do not need this page to review clips. Style is taught from Approve, Save & approve, and Reject on the desk.
             </p>
           </div>
-          <span className={`pill ${online ? "pill-ok" : "pill-warn"}`}>{statusLabel}</span>
+          {/* Until the Mind answers, the status is a placeholder rather than a label that could be read as the result. */}
+          {checking ? (
+            <span className="skel h-6 w-24 rounded-full" aria-hidden="true" />
+          ) : (
+            <span className={`pill ${online ? "pill-ok" : "pill-warn"}`}>{statusLabel}</span>
+          )}
         </div>
-        {!online && desk.error && (
-          <p className="text-xs text-bad" role="alert">{desk.error}</p>
+        {!checking && !online && offlineReason && (
+          <p className="text-xs text-bad" role="alert">{offlineReason}</p>
         )}
       </section>
 
@@ -186,14 +190,26 @@ export default function MindPage() {
               <span>
                 <span className="section-title block">Conversation</span>
                 <span className="text-xs text-[var(--fg-muted)]">
-                  {messages.length === 0 ? "No messages yet" : `${messages.length} messages`}
+                  {historyState === "loading"
+                    ? "Loading…"
+                    : historyState === "error"
+                      ? "Could not load"
+                      : messages.length === 0
+                        ? "No messages yet"
+                        : `${messages.length} messages`}
                 </span>
               </span>
             </span>
           </summary>
           <div className="border-t border-[var(--border)]">
             <div className="max-h-[28rem] overflow-y-auto p-4 space-y-3 bg-[var(--bg-card)]/40">
-              {messages.length === 0 ? (
+              {historyState === "loading" ? (
+                <p className="text-xs text-[var(--fg-muted)]">Loading the conversation…</p>
+              ) : historyState === "error" ? (
+                <p className="text-xs text-bad" role="alert">
+                  Could not load the conversation right now. The Minds service did not answer.
+                </p>
+              ) : messages.length === 0 ? (
                 <p className="text-xs text-[var(--fg-muted)]">No messages yet. Run a job or send a note below.</p>
               ) : (
                 messages.map((message) => (
@@ -235,9 +251,9 @@ export default function MindPage() {
                 placeholder="Optional note to the Mind"
                 aria-label="Optional note to the Mind"
                 className="field flex-1 text-sm"
-                disabled={sending || !desk.ok}
+                disabled={sending || !desk?.ok}
               />
-              <button type="submit" className="btn btn-primary btn-sm" disabled={sending || !draft.trim() || !desk.ok}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={sending || !draft.trim() || !desk?.ok}>
                 {sending ? "Sending…" : "Send"}
               </button>
             </form>
@@ -251,7 +267,7 @@ export default function MindPage() {
               <span>
                 <span className="section-title block">Rules and setup</span>
                 <span className="text-xs text-[var(--fg-muted)]">
-                  Never publish · Telegram {desk.mind?.hasTelegram ? "connected" : "not connected"}
+                  Never publish · Telegram {desk?.mind?.hasTelegram ? "connected" : "not connected"}
                 </span>
               </span>
             </span>
@@ -267,7 +283,7 @@ export default function MindPage() {
               <button type="button" className="btn btn-ghost btn-xs" onClick={() => void copyTenets()}>
                 Copy rules
               </button>
-              <button type="button" className="btn btn-ghost btn-xs" disabled={seeding || !desk.ok} onClick={() => void seedTenets()}>
+              <button type="button" className="btn btn-ghost btn-xs" disabled={seeding || !desk?.ok} onClick={() => void seedTenets()}>
                 {seeding ? "Sending…" : "Send rules to Mind"}
               </button>
             </div>
@@ -294,31 +310,31 @@ export default function MindPage() {
           <div className="px-1 pb-6 space-y-4 border-t border-[var(--border)] pt-5">
             <div className="grid gap-2 sm:grid-cols-2 text-xs">
               <p className="cell p-3 text-[var(--fg-muted)]">
-                Alias <span className="block text-[var(--fg)] break-all">{desk.alias}</span>
+                Alias <span className="block text-[var(--fg)] break-all">{desk?.alias ?? "…"}</span>
               </p>
               <p className="cell p-3 text-[var(--fg-muted)]">
-                Email <span className="block text-[var(--fg)] break-all">{desk.mind?.email || "None yet"}</span>
+                Email <span className="block text-[var(--fg)] break-all">{desk?.mind?.email || (desk ? "None yet" : "…")}</span>
               </p>
             </div>
 
             <div className="space-y-2">
               <h3 className="text-xs font-semibold text-[var(--fg)]">Equipped skills</h3>
-              {desk.equippedSkills.length === 0 ? (
+              {(desk?.equippedSkills ?? []).length === 0 ? (
                 <p className="text-xs text-[var(--fg-muted)]">None equipped. The clip playbook currently lives in the prompt.</p>
               ) : (
                 <ul className="space-y-1.5 text-xs text-[var(--fg-muted)]">
-                  {desk.equippedSkills.map((skill) => (
+                  {(desk?.equippedSkills ?? []).map((skill) => (
                     <li key={skill.skillId}>{skill.name || skill.skillId}</li>
                   ))}
                 </ul>
               )}
             </div>
 
-            {desk.bazaarSkills.length > 0 && (
+            {(desk?.bazaarSkills ?? []).length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs font-semibold text-[var(--fg)]">Available skills</h3>
                 <ul className="space-y-2">
-                  {desk.bazaarSkills.map((skill) => (
+                  {(desk?.bazaarSkills ?? []).map((skill) => (
                     <li key={skill.skillId} className="flex items-start justify-between gap-2 text-xs">
                       <span className="min-w-0">
                         <span className="text-[var(--fg)] font-medium">{skill.name}</span>
@@ -340,11 +356,11 @@ export default function MindPage() {
               </div>
             )}
 
-            {desk.circle.length > 0 && (
+            {(desk?.circle ?? []).length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs font-semibold text-[var(--fg)]">Circle</h3>
                 <ul className="grid gap-2 sm:grid-cols-2">
-                  {desk.circle.map((member) => (
+                  {(desk?.circle ?? []).map((member) => (
                     <li key={member.email || member.name} className="cell p-3 text-xs">
                       <p className="font-medium text-[var(--fg)]">{member.name || member.email}</p>
                       <p className="text-[var(--fg-muted)]">{member.isSteward ? "Steward" : member.email}</p>

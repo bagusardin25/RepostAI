@@ -14,6 +14,15 @@ Built for [Creative Minds Jam #1](https://creativemindsjam.com/), track **Conten
   <img src="docs/screenshots/landing.png" alt="RepostAI landing: one source, three vertical cuts, four text drafts" width="920" />
 </p>
 
+## Links
+
+| What | Link |
+|---|---|
+| Live app | [repostai-nine.vercel.app](https://repostai-nine.vercel.app) (no sign-up: open the desk and click **Run the sample**) |
+| PR with the TestSprite check | [#6: a planted bug, the gate, and the fix](https://github.com/bagusardin25/RepostAI/pull/6) |
+| TestSprite runs on #6 | [Run 1: 30/32, blocked](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/610c5981-e13c-4561-b100-e3e533a8e86c) · [Run 2: 31/32, blocked](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/0aa88bf2-b030-4578-a6f3-3963a511e7be/execution/feb64fe0-42bc-415f-8d2a-b67ae371eea7) |
+| Earlier loops | [#4: packs that stole each other's agent replies](https://github.com/bagusardin25/RepostAI/pull/4) · [#5: the redesign](https://github.com/bagusardin25/RepostAI/pull/5) |
+
 ---
 
 ## What you walk away with
@@ -122,7 +131,19 @@ Write a change  →  open a PR  →  Vercel builds a preview  →  TestSprite ru
 - **Trigger:** the TestSprite GitHub App fires on the Vercel **Preview** deployment of each PR and tests `https://repostai-git-{branch-slug}-bagusardinp-3679s-projects.vercel.app`. Previews call the production API, so a run exercises the real pipeline, the Mind included.
 - **Results:** a TestSprite comment on the PR (per-test video, steps, error, cause, and fix) and a `TestSprite V3` commit status.
 - **CI:** GitHub Actions runs `pnpm lint`, `pnpm test`, and `pnpm build` on every pull request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
-- **Merge gate:** a ruleset on `main` requires a pull request and a passing `TestSprite V3` status, and TestSprite reports failures as a failing status, so a failed test holds the merge.
+- **Merge gate:** a ruleset on `main` requires a pull request, a passing `TestSprite V3` status, and a passing CI job, with no bypass. TestSprite reports failures as a failing status, so a failed test holds the merge.
+
+### Bugs the loop caught, in short
+
+| Bug | Found in | Commit |
+|---|---|---|
+| Packs stole each other's AI replies, so fresh packs fell back to the non-AI picker | TestSprite runs on PR #2 and #3 | `0b90521` |
+| The API process died mid-run on an uncatchable `fetch` assertion, and 26 packs in progress failed | TestSprite, PR #4 run 1 | `b30c0c4` |
+| The Nth pack waited about N × 3 minutes for the Mind | TestSprite runs on PR #4 and #5 | `4518e5c` |
+| ffmpeg ran out of threads when several packs were cut at once | TestSprite run on PR #2 | `d9df30e` |
+| The review API saved an X caption over 280 characters | PR #6, while checking a false pass | `da9e32d` |
+
+Each fix is its own commit, and its message names the test that found it. The sections below have the runs and the smaller catches.
 
 ### Test runs stay out of production data
 
@@ -135,19 +156,30 @@ Previews call the production API, so the first runs left about a hundred demo pa
 
 ### What the suite covers
 
-A frontend UI suite built in the TestSprite 3.0 web portal against the live app, with no sign-in.
+32 frontend UI cases built in the TestSprite 3.0 web portal, in the project *RepostAI PR gate*, with no sign-in. Every pull request runs all of them on its own preview.
 
-| Area | What it checks |
-|---|---|
-| Landing and navigation | Landing → desk, section links, header navigation, theme toggle, system status dialog, mobile header, an unknown pack id shows "not found" |
-| Starting a pack | YouTube link, video upload, the demo sample, an invalid link is rejected |
-| Processing | Status updates without a refresh, a failed pack shows its error and Retry, a fallback pack is labeled as alternative processing |
-| Review | Approve, edit the hook or caption and save, reject, an X caption over the limit cannot be approved, Review next, Approve all remaining |
-| Taking the pack | Copy one post, Copy pack, browse the four drafts, download an MP4 |
-| Learning loop | Why these moments, learned style rules, compare two packs after feedback, Mind status and conversation |
-| Desk | Open a pack, search, list filters, view presets, filter the transcript, delete a pack or a project |
+| Area | Cases | What they check |
+|---|---|---|
+| Landing and navigation | 5 | Landing → desk, header navigation, a theme toggle that persists, the system status dialog, Style → back to the desk |
+| Starting a pack and errors | 4 | The demo sample, a non-YouTube link is refused with a message, a failed pack shows its error and Retry, an unknown pack id shows "Job not found" |
+| Review | 5 | Approve, edit the hook and Save & approve, reject with a note, Approve all remaining, an X caption over 280 characters cannot be approved |
+| Pack workspace | 4 | A finished pack's clips and drafts, view presets, the source transcript and its search, Why these moments |
+| Taking the pack | 4 | Copy one post, Copy pack, the four text drafts, the three MP4 download links |
+| Desk | 4 | Open a pack, search, list filters, delete a project |
+| Learning loop | 6 | Compare two packs, the learned style rules and their details, the Mind's status, its conversation, and its saved rules |
 
-`pnpm test` adds unit tests for the pipeline (Mind queue and time limits, transcript grounding, voice memory, ffmpeg, YouTube limits, interrupted packs), media downloads, the crash guard, sandbox detection and filtering, the backfill script, and frontend helpers (download links, Copy pack, clip transcripts and `.srt`, safe zones).
+Cases that change a pack start their own from the demo sample. Cases that only read open a pack from the **Reviewed** tab, which no case changes.
+
+`pnpm test` adds unit tests for the pipeline (Mind queue and time limits, transcript grounding, voice memory, ffmpeg, YouTube limits, interrupted packs), media downloads, the crash guard, sandbox detection and filtering, the backfill script, the caption limit, and frontend helpers (download links, Copy pack, clip transcripts and `.srt`, safe zones, the caption limit on review).
+
+### What the loop caught: PR #2 and #3
+
+The first runs, 59 cases on [PR #2](https://github.com/bagusardin25/RepostAI/pull/2) and [PR #3](https://github.com/bagusardin25/RepostAI/pull/3), found these problems. They also found the Mind reply race that PR #4 fixes.
+
+| Found in | What the tests saw | Root cause | Commit |
+|---|---|---|---|
+| PR #2 | Sample packs ended in Failed with "pthread_create failed: Resource temporarily unavailable" when several were cut at once | Every pack ran ffmpeg with no limit on processes or threads | `d9df30e` |
+| PR #2 | The Completed filter listed finished packs, but every row still read "Ready for review" | No label for a pack with nothing left to review | `7e12986` |
 
 ### What the loop caught: PR #4
 
@@ -186,6 +218,19 @@ Each fix is its own commit, and its message says what TestSprite found:
 | [PR #5, run 3](https://www.testsprite.com/dashboard-v3/o/47417264-6ae1-5d5c-a8bc-37e828bd052e/projects/734e4b92-5ac8-432c-9270-df86c2c3cc32/execution/03509d9a-b03f-4d55-89f5-ffbdc3a63d53) | "Cut this video" stayed disabled for a non-YouTube link, so clicking it did nothing | The button was enabled only for a YouTube link, so a click never reached the check that explains why | `d690215` |
 
 Run 2 confirmed the run 1 fixes: both copies of "Reject an invalid YouTube link" and "Search projects in the Desk list" passed. Run 3 confirmed the run 2 fix: both copies of "Review a finished pack workspace" passed. The other failures in these runs came from older cases written for the pre-redesign UI (the Upload video and Try sample tabs, a "CONTENT PACK" label, Copy pack including clips still under review) or from the shared preview data, such as deleting one of a hundred sample packs with the same title.
+
+PR #5 was merged with a one-time admin bypass, because its trigger replayed an old list of 91 test IDs, including cases deleted from the plan. Since PR #6, pull requests run on a TestSprite project whose plan holds only the 32 current cases, and the ruleset has no bypass.
+
+### What the loop caught: PR #6
+
+[PR #6](https://github.com/bagusardin25/RepostAI/pull/6) tested the gate itself. Its first commit planted a regression on purpose: Approve skipped the caption limit, so a 300-character X caption was saved and the clip turned Ready. Unit tests and the build still passed.
+
+- **The gate held.** The first run went red, 30 of 32, and the required check blocked the merge.
+- **The two failures were test wording, not the app.** One case read the small MP4 links inside the clip cards instead of the "Download MP4s" list. The other searched the transcript for "the" and misread lines that contain it. Both cases were rewritten.
+- **The case written for the planted bug passed by mistake.** Its generated script filled the caption but never clicked Save & approve, and the run's AI judge passed it. No caption over 280 characters was saved by any run, which we checked against the API. The case now has to make the click and see the over-limit message. The same had happened on PR #4, where a delete case passed with no delete click in its run log.
+- **The real gap was on the server.** The review API accepted a 300-character X caption with HTTP 200, so the limit lived only in one branch of the clip card's handler.
+
+The fix checks the limit for every action but Reject, in the card ([`frontend/lib/caption-limit.ts`](frontend/lib/caption-limit.ts)) and in the API, which now answers `422` for an over-limit caption. Unit tests cover both, so CI catches this without the browser suite. The PR could merge only after TestSprite passed on the fix. Run links are on the PR.
 
 ---
 

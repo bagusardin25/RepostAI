@@ -10,7 +10,7 @@ import { IconCheck } from "@frontend/components/icons";
 
 const CUTS: Array<{ platform: string; label: string; crop: FootageCrop; position: string }> = [
   { platform: "tiktok", label: "TikTok", crop: "tiktok", position: "30% 50%" },
-  { platform: "instagram", label: "Reels", crop: "reels", position: "50% 40%" },
+  { platform: "instagram", label: "Instagram", crop: "reels", position: "50% 40%" },
   { platform: "x", label: "X", crop: "x", position: "70% 50%" },
 ];
 

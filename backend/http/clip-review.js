@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getClip, getJob, insertVoiceEdit, listClipsForJob, updateClipReview } from "../db/client.js";
 import { defer, json } from "../lib/http.js";
+import { captionOverLimit } from "../lib/caption-limit.js";
 import { REVIEW_ACTIONS } from "../lib/constants.js";
 import { rememberCreatorDecision, rememberReviewSession } from "../pipeline/minds.js";
 import { publicClip } from "./serialize.js";
@@ -23,6 +24,12 @@ export async function POST(request, params) {
   const editedHook = action === "edit" ? body.hook?.trim() || clip.hook : clip.editedHook;
   const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited";
   const note = body.note?.trim() || null;
+
+  // The clip card checks this too, but a caption over its platform's limit must never be saved or approved.
+  const over = action === "reject" ? 0 : captionOverLimit(clip.platform, editedCaption ?? clip.caption);
+  if (over > 0) {
+    return json({ error: `Caption is ${over} characters over limit.` }, 422);
+  }
 
   await updateClipReview(params.id, {
     status,

@@ -200,15 +200,19 @@ export function JobList({ titleId }: { titleId?: string }) {
             const active = ACTIVE.has(job.status);
 
             return (
-              <Link
+              <div
                 key={job.id}
-                href={`/jobs/${job.id}`}
-                className="group flex flex-col gap-3 px-4 py-4 transition-colors duration-200 hover:bg-[var(--bg-card-hover)] sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+                className="group relative flex flex-col gap-3 px-4 py-4 transition-colors duration-200 hover:bg-[var(--bg-card-hover)] sm:flex-row sm:items-center sm:gap-4 sm:px-5"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.9375rem] font-medium text-[var(--fg-bright)]">
+                  {/* The title link stretches over the whole row, so the row is still one click target,
+                      and the delete button is its own control instead of a button inside a link. */}
+                  <Link
+                    href={`/jobs/${job.id}`}
+                    className="block truncate text-[0.9375rem] font-medium text-[var(--fg-bright)] after:absolute after:inset-0"
+                  >
                     {job.sourceTitle}
-                  </span>
+                  </Link>
                   <span className="mt-0.5 block text-[0.8125rem] text-[var(--fg-muted)]">
                     {sourceTypeLabel(job.sourceType)} ·{" "}
                     <span className="timecode text-xs">{formatDuration(job.durationSec)}</span> ·{" "}
@@ -231,7 +235,7 @@ export function JobList({ titleId }: { titleId?: string }) {
                     type="button"
                     onClick={(e) => void handleDelete(e, job.id, job.sourceTitle)}
                     disabled={deletingId === job.id}
-                    className="icon-btn h-9 w-9 hover:!text-[var(--bad)] hover:!bg-[var(--bad-bg)] opacity-80 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
+                    className="icon-btn relative z-10 h-9 w-9 hover:!text-[var(--bad)] hover:!bg-[var(--bad-bg)] opacity-80 sm:opacity-60 sm:group-hover:opacity-100 focus-visible:opacity-100"
                     title="Delete project"
                     aria-label={`Delete project ${job.sourceTitle}`}
                   >
@@ -242,7 +246,7 @@ export function JobList({ titleId }: { titleId?: string }) {
                     aria-hidden="true"
                   />
                 </span>
-              </Link>
+              </div>
             );
           })}
         </div>
